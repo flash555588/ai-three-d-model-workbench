@@ -275,6 +275,7 @@ export function mountWorkbench(
 
       preview = new BabylonModelPreview(canvas);
       const summary = await preview.loadModel(data, ext, readFile, path);
+      preview.setRenderQuality(ps.store.getState().settings.renderQuality);
       ps.store.setState({ modelPreview: summary });
     } catch (err) {
       console.error("[AI3D] Failed to load model:", err);

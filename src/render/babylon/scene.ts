@@ -547,6 +547,30 @@ export class BabylonModelPreview {
     return this.engine;
   }
 
+  /**
+   * Apply render quality preset.
+   * - low:    0.5x resolution, no shadow blur
+   * - medium: 0.75x resolution, basic shadow blur
+   * - high:   1.0x resolution, full shadow blur (default)
+   */
+  setRenderQuality(quality: "low" | "medium" | "high"): void {
+    const scaleMap = { low: 2, medium: 1.33, high: 1 };
+    const scale = scaleMap[quality];
+    this.engine.setHardwareScalingLevel(scale);
+
+    if (this.shadowGenerator) {
+      const blurMap = { low: 0, medium: 16, high: 32 };
+      this.shadowGenerator.blurKernel = blurMap[quality];
+      if (quality === "low") {
+        this.shadowGenerator.useBlurExponentialShadowMap = false;
+        this.shadowGenerator.useExponentialShadowMap = true;
+      } else {
+        this.shadowGenerator.useBlurExponentialShadowMap = true;
+        this.shadowGenerator.useExponentialShadowMap = false;
+      }
+    }
+  }
+
   destroy() {
     this.engine.stopRenderLoop();
     this.cleanupPicking?.();

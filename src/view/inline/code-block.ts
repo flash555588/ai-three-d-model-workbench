@@ -150,6 +150,9 @@ export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSe
         }
         preview.applyConfig(config);
 
+        // Apply render quality from settings
+        preview.setRenderQuality(settings.renderQuality);
+
         // Apply STL-specific config from model entry
         if (ext === "stl" && modelCfg.color) {
           preview.setSTLColor(modelCfg.color);
