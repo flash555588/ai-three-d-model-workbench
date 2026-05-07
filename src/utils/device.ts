@@ -8,9 +8,9 @@ export function isMobile(): boolean {
 }
 
 /**
- * Hardware scaling level for Babylon Engine.
- * Lower value = higher resolution. 1 = CSS pixel resolution.
- * Mobile: 2 (half resolution) for performance.
+ * Hardware scaling factor for Babylon Engine.
+ * Higher value = lower resolution = better performance.
+ * Desktop: 1 (native), Mobile: 2 (half resolution each axis).
  */
 export function hardwareScale(): number {
   return isMobile() ? 2 : 1;

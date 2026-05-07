@@ -277,18 +277,17 @@ function parsePLY(scene: Scene, data: ArrayBuffer): Mesh {
     vertexData.indices = new Uint32Array(fakeIdx);
   }
 
-  // Apply per-vertex color before mesh creation (Babylon applies automatically)
-  if (parsed.colors.length > 0) {
-    vertexData.colors = new Float32Array(parsed.colors);
-  }
-
   const mesh = new BabylonMesh("ply-model", scene);
   vertexData.applyToMesh(mesh);
 
   const mat = new StandardMaterial("ply-mat", scene);
   mat.backFaceCulling = false;
 
-  if (parsed.colors.length === 0) {
+  // Apply per-vertex color if present (Babylon applies automatically when mesh has vertex colors)
+  if (parsed.colors.length > 0) {
+    vertexData.colors = new Float32Array(parsed.colors);
+    vertexData.applyToMesh(mesh);
+  } else {
     mat.diffuseColor = new Color3(0.7, 0.7, 0.7);
   }
 
