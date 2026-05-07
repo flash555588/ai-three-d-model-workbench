@@ -49,6 +49,7 @@ export class BabylonModelPreview {
   private axisMeshes: Mesh[] = [];
   private autoRotateBehavior: any = null;
   private wireframeEnabled = false;
+  private animPlaying = false;
   private initialCamera = { alpha: Math.PI / 4, beta: Math.PI / 3, radius: 5, target: Vector3.Zero() };
 
   constructor(canvas: HTMLCanvasElement) {
@@ -427,6 +428,30 @@ export class BabylonModelPreview {
   toggleWireframe(): boolean {
     this.setWireframe(!this.wireframeEnabled);
     return this.wireframeEnabled;
+  }
+
+  hasAnimations(): boolean {
+    return this.scene.animationGroups.length > 0;
+  }
+
+  toggleAnimation(): boolean {
+    const groups = this.scene.animationGroups;
+    if (groups.length === 0) return false;
+    this.animPlaying = !this.animPlaying;
+    for (const g of groups) {
+      if (this.animPlaying) {
+        g.play(true);
+      } else {
+        g.pause();
+      }
+    }
+    return this.animPlaying;
+  }
+
+  setAnimationSpeed(speed: number): void {
+    for (const g of this.scene.animationGroups) {
+      g.speedRatio = speed;
+    }
   }
 
   captureSnapshot(): string | null {
