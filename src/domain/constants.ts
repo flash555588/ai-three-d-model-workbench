@@ -1,6 +1,6 @@
 import type { PluginSettings, CameraConfig, LightConfig, SceneConfig } from "./models";
 
-export const SUPPORTED_MODEL_EXTENSIONS = new Set(["glb", "gltf", "stl", "obj", "splat"]);
+export const SUPPORTED_MODEL_EXTENSIONS = new Set(["glb", "gltf", "stl", "obj", "splat", "ply"]);
 
 export const MAX_TAGS_PER_FIELD = 12;
 

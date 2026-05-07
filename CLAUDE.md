@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-**AI 3D Model Workbench** - An Obsidian desktop plugin that renders 3D models (GLB/GLTF/STL/OBJ/SPLAT) in a Babylon.js viewport and links them to Obsidian knowledge notes. Targets Obsidian >= 1.5.0, desktop only.
+**AI 3D Model Workbench** - An Obsidian plugin that renders 3D models (GLB/GLTF/STL/OBJ/SPLAT/PLY) in a Babylon.js viewport and links them to Obsidian knowledge notes. Targets Obsidian >= 1.5.0, desktop and mobile.
 
 ## Build Commands
 
@@ -34,6 +34,7 @@ Entry point: `src/main.ts` → esbuild bundles to `main.js` (CJS, ES2018). `main
 | Grid renderer | `src/render/babylon/grid.ts` | `GridRenderer` class: single Engine/Scene with per-cell viewports, LayerMask isolation, `loadWithPreset()` for preset layouts |
 | Presets | `src/render/babylon/presets/` | Preset template system: `compare` (A/B), `showcase` (multi-angle), `explode` (ring), `timeline` (strip) |
 | STL loader | `src/render/babylon/loaders/stl-loader.ts` | Self-written binary STL parser registered as Babylon SceneLoader plugin |
+| PLY loader | `src/render/babylon/loaders/ply-loader.ts` | Self-written ASCII/binary PLY parser (triangulated mesh + point cloud + vertex color) |
 | Loader registry | `src/render/babylon/loaders/register.ts` | Side-effect imports registering GLTF, OBJ, SPLAT loaders with Babylon SceneLoader |
 | Explode | `src/render/babylon/explode.ts` | Explosion view (world-space displacement) |
 | Picking | `src/render/babylon/picking.ts` | Click-to-highlight (clones material to avoid shared-material mutation) |
@@ -48,6 +49,7 @@ Entry point: `src/main.ts` → esbuild bundles to `main.js` (CJS, ES2018). `main
 | Live Preview | `src/view/inline/live-preview.ts` | Phase 0 stub — Stage 1 will add CM6 embed rendering |
 | Settings | `src/settings.ts` | `PluginSettingTab` with 3 fields (folders + auto-generate toggle) |
 | Utilities | `src/utils/format.ts` | `formatFileSize`, `escapeObsidianMarkup`, `normalizeTagList` |
+| Device | `src/utils/device.ts` | `isMobile()`, `hardwareScale()` — mobile detection and Babylon resolution tuning |
 
 ### Key Data Flow
 

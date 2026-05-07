@@ -26,10 +26,13 @@ import type {
 } from "../../domain/models";
 import "./loaders/register";
 import { registerSTLLoader } from "./loaders/stl-loader";
+import { registerPLYLoader } from "./loaders/ply-loader";
 import { setExplode, resetExplode } from "./explode";
 import { setupPicking } from "./picking";
+import { hardwareScale } from "../../utils/device";
 
 let stlRegistered = false;
+let plyRegistered = false;
 
 export class BabylonModelPreview {
   private engine: Engine;
@@ -48,7 +51,8 @@ export class BabylonModelPreview {
   private autoRotateBehavior: any = null;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true });
+    this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true, adaptToDeviceRatio: false });
+    this.engine.setHardwareScalingLevel(hardwareScale());
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.12, 0.12, 0.14, 1);
 
@@ -77,6 +81,10 @@ export class BabylonModelPreview {
       await registerSTLLoader();
       stlRegistered = true;
     }
+    if (!plyRegistered) {
+      await registerPLYLoader();
+      plyRegistered = true;
+    }
 
     if (this.rootMesh) {
       this.rootMesh.dispose(true, true);
@@ -94,6 +102,7 @@ export class BabylonModelPreview {
       stl: ".stl",
       obj: ".obj",
       splat: ".splat",
+      ply: ".ply",
     };
     const fileExt = extToLoader[extLower] ?? `.${extLower}`;
 
@@ -469,10 +478,8 @@ export class BabylonModelPreview {
       if (m.material) materials.add(m.material.name);
     }
 
-    // SPLAT has no index buffer — show splat count (= vertices) as the primary metric
-    if (isSplat && triangleCount === 0) {
-      triangleCount = vertexCount;
-    }
+    // SPLAT has no index buffer — report splat count separately
+    const splatCount = isSplat ? vertexCount : undefined;
 
     const bbox = root.getHierarchyBoundingVectors();
     const size = bbox.max.subtract(bbox.min);
@@ -480,6 +487,7 @@ export class BabylonModelPreview {
     return {
       meshCount: allMeshes.length,
       triangleCount,
+      splatCount,
       vertexCount,
       materialCount: materials.size,
       boundingSize: { x: size.x, y: size.y, z: size.z },

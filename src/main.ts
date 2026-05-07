@@ -153,7 +153,7 @@ export default class AI3DModelWorkbench extends Plugin {
             "| Metric | Value |",
             "|--------|-------|",
             `| Meshes | ${preview.meshCount} |`,
-            `| Triangles | ${preview.triangleCount.toLocaleString()} |`,
+            `| ${preview.splatCount ? "Splats" : "Triangles"} | ${(preview.splatCount ?? preview.triangleCount).toLocaleString()} |`,
             `| Vertices | ${preview.vertexCount.toLocaleString()} |`,
             `| Materials | ${preview.materialCount} |`,
             "",

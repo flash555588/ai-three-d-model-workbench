@@ -10,8 +10,11 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
 import type { ModelConfig, GridBlockConfig, ModelPlacement, PresetCameraDef, CellLayout, PresetResult } from "../../domain/models";
 import "./loaders/register";
 import { registerSTLLoader } from "./loaders/stl-loader";
+import { registerPLYLoader } from "./loaders/ply-loader";
+import { hardwareScale } from "../../utils/device";
 
 let stlRegistered = false;
+let plyRegistered = false;
 
 /** Babylon.js uses 32-bit layerMask — one bit per cell, so max 32 cells. */
 const MAX_CELLS = 32;
@@ -35,7 +38,8 @@ export class GridRenderer {
   constructor(canvas: HTMLCanvasElement) {
     canvas.style.width = "100%";
     canvas.style.height = "100%";
-    this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true });
+    this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true, adaptToDeviceRatio: false });
+    this.engine.setHardwareScalingLevel(hardwareScale());
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.12, 0.12, 0.14, 1);
     this.scene.autoClear = false;
@@ -54,6 +58,10 @@ export class GridRenderer {
     if (!stlRegistered) {
       await registerSTLLoader();
       stlRegistered = true;
+    }
+    if (!plyRegistered) {
+      await registerPLYLoader();
+      plyRegistered = true;
     }
 
     const effectiveModels = models.length > MAX_CELLS
@@ -96,6 +104,10 @@ export class GridRenderer {
     if (!stlRegistered) {
       await registerSTLLoader();
       stlRegistered = true;
+    }
+    if (!plyRegistered) {
+      await registerPLYLoader();
+      plyRegistered = true;
     }
 
     // Load each unique model placement (deduplicated by path+position)
@@ -204,7 +216,7 @@ export class GridRenderer {
     const ext = path.split(".").pop()?.replace(".", "").toLowerCase() ?? "glb";
     const dataUrl = `data:application/octet-stream;base64,${arrayBufferToBase64(data)}`;
     const extToLoader: Record<string, string> = {
-      glb: ".glb", gltf: ".gltf", stl: ".stl", obj: ".obj", splat: ".splat",
+      glb: ".glb", gltf: ".gltf", stl: ".stl", obj: ".obj", splat: ".splat", ply: ".ply",
     };
     const fileExt = extToLoader[ext] ?? `.${ext}`;
 

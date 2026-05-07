@@ -55,6 +55,7 @@ export interface ModelAssetProfile {
 export interface ModelPreviewSummary {
   meshCount: number;
   triangleCount: number;
+  splatCount?: number;
   vertexCount: number;
   materialCount: number;
   boundingSize: { x: number; y: number; z: number };
@@ -68,7 +69,7 @@ export interface AssetRecord {
   title: string;
   sourcePath: string;
   vaultPath?: string;
-  format: "glb" | "gltf" | "stl" | "obj" | "splat";
+  format: "glb" | "gltf" | "stl" | "obj" | "splat" | "ply";
   importedAt: string;
   updatedAt: string;
   status: "idle" | "processing" | "ready" | "error";

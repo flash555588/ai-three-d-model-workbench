@@ -6,5 +6,5 @@
   "description": "Turn 3D models into linked knowledge assets inside Obsidian.",
   "author": "flash",
   "authorUrl": "",
-  "isDesktopOnly": true
+  "isDesktopOnly": false
 }

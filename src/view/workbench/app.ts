@@ -119,8 +119,8 @@ export function mountWorkbench(
                 <div class="ai3d-summary-value">${sp.meshCount}</div>
               </div>
               <div class="ai3d-summary-item">
-                <div class="ai3d-summary-label">Triangles</div>
-                <div class="ai3d-summary-value">${sp.triangleCount.toLocaleString()}</div>
+                <div class="ai3d-summary-label">${sp.splatCount ? "Splats" : "Triangles"}</div>
+                <div class="ai3d-summary-value">${(sp.splatCount ?? sp.triangleCount).toLocaleString()}</div>
               </div>
               <div class="ai3d-summary-item">
                 <div class="ai3d-summary-label">Materials</div>
@@ -322,7 +322,7 @@ function buildNoteContent(
           "| Metric | Value |",
           "|--------|-------|",
           `| Meshes | ${preview.meshCount} |`,
-          `| Triangles | ${preview.triangleCount.toLocaleString()} |`,
+          `| ${preview.splatCount ? "Splats" : "Triangles"} | ${(preview.splatCount ?? preview.triangleCount).toLocaleString()} |`,
           `| Vertices | ${preview.vertexCount.toLocaleString()} |`,
           `| Materials | ${preview.materialCount} |`,
           `| Bounding Size | ${preview.boundingSize.x.toFixed(2)} x ${preview.boundingSize.y.toFixed(2)} x ${preview.boundingSize.z.toFixed(2)} |`,
