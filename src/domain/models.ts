@@ -19,6 +19,14 @@ export interface PluginSettings {
   sendPreviewImagesToRemote: boolean;
   sendGeometrySummaryToRemote: boolean;
   defaultKnowledgeTaxonomy: string;
+  // Performance & display
+  defaultCanvasHeight: number;
+  autoRotateDefault: boolean;
+  autoRotateSpeed: number;
+  renderQuality: "low" | "medium" | "high";
+  // Snapshot export
+  snapshotFolder: string;
+  snapshotNaming: "timestamp" | "model-name";
 }
 
 // ── Persisted Plugin State ───────────────────────────────────────
