@@ -11,7 +11,6 @@ import type { ModelConfig, GridBlockConfig, ModelPlacement, PresetCameraDef, Cel
 import "./loaders/register";
 import { registerSTLLoader } from "./loaders/stl-loader";
 import { registerPLYLoader } from "./loaders/ply-loader";
-import { hardwareScale } from "../../utils/device";
 
 let stlRegistered = false;
 let plyRegistered = false;
@@ -38,8 +37,7 @@ export class GridRenderer {
   constructor(canvas: HTMLCanvasElement) {
     canvas.style.width = "100%";
     canvas.style.height = "100%";
-    this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true, adaptToDeviceRatio: false });
-    this.engine.setHardwareScalingLevel(hardwareScale());
+    this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true });
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.12, 0.12, 0.14, 1);
     this.scene.autoClear = false;
