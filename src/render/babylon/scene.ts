@@ -52,6 +52,8 @@ export class BabylonModelPreview {
   private wireframeEnabled = false;
   private gizmo: OrientationGizmo | null = null;
   private gizmoEnabled = false;
+  private bboxMesh: Mesh | null = null;
+  private bboxEnabled = false;
   private animPlaying = false;
   private initialCamera = { alpha: Math.PI / 4, beta: Math.PI / 3, radius: 5, target: Vector3.Zero() };
 
@@ -471,6 +473,33 @@ export class BabylonModelPreview {
     return this.gizmoEnabled;
   }
 
+  toggleBoundingBox(): boolean {
+    this.bboxEnabled = !this.bboxEnabled;
+    if (this.bboxEnabled) {
+      if (!this.rootMesh) return this.bboxEnabled;
+      if (this.bboxMesh) this.bboxMesh.dispose();
+      this.rootMesh.computeWorldMatrix(true);
+      const bb = this.rootMesh.getHierarchyBoundingVectors();
+      const center = bb.min.add(bb.max.subtract(bb.min).scale(0.5));
+      const size = bb.max.subtract(bb.min);
+
+      this.bboxMesh = MeshBuilder.CreateBox("bbox", {
+        width: size.x, height: size.y, depth: size.z,
+      }, this.scene);
+      this.bboxMesh.position = center;
+      const mat = new StandardMaterial("bbox-mat", this.scene);
+      mat.wireframe = true;
+      mat.emissiveColor = new Color3(1, 1, 0);
+      mat.disableLighting = true;
+      mat.alpha = 0.6;
+      this.bboxMesh.material = mat;
+    } else {
+      this.bboxMesh?.dispose();
+      this.bboxMesh = null;
+    }
+    return this.bboxEnabled;
+  }
+
   // ── Existing API ─────────────────────────────────────────────────
 
   setExplode(factor: number, axis: "x" | "y" | "z") {
@@ -588,6 +617,8 @@ export class BabylonModelPreview {
     this.cleanupPicking = null;
     this.gizmo?.dispose();
     this.gizmo = null;
+    this.bboxMesh?.dispose();
+    this.bboxMesh = null;
     this.camera.detachControl();
     this.resizeObs.disconnect();
     if (this.autoRotateBehavior) {

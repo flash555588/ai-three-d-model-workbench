@@ -8,6 +8,7 @@ export interface SnapshotProvider {
   exportModelInfo?(modelPath?: string): string;
   toggleWireframe?(): boolean;
   toggleOrientationGizmo?(): boolean;
+  toggleBoundingBox?(): boolean;
   hasAnimations?(): boolean;
   toggleAnimation?(): boolean;
 }
@@ -94,6 +95,20 @@ export function createHelperButtons(
     showTooltip(gizmoBtn, on ? "Axes On" : "Axes Off");
   });
   toolbar.appendChild(gizmoBtn);
+
+  // Bounding box toggle button (cube outline icon)
+  const bboxBtn = document.createElement("button");
+  bboxBtn.className = "ai3d-inline-btn";
+  bboxBtn.setAttribute("aria-label", "Toggle bounding box");
+  bboxBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`;
+  bboxBtn.addEventListener("click", () => {
+    const preview = getPreview();
+    if (!preview?.toggleBoundingBox) return;
+    const on = preview.toggleBoundingBox();
+    bboxBtn.style.color = on ? "var(--interactive-accent)" : "";
+    showTooltip(bboxBtn, on ? "BBox On" : "BBox Off");
+  });
+  toolbar.appendChild(bboxBtn);
 
   // Animation play/pause button (play triangle — hidden until animations detected)
   const animBtn = document.createElement("button");
