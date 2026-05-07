@@ -448,6 +448,62 @@ export class BabylonModelPreview {
     this.camera.target = this.initialCamera.target.clone();
   }
 
+  exportModelInfo(modelPath?: string): string {
+    if (!this.rootMesh) return "";
+    const summary = this.computeSummary(this.rootMesh);
+    const allMeshes = this.rootMesh.getChildMeshes(true);
+    const isSplat = this.rootMesh instanceof GaussianSplattingMesh;
+    const ext = this.loadedExt.toUpperCase();
+
+    const name = modelPath?.split("/").pop() ?? summary.rootName;
+    const countLabel = isSplat ? "Splats" : "Triangles";
+
+    const lines: string[] = [];
+    lines.push(`## ${name} — Model Info`);
+    lines.push("");
+    lines.push("| Property | Value |");
+    lines.push("|----------|-------|");
+    lines.push(`| Format | ${ext} |`);
+    lines.push(`| Meshes | ${summary.meshCount} |`);
+    lines.push(`| ${countLabel} | ${(summary.splatCount ?? summary.triangleCount).toLocaleString()} |`);
+    lines.push(`| Vertices | ${summary.vertexCount.toLocaleString()} |`);
+    lines.push(`| Materials | ${summary.materialCount} |`);
+    lines.push(`| Bounding Size | ${summary.boundingSize.x.toFixed(3)} x ${summary.boundingSize.y.toFixed(3)} x ${summary.boundingSize.z.toFixed(3)} |`);
+    lines.push("");
+
+    // Per-mesh breakdown (skip if > 50 meshes to avoid noise)
+    if (allMeshes.length > 1 && allMeshes.length <= 50) {
+      lines.push("### Mesh Breakdown");
+      lines.push("");
+      lines.push("| # | Name | Triangles | Vertices | Material |");
+      lines.push("|---|------|-----------|----------|----------|");
+      for (let i = 0; i < allMeshes.length; i++) {
+        const m = allMeshes[i];
+        const tris = isSplat ? "—" : Math.floor(m.getTotalIndices() / 3).toLocaleString();
+        const verts = m.getTotalVertices().toLocaleString();
+        const mat = m.material?.name ?? "—";
+        lines.push(`| ${i + 1} | ${m.name} | ${tris} | ${verts} | ${mat} |`);
+      }
+      lines.push("");
+    }
+
+    // Material list
+    const matNames = new Set<string>();
+    for (const m of allMeshes) {
+      if (m.material) matNames.add(m.material.name);
+    }
+    if (matNames.size > 0) {
+      lines.push("### Materials");
+      lines.push("");
+      for (const name of matNames) {
+        lines.push(`- ${name}`);
+      }
+      lines.push("");
+    }
+
+    return lines.join("\n");
+  }
+
   getRootMesh(): Mesh | null {
     return this.rootMesh;
   }
