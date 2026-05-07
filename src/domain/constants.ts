@@ -1,0 +1,40 @@
+import type { PluginSettings, CameraConfig, LightConfig, SceneConfig } from "./models";
+
+export const SUPPORTED_MODEL_EXTENSIONS = new Set(["glb", "gltf", "stl", "obj", "splat"]);
+
+export const MAX_TAGS_PER_FIELD = 12;
+
+export const DEFAULT_SETTINGS: PluginSettings = {
+  analysisMode: "local",
+  serviceBaseUrl: "",
+  copySourceModelToVault: false,
+  sourceModelFolder: "Assets/3D",
+  reportFolder: "Analysis/3D Reports",
+  partFolder: "Parts/3D Components",
+  previewFolder: "Media/3D Previews",
+  maxFileSizeMb: 50,
+  autoGenerateKnowledgeNotes: true,
+  sendRawModelToRemote: false,
+  sendPreviewImagesToRemote: false,
+  sendGeometrySummaryToRemote: false,
+  defaultKnowledgeTaxonomy: "default-v1",
+};
+
+export const DEFAULT_CAMERA_CONFIG: CameraConfig = {
+  mode: "perspective",
+  fov: 45,
+};
+
+export const DEFAULT_LIGHTS: LightConfig[] = [
+  { type: "hemisphere", color: "#ffffff", intensity: 1, groundColor: "#444444" },
+];
+
+export const DEFAULT_SCENE_CONFIG: SceneConfig = {
+  background: "#1e1e22",
+  transparent: false,
+  autoRotate: false,
+  autoRotateSpeed: 0.5,
+  groundShadow: false,
+  grid: false,
+  axis: false,
+};

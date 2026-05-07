@@ -1,0 +1,70 @@
+import type { Plugin } from "obsidian";
+import type { PluginState, PersistedPluginState, PluginSettings } from "../domain/models";
+import { DEFAULT_SETTINGS } from "../domain/constants";
+import { createStore, type Store } from "./create-store";
+
+export interface PluginStore {
+  store: Store<PluginState>;
+  load: () => Promise<void>;
+  save: () => Promise<void>;
+}
+
+const INITIAL_STATE: PluginState = {
+  settings: { ...DEFAULT_SETTINGS },
+  currentModelPath: null,
+  modelAssetProfiles: {},
+  agentDraft: "",
+  agentPlan: null,
+  modelPreview: null,
+};
+
+export function createPluginStore(plugin: Plugin): PluginStore {
+  const store = createStore<PluginState>(INITIAL_STATE);
+
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function scheduleSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      persist();
+    }, 500);
+  }
+
+  async function persist() {
+    const s = store.getState();
+    const data: PersistedPluginState = {
+      settings: s.settings,
+      modelAssetProfiles: s.modelAssetProfiles,
+      agentDraft: s.agentDraft,
+      agentPlan: s.agentPlan,
+    };
+    await plugin.saveData(data);
+  }
+
+  // Auto-save on every state change
+  store.subscribe(() => scheduleSave());
+
+  return {
+    store,
+
+    async load() {
+      const saved: PersistedPluginState | null = await plugin.loadData();
+      if (!saved) return;
+      store.setState({
+        settings: { ...DEFAULT_SETTINGS, ...(saved.settings ?? {}) },
+        modelAssetProfiles: saved.modelAssetProfiles ?? {},
+        agentDraft: saved.agentDraft ?? "",
+        agentPlan: saved.agentPlan ?? null,
+      });
+    },
+
+    async save() {
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+      }
+      await persist();
+    },
+  };
+}

@@ -1,0 +1,26 @@
+{
+  "name": "obsidian-ai-3d-model-workbench",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Obsidian plugin scaffold for AI-assisted 3D model analysis and knowledge mapping.",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "devDependencies": {
+    "@codemirror/language": "^6.12.3",
+    "@lezer/common": "^1.5.2",
+    "@lezer/highlight": "^1.2.3",
+    "@lezer/lr": "^1.4.10",
+    "@types/node": "^22.15.17",
+    "esbuild": "^0.25.4",
+    "obsidian": "^1.8.7",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^9.5.2",
+    "@babylonjs/loaders": "^9.5.2",
+    "htm": "^3.1.1"
+  }
+}

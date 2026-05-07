@@ -1,0 +1,299 @@
+/**
+ * All shared interfaces for AI 3D Model Workbench.
+ * Source of truth for data structures — no runtime code.
+ */
+
+// ── Plugin Settings ──────────────────────────────────────────────
+
+export interface PluginSettings {
+  analysisMode: "local" | "remote" | "hybrid";
+  serviceBaseUrl: string;
+  copySourceModelToVault: boolean;
+  sourceModelFolder: string;
+  reportFolder: string;
+  partFolder: string;
+  previewFolder: string;
+  maxFileSizeMb: number;
+  autoGenerateKnowledgeNotes: boolean;
+  sendRawModelToRemote: boolean;
+  sendPreviewImagesToRemote: boolean;
+  sendGeometrySummaryToRemote: boolean;
+  defaultKnowledgeTaxonomy: string;
+}
+
+// ── Persisted Plugin State ───────────────────────────────────────
+
+export interface PersistedPluginState {
+  settings: PluginSettings;
+  modelAssetProfiles: Record<string, ModelAssetProfile>;
+  agentDraft: string;
+  agentPlan: AgentTaskPlan | null;
+}
+
+// ── Store State (extends persisted with transient fields) ────────
+
+export interface PluginState {
+  settings: PluginSettings;
+  currentModelPath: string | null;
+  modelAssetProfiles: Record<string, ModelAssetProfile>;
+  agentDraft: string;
+  agentPlan: AgentTaskPlan | null;
+  modelPreview: ModelPreviewSummary | null;
+}
+
+// ── Per-Model Asset Profile ──────────────────────────────────────
+
+export interface ModelAssetProfile {
+  tags: string[];
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Model Preview Summary ────────────────────────────────────────
+
+export interface ModelPreviewSummary {
+  meshCount: number;
+  triangleCount: number;
+  vertexCount: number;
+  materialCount: number;
+  boundingSize: { x: number; y: number; z: number };
+  rootName: string;
+}
+
+// ── Asset Record ─────────────────────────────────────────────────
+
+export interface AssetRecord {
+  assetId: string;
+  title: string;
+  sourcePath: string;
+  vaultPath?: string;
+  format: "glb" | "gltf" | "stl" | "obj" | "splat";
+  importedAt: string;
+  updatedAt: string;
+  status: "idle" | "processing" | "ready" | "error";
+  vertexCount?: number;
+  triangleCount?: number;
+  materialCount?: number;
+  boundingBox?: [number, number, number];
+  analysisVersion?: string;
+  reportNotePath?: string;
+  sidecarPath?: string;
+}
+
+// ── Part Record ──────────────────────────────────────────────────
+
+export interface PartRecord {
+  partId: string;
+  assetId: string;
+  parentPartId?: string;
+  name: string;
+  category?: string;
+  meshRefs: string[];
+  materialRefs: string[];
+  bbox?: [number, number, number];
+  confidence: number;
+  observations: string[];
+  inferredFunctions: string[];
+  knowledgeTags: string[];
+  notePath?: string;
+  reviewed: boolean;
+}
+
+// ── Knowledge Node ───────────────────────────────────────────────
+
+export type KnowledgeDomain =
+  | "geometry"
+  | "topology"
+  | "material"
+  | "rigging"
+  | "rendering"
+  | "manufacturing"
+  | "assembly";
+
+export interface KnowledgeNode {
+  id: string;
+  title: string;
+  domain: KnowledgeDomain;
+  summary: string;
+  relatedPartIds: string[];
+  relatedAssetIds: string[];
+  confidence: number;
+  source: "rule" | "ai" | "user";
+}
+
+// ── Analysis Result ──────────────────────────────────────────────
+
+export interface AnalysisPipelineStage {
+  stage: "normalize" | "stats" | "render" | "split" | "reason" | "map";
+  durationMs: number;
+  status: "success" | "failed" | "skipped";
+}
+
+export interface AnalysisResult {
+  asset: AssetRecord;
+  parts: PartRecord[];
+  knowledgeNodes: KnowledgeNode[];
+  previewImages: string[];
+  warnings: string[];
+  pipeline: AnalysisPipelineStage[];
+}
+
+// ── 3D Code Block Config ───────────────────────────────────────
+
+export type LightType =
+  | "directional"
+  | "ambient"
+  | "point"
+  | "spot"
+  | "hemisphere"
+  | "attachToCam";
+
+export interface ModelConfig {
+  path: string;
+  color?: string;
+  wireframe?: boolean;
+}
+
+export interface CameraConfig {
+  position?: [number, number, number];
+  lookAt?: [number, number, number];
+  fov?: number;
+  mode?: "perspective" | "orthographic";
+  zoom?: number;
+  near?: number;
+  far?: number;
+}
+
+export interface LightConfig {
+  type: LightType;
+  color?: string;
+  intensity?: number;
+  position?: [number, number, number];
+  target?: [number, number, number];
+  castShadow?: boolean;
+  angle?: number;
+  penumbra?: number;
+  decay?: number;
+  groundColor?: string;
+}
+
+export interface SceneConfig {
+  background?: string;
+  transparent?: boolean;
+  autoRotate?: boolean;
+  autoRotateSpeed?: number;
+  groundShadow?: boolean;
+  grid?: boolean;
+  axis?: boolean;
+}
+
+export interface STLConfig {
+  color?: string;
+  wireframe?: boolean;
+}
+
+export interface ThreeDBlockConfig {
+  models: ModelConfig[];
+  camera?: CameraConfig;
+  lights?: LightConfig[];
+  scene?: SceneConfig;
+  stl?: STLConfig;
+  width?: number | string;
+  height?: number | string;
+}
+
+export interface GridBlockConfig {
+  models: ModelConfig[];
+  /** Preset template name: "compare" | "showcase" | "explode" | "timeline" | "compose" */
+  preset?: string;
+  /** Preset-specific parameters (spacing, camera distance, etc.) */
+  params?: Record<string, number | string | boolean>;
+  /** Sections for the "compose" preset. */
+  sections?: ComposeSection[];
+  /** Compose layout direction: "horizontal" (default) or "vertical". */
+  direction?: "horizontal" | "vertical";
+  columns?: number;
+  rowHeight?: number | "auto";
+  gapX?: number;
+  gapY?: number;
+  camera?: CameraConfig;
+  lights?: LightConfig[];
+  scene?: SceneConfig;
+}
+
+/** One model's placement in world space. */
+export interface ModelPlacement {
+  path: string;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: number;
+  color?: string;
+  wireframe?: boolean;
+}
+
+/** Camera definition for one viewport cell. */
+export interface PresetCameraDef {
+  alpha: number;
+  beta: number;
+  radiusMultiplier?: number;
+  target?: [number, number, number];
+  fov?: number;
+  ortho?: boolean;
+}
+
+/** Viewport rectangle in normalized 0-1 coordinates. */
+export interface ViewportRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Cell layout: which model index + which camera config + viewport. */
+export interface CellLayout {
+  modelIndex: number;
+  camera: PresetCameraDef;
+  viewport: ViewportRect;
+}
+
+/** Result of a preset calculation. */
+export interface PresetResult {
+  placements: ModelPlacement[];
+  cells: CellLayout[];
+  /** If set, all cell viewports are remapped into this rectangle. */
+  bounds?: ViewportRect;
+}
+
+/** Section definition for the "compose" preset. */
+export interface ComposeSection {
+  preset: string;
+  models: (string | ModelConfig)[];
+  params?: Record<string, number | string | boolean>;
+  /** Relative weight for horizontal/vertical space分配 (default: 1). */
+  weight?: number;
+}
+
+// ── Agent Task Plan ──────────────────────────────────────────────
+
+export interface AgentTaskPlan {
+  targetApp: string;
+  taskType: string;
+  userIntent: string;
+  constraints: string[];
+  deliverable: string;
+  primaryBackend: string;
+  fallbackBackend: string;
+  status: "draft" | "confirmed" | "running" | "completed" | "failed";
+  steps: AgentTaskStep[];
+  logs: string[];
+  artifacts: string[];
+}
+
+export interface AgentTaskStep {
+  id: string;
+  label: string;
+  status: "pending" | "running" | "completed" | "failed" | "skipped";
+  durationMs?: number;
+  output?: string;
+}

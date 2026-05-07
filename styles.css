@@ -1,0 +1,747 @@
+/* ===== AI 3D Model Workbench — Obsidian-native Design ===== */
+
+/* --- Layout --- */
+
+.ai3d-workbench {
+  --ai3d-spacing: var(--size-4-3);
+  --ai3d-radius: var(--radius-s);
+  --ai3d-radius-l: var(--radius-l);
+  padding: var(--ai3d-spacing);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai3d-spacing);
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* --- Section --- */
+
+.ai3d-section {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--ai3d-radius-l);
+  background: var(--background-primary);
+}
+
+.ai3d-section-header {
+  padding: var(--ai3d-spacing) var(--ai3d-spacing) 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--size-4-2);
+}
+
+.ai3d-section-title {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-normal);
+  line-height: 1.4;
+}
+
+.ai3d-section-subtitle {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.ai3d-section-body {
+  padding: var(--ai3d-spacing);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai3d-spacing);
+}
+
+/* --- Model Status --- */
+
+.ai3d-model-status {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  padding: var(--size-4-2) var(--ai3d-spacing);
+  border-radius: var(--ai3d-radius);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  min-height: 36px;
+}
+
+.ai3d-model-name {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.ai3d-model-meta {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ai3d-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.ai3d-status-dot.is-active {
+  background: var(--color-green);
+}
+
+.ai3d-status-dot.is-loading {
+  background: var(--color-yellow);
+  animation: ai3d-pulse 1.2s ease-in-out infinite;
+}
+
+.ai3d-status-dot.is-error {
+  background: var(--color-red);
+}
+
+@keyframes ai3d-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* --- Toolbar --- */
+
+.ai3d-toolbar {
+  display: flex;
+  gap: var(--size-4-1);
+  flex-wrap: wrap;
+}
+
+.ai3d-toolbar .clickable-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ai3d-radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.ai3d-toolbar .clickable-icon:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+/* --- Preview Host --- */
+
+.ai3d-preview-host {
+  min-height: clamp(280px, 40vh, 560px);
+  border-radius: var(--ai3d-radius) var(--ai3d-radius) 0 0;
+  border: 1px solid var(--background-modifier-border);
+  overflow: hidden;
+  background: var(--background-secondary);
+  position: relative;
+}
+
+.ai3d-preview-host canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* --- Empty / Loading States --- */
+
+.ai3d-empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ai3d-spacing);
+  text-align: center;
+  gap: var(--size-4-2);
+  color: var(--text-muted);
+}
+
+.ai3d-empty-icon {
+  font-size: 28px;
+  opacity: 0.5;
+}
+
+.ai3d-empty-title {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ai3d-empty-text {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  max-width: 240px;
+  line-height: 1.45;
+}
+
+.ai3d-inline-empty {
+  padding: var(--ai3d-spacing);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+}
+
+/* --- File Path --- */
+
+.ai3d-file-path {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  word-break: break-all;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* --- Preview Summary Grid --- */
+
+.ai3d-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--size-4-1);
+}
+
+.ai3d-summary-item {
+  padding: var(--size-4-2);
+  border-radius: var(--ai3d-radius);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.ai3d-summary-label {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.ai3d-summary-value {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+/* --- Fields (form inputs) --- */
+
+.ai3d-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-1);
+}
+
+.ai3d-field-label {
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ai3d-input,
+.ai3d-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: var(--ai3d-radius);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  padding: var(--size-4-2) var(--size-4-3);
+  transition: border-color 0.15s ease;
+}
+
+.ai3d-input:focus,
+.ai3d-textarea:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+  box-shadow: 0 0 0 1px var(--interactive-accent);
+}
+
+.ai3d-textarea {
+  resize: vertical;
+  min-height: 72px;
+  font-family: inherit;
+}
+
+/* --- Tag Chips --- */
+
+.ai3d-tag-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+}
+
+.ai3d-tag-section-title {
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ai3d-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-1);
+}
+
+.ai3d-tag-chip {
+  padding: 2px var(--size-4-2);
+  border-radius: var(--ai3d-radius);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.ai3d-tag-chip.is-accent {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+
+.ai3d-tag-empty {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+/* --- Note Card --- */
+
+.ai3d-note-card {
+  padding: var(--ai3d-spacing);
+  border-radius: var(--ai3d-radius);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+}
+
+.ai3d-note-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--size-4-2);
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+}
+
+.ai3d-note-label {
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ai3d-note-value {
+  color: var(--text-normal);
+  word-break: break-all;
+}
+
+/* --- Hint Text --- */
+
+.ai3d-hint {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* --- Actions Row --- */
+
+.ai3d-actions {
+  display: flex;
+  gap: var(--size-4-2);
+  flex-wrap: wrap;
+}
+
+/* --- Divider --- */
+
+.ai3d-divider {
+  height: 1px;
+  background: var(--background-modifier-border);
+  margin: var(--size-4-1) 0;
+}
+
+/* --- Disassembly Controls --- */
+
+.ai3d-disassemble-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  padding: var(--ai3d-spacing);
+  border-radius: var(--ai3d-radius);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.ai3d-slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-3);
+}
+
+.ai3d-slider-label {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.ai3d-slider-value {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-normal);
+  font-weight: 600;
+  min-width: 36px;
+  text-align: right;
+}
+
+.ai3d-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--background-modifier-border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.ai3d-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--interactive-accent);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.ai3d-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.ai3d-axis-buttons {
+  display: flex;
+  gap: var(--size-4-1);
+}
+
+.ai3d-axis-btn {
+  padding: 2px 10px;
+  border-radius: var(--ai3d-radius);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai3d-axis-btn:hover {
+  border-color: var(--text-muted);
+  color: var(--text-normal);
+}
+
+.ai3d-axis-btn.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+
+/* --- Piece Tags --- */
+
+.ai3d-piece-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--ai3d-radius);
+}
+
+.ai3d-piece-item {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  padding: var(--size-4-1) var(--size-4-2);
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+  transition: background 0.1s ease;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.ai3d-piece-item:last-child {
+  border-bottom: none;
+}
+
+.ai3d-piece-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.ai3d-piece-item.is-selected {
+  background: var(--background-modifier-active-hover);
+}
+
+.ai3d-piece-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.ai3d-piece-item.is-tagged .ai3d-piece-dot {
+  background: var(--color-green);
+}
+
+.ai3d-piece-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai3d-piece-tag-count {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+}
+
+.ai3d-piece-tag-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  padding: var(--ai3d-spacing);
+  border-radius: var(--ai3d-radius);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.ai3d-piece-tag-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--size-4-2);
+}
+
+.ai3d-piece-tag-title {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+/* --- CM6 Widget: re-enable pointer events blocked by CodeMirror --- */
+
+.ai3d-cm-widget,
+.ai3d-inline-wrapper {
+  pointer-events: auto;
+}
+
+.ai3d-inline-toolbar,
+.ai3d-inline-toolbar button,
+.ai3d-inline-toolbar input,
+.ai3d-helper-toolbar,
+.ai3d-helper-toolbar button {
+  pointer-events: auto;
+}
+
+/* --- Inline Controls Toolbar --- */
+
+.ai3d-inline-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px 8px 0 0;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.ai3d-inline-label {
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.ai3d-inline-value {
+  color: var(--text-normal);
+  font-weight: 600;
+  min-width: 30px;
+  text-align: right;
+  font-size: 11px;
+}
+
+.ai3d-inline-slider {
+  flex: 1;
+  min-width: 60px;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--background-modifier-border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.ai3d-inline-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--interactive-accent);
+  cursor: pointer;
+}
+
+.ai3d-inline-axis-btn,
+.ai3d-inline-reset-btn {
+  padding: 2px 8px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai3d-inline-axis-btn:hover,
+.ai3d-inline-reset-btn:hover {
+  border-color: var(--text-muted);
+  color: var(--text-normal);
+}
+
+.ai3d-inline-axis-btn.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+
+/* --- Inline Helper Toolbar (outside preview) --- */
+
+.ai3d-helper-toolbar {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 4px 2px;
+  margin-top: -1px;
+  border: 1px solid var(--background-modifier-border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-s) var(--radius-s);
+  background: var(--background-secondary);
+}
+
+.ai3d-inline-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  padding: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.ai3d-inline-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.ai3d-inline-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* --- Grid Host (3dgrid) --- */
+
+.ai3d-grid-host {
+  border-radius: var(--ai3d-radius) var(--ai3d-radius) 0 0;
+  border: 1px solid var(--background-modifier-border);
+  overflow: hidden;
+  background: var(--background-secondary);
+  position: relative;
+}
+
+.ai3d-grid-host canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* --- JSON Config Error --- */
+
+.ai3d-json-error {
+  padding: var(--ai3d-spacing);
+  border-radius: var(--radius-s);
+  background: var(--background-modifier-error);
+  border: 1px solid var(--color-red);
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+}
+
+.ai3d-json-error pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+/* --- Tooltip --- */
+
+.ai3d-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  animation: ai3d-fade-in 0.15s ease;
+}
+
+@keyframes ai3d-fade-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* --- Direct File View --- */
+
+.ai3d-direct-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai3d-direct-view .ai3d-preview-host {
+  flex: 1;
+  min-height: 300px;
+}
+
+/* --- Responsive: Narrow Sidebar --- */
+
+@media (max-width: 400px) {
+  .ai3d-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ai3d-preview-host {
+    min-height: 240px;
+  }
+}

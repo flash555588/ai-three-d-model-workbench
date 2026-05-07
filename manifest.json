@@ -1,0 +1,10 @@
+{
+  "id": "ai-3d-model-workbench",
+  "name": "AI 3D Model Workbench",
+  "version": "0.0.1",
+  "minAppVersion": "1.5.0",
+  "description": "Turn 3D models into linked knowledge assets inside Obsidian.",
+  "author": "flash",
+  "authorUrl": "",
+  "isDesktopOnly": true
+}
