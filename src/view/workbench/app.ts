@@ -184,8 +184,6 @@ export function mountWorkbench(
           <div class="ai3d-section-body">
             <div class="ai3d-actions">
               ${preview ? html`<button class="ai3d-axis-btn" data-action="reset">Reset View</button>` : ""}
-              ${preview ? html`<button class="ai3d-axis-btn" data-action="info">Insert Info</button>` : ""}
-              ${preview?.hasAnimations() ? html`<button class="ai3d-axis-btn" data-action="anim">Play</button>` : ""}
               <button class="ai3d-axis-btn" data-action="save">Save Profile</button>
               <button class="ai3d-axis-btn" data-action="note">Generate Note</button>
             </div>
@@ -202,32 +200,6 @@ export function mountWorkbench(
       if (resetAction) {
         resetAction.addEventListener("click", () => {
           preview?.resetView();
-        });
-      }
-
-      const infoAction = actionsEl.querySelector("[data-action='info']");
-      if (infoAction) {
-        infoAction.addEventListener("click", () => {
-          if (!preview) return;
-          const path = ps.store.getState().currentModelPath ?? undefined;
-          const md = preview.exportModelInfo(path);
-          if (!md) return;
-          const activeLeaf = app.workspace.activeLeaf;
-          const view = activeLeaf?.view as any;
-          if (view?.editor) {
-            view.editor.replaceSelection(md);
-          } else {
-            navigator.clipboard.writeText(md);
-          }
-        });
-      }
-
-      const animAction = actionsEl.querySelector("[data-action='anim']");
-      if (animAction) {
-        animAction.addEventListener("click", () => {
-          if (!preview?.toggleAnimation) return;
-          const playing = preview.toggleAnimation();
-          animAction.textContent = playing ? "Pause" : "Play";
         });
       }
 

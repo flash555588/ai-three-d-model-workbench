@@ -5,10 +5,6 @@ import type { PluginSettings } from "../../domain/models";
 export interface SnapshotProvider {
   captureSnapshot(): string | null;
   resetView?(): void;
-  exportModelInfo?(modelPath?: string): string;
-  toggleWireframe?(): boolean;
-  hasAnimations?(): boolean;
-  toggleAnimation?(): boolean;
 }
 
 /**
@@ -40,60 +36,6 @@ export function createHelperButtons(
     }
   });
   toolbar.appendChild(resetBtn);
-
-  // Export model info button (info circle)
-  const infoBtn = document.createElement("button");
-  infoBtn.className = "ai3d-inline-btn";
-  infoBtn.setAttribute("aria-label", "Copy model info as Markdown");
-  infoBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
-  infoBtn.addEventListener("click", async () => {
-    const preview = getPreview();
-    if (!preview?.exportModelInfo) return;
-    try {
-      const md = preview.exportModelInfo(getModelPath());
-      if (!md) return;
-      await navigator.clipboard.writeText(md);
-      showTooltip(infoBtn, "Copied!");
-    } catch (err) {
-      console.error("[AI3D] Export model info failed:", err);
-      showTooltip(infoBtn, "Failed");
-    }
-  });
-  toolbar.appendChild(infoBtn);
-
-  // Wireframe toggle button (grid/square icon)
-  const wireBtn = document.createElement("button");
-  wireBtn.className = "ai3d-inline-btn";
-  wireBtn.setAttribute("aria-label", "Toggle wireframe");
-  wireBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/></svg>`;
-  wireBtn.addEventListener("click", () => {
-    const preview = getPreview();
-    if (!preview?.toggleWireframe) return;
-    const on = preview.toggleWireframe();
-    wireBtn.style.color = on ? "var(--interactive-accent)" : "";
-    showTooltip(wireBtn, on ? "Wireframe" : "Solid");
-  });
-  toolbar.appendChild(wireBtn);
-
-  // Animation play/pause button (play triangle — hidden until animations detected)
-  const animBtn = document.createElement("button");
-  animBtn.className = "ai3d-inline-btn";
-  animBtn.setAttribute("aria-label", "Play/Pause animation");
-  animBtn.style.display = "none";
-  animBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
-  animBtn.addEventListener("click", () => {
-    const preview = getPreview();
-    if (!preview?.toggleAnimation) return;
-    const playing = preview.toggleAnimation();
-    animBtn.innerHTML = playing
-      ? `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`
-      : `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
-    showTooltip(animBtn, playing ? "Playing" : "Paused");
-  });
-  toolbar.appendChild(animBtn);
-
-  // Expose a way to show the anim button after model load
-  (toolbar as any)._showAnimButton = () => { animBtn.style.display = ""; };
 
   // Remove button (trash)
   const removeBtn = document.createElement("button");

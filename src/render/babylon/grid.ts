@@ -32,7 +32,6 @@ export class GridRenderer {
   private scene: Scene;
   private cells: GridCell[] = [];
   private initialCameras: { alpha: number; beta: number; radius: number; target: Vector3 }[] = [];
-  private wireframeEnabled = false;
   private frameId = 0;
   private resizeObs: ResizeObserver;
 
@@ -472,46 +471,6 @@ export class GridRenderer {
         cam.target = init.target.clone();
       }
     }
-  }
-
-  toggleWireframe(): boolean {
-    this.wireframeEnabled = !this.wireframeEnabled;
-    for (const cell of this.cells) {
-      for (const m of cell.meshes) {
-        if ((m as any).material) {
-          (m as any).material.wireframe = this.wireframeEnabled;
-        }
-      }
-    }
-    return this.wireframeEnabled;
-  }
-
-  exportModelInfo(): string {
-    if (this.cells.length === 0) return "";
-    const lines: string[] = [];
-    lines.push("## Grid Models — Model Info");
-    lines.push("");
-    lines.push("| # | Model | Meshes | Triangles | Vertices | Materials |");
-    lines.push("|---|-------|--------|-----------|----------|-----------|");
-
-    for (let i = 0; i < this.cells.length; i++) {
-      const cell = this.cells[i];
-      const root = cell.meshes[0];
-      if (!root) continue;
-      const allMeshes = root.getChildMeshes(true);
-      let tris = 0;
-      let verts = 0;
-      const mats = new Set<string>();
-      for (const m of allMeshes.length > 0 ? allMeshes : [root]) {
-        tris += Math.floor(m.getTotalIndices() / 3);
-        verts += m.getTotalVertices();
-        if (m.material) mats.add(m.material.name);
-      }
-      const name = root.name || `Model ${i + 1}`;
-      lines.push(`| ${i + 1} | ${name} | ${allMeshes.length || 1} | ${tris.toLocaleString()} | ${verts.toLocaleString()} | ${mats.size} |`);
-    }
-    lines.push("");
-    return lines.join("\n");
   }
 
   destroy(): void {
