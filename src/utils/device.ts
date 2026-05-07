@@ -8,10 +8,14 @@ export function isMobile(): boolean {
 }
 
 /**
- * Hardware scaling factor for Babylon Engine.
- * Higher value = lower resolution = better performance.
- * Desktop: 1 (native), Mobile: 2 (half resolution each axis).
+ * Hardware scaling level for Babylon Engine.
+ * Babylon renders at: canvasWidth / hardwareScalingLevel.
+ * We set it to baseScale / devicePixelRatio so:
+ *   Desktop (base=1): renders at native device pixel resolution (crisp).
+ *   Mobile  (base=2): renders at half device pixel resolution (fast).
  */
 export function hardwareScale(): number {
-  return isMobile() ? 2 : 1;
+  const dpr = (typeof window !== "undefined" ? window.devicePixelRatio : 1) || 1;
+  const base = isMobile() ? 2 : 1;
+  return base / dpr;
 }
