@@ -1,5 +1,6 @@
 import type { App, MarkdownPostProcessorContext } from "obsidian";
 import { SUPPORTED_MODEL_EXTENSIONS } from "../../domain/constants";
+import type { PluginSettings } from "../../domain/models";
 import { BabylonModelPreview } from "../../render/babylon/scene";
 import { GridRenderer } from "../../render/babylon/grid";
 import { getPreset, composeSections } from "../../render/babylon/presets";
@@ -16,7 +17,7 @@ import type { ThreeDBlockConfig, ModelConfig, GridBlockConfig } from "../../doma
  *            { "models": [{ "path": "model.glb" }], "scene": { "autoRotate": true } }
  *            ```
  */
-export function registerCodeBlockProcessor(app: App) {
+export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSettings) {
   return {
     id: "3d",
     handler: async (
@@ -84,10 +85,10 @@ export function registerCodeBlockProcessor(app: App) {
       }
 
       // Create preview host with custom dimensions
+      const settings = getSettings();
       const host = el.createDiv({ cls: "ai3d-preview-host" });
-      if (config.height) {
-        host.style.minHeight = typeof config.height === "number" ? `${config.height}px` : config.height;
-      }
+      const effectiveHeight = config.height ?? settings.defaultCanvasHeight;
+      host.style.minHeight = typeof effectiveHeight === "number" ? `${effectiveHeight}px` : effectiveHeight;
       if (config.width) {
         host.style.maxWidth = typeof config.width === "number" ? `${config.width}px` : config.width;
       }
@@ -108,7 +109,7 @@ export function registerCodeBlockProcessor(app: App) {
         preview?.destroy();
         preview = null;
         host.remove();
-      });
+      }, getSettings);
 
       // Auto-destroy when the DOM element is removed
       const observer = new MutationObserver(() => {
@@ -141,6 +142,10 @@ export function registerCodeBlockProcessor(app: App) {
         await preview.loadModel(data, ext, readFile, modelPath);
 
         if (destroyed) return;
+        // Apply auto-rotate default from settings if not specified in config
+        if (config.scene?.autoRotate === undefined && settings.autoRotateDefault) {
+          config.scene = { ...config.scene, autoRotate: true, autoRotateSpeed: settings.autoRotateSpeed };
+        }
         preview.applyConfig(config);
 
         // Apply STL-specific config from model entry
@@ -233,7 +238,7 @@ function normalizeConfig(raw: any): ThreeDBlockConfig {
  * { "models": ["a.glb", "b.glb", "c.glb"], "columns": 3, "rowHeight": 300 }
  * ```
  */
-export function registerGridCodeBlockProcessor(app: App) {
+export function registerGridCodeBlockProcessor(app: App, getSettings: () => PluginSettings) {
   return {
     id: "3dgrid",
     handler: async (
@@ -307,7 +312,7 @@ export function registerGridCodeBlockProcessor(app: App) {
         renderer?.destroy();
         renderer = null;
         gridHost.remove();
-      });
+      }, getSettings);
 
       const observer = new MutationObserver(() => {
         if (destroyed) return;

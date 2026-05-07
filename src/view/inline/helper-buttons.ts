@@ -1,4 +1,5 @@
 import type { App } from "obsidian";
+import type { PluginSettings } from "../../domain/models";
 
 /** Any preview that supports snapshot capture. */
 export interface SnapshotProvider {
@@ -8,6 +9,7 @@ export interface SnapshotProvider {
 /**
  * Create helper buttons BELOW the preview host (as a sibling).
  * @param previewHost — the .ai3d-preview-host or .ai3d-grid-host element
+ * @param getSettings — lazy accessor for plugin settings
  */
 export function createHelperButtons(
   previewHost: HTMLElement,
@@ -15,6 +17,7 @@ export function createHelperButtons(
   getPreview: () => SnapshotProvider | null,
   getModelPath: () => string,
   onRemove: () => void,
+  getSettings?: () => PluginSettings,
 ): void {
   const toolbar = document.createElement("div");
   toolbar.className = "ai3d-helper-toolbar";
@@ -51,12 +54,51 @@ export function createHelperButtons(
   });
   toolbar.appendChild(copyBtn);
 
-  // Export snapshot button (camera)
-  const exportBtn = document.createElement("button");
-  exportBtn.className = "ai3d-inline-btn";
-  exportBtn.setAttribute("aria-label", "Export snapshot");
-  exportBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
-  exportBtn.addEventListener("click", async () => {
+  // Save to vault button (disk)
+  const saveBtn = document.createElement("button");
+  saveBtn.className = "ai3d-inline-btn";
+  saveBtn.setAttribute("aria-label", "Save snapshot to vault");
+  saveBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
+  saveBtn.addEventListener("click", async () => {
+    const preview = getPreview();
+    if (!preview) return;
+    try {
+      const dataUrl = preview.captureSnapshot();
+      if (!dataUrl) return;
+      const modelPath = getModelPath();
+      const baseName = modelPath.split("/").pop()?.replace(/\.[^.]+$/, "") ?? "model";
+      const settings = getSettings?.();
+      const folder = settings?.snapshotFolder ?? "Media/3D Previews";
+      const naming = settings?.snapshotNaming ?? "model-name";
+      const ts = Date.now();
+      const fileName = naming === "timestamp"
+        ? `snapshot_${ts}.png`
+        : `${baseName}_snapshot_${ts}.png`;
+
+      const res = await fetch(dataUrl);
+      const buffer = await res.arrayBuffer();
+
+      const folderExists = await app.vault.adapter.exists(folder);
+      if (!folderExists) {
+        await app.vault.createFolder(folder).catch(() => {});
+      }
+
+      const filePath = `${folder}/${fileName}`;
+      await app.vault.createBinary(filePath, buffer);
+      showTooltip(saveBtn, "Saved!");
+    } catch (err) {
+      console.error("[AI3D] Save snapshot failed:", err);
+      showTooltip(saveBtn, "Failed");
+    }
+  });
+  toolbar.appendChild(saveBtn);
+
+  // Download snapshot button (download arrow)
+  const downloadBtn = document.createElement("button");
+  downloadBtn.className = "ai3d-inline-btn";
+  downloadBtn.setAttribute("aria-label", "Download snapshot");
+  downloadBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+  downloadBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview) return;
     try {
@@ -66,25 +108,19 @@ export function createHelperButtons(
       const baseName = modelPath.split("/").pop()?.replace(/\.[^.]+$/, "") ?? "model";
       const fileName = `${baseName}_snapshot_${Date.now()}.png`;
 
-      const res = await fetch(dataUrl);
-      const buffer = await res.arrayBuffer();
-
-      // Save to vault's Media/3D Previews folder
-      const folder = "Media/3D Previews";
-      const folderExists = await app.vault.adapter.exists(folder);
-      if (!folderExists) {
-        await app.vault.createFolder(folder).catch(() => {});
-      }
-
-      const filePath = `${folder}/${fileName}`;
-      await app.vault.createBinary(filePath, buffer);
-      showTooltip(exportBtn, "Saved!");
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showTooltip(downloadBtn, "Downloaded!");
     } catch (err) {
-      console.error("[AI3D] Export snapshot failed:", err);
-      showTooltip(exportBtn, "Failed");
+      console.error("[AI3D] Download snapshot failed:", err);
+      showTooltip(downloadBtn, "Failed");
     }
   });
-  toolbar.appendChild(exportBtn);
+  toolbar.appendChild(downloadBtn);
 
   // Insert toolbar as a sibling AFTER the preview host
   previewHost.parentElement?.insertBefore(toolbar, previewHost.nextSibling);

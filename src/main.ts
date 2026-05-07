@@ -53,14 +53,14 @@ export default class AI3DModelWorkbench extends Plugin {
 
     // Register ```3d and ```3dgrid code block processors
     const { registerCodeBlockProcessor, registerGridCodeBlockProcessor } = await import("./view/inline/code-block");
-    const cb = registerCodeBlockProcessor(this.app);
+    const cb = registerCodeBlockProcessor(this.app, () => this.getSettings());
     this.registerMarkdownCodeBlockProcessor(cb.id, cb.handler);
-    const gridCb = registerGridCodeBlockProcessor(this.app);
+    const gridCb = registerGridCodeBlockProcessor(this.app, () => this.getSettings());
     this.registerMarkdownCodeBlockProcessor(gridCb.id, gridCb.handler);
 
     // Register Live Preview extension for ![[model.glb]] embeds
     const { registerLivePreviewExtension } = await import("./view/inline/live-preview");
-    const exts = registerLivePreviewExtension(this.app);
+    const exts = registerLivePreviewExtension(this.app, () => this.getSettings());
     for (const e of exts) {
       this.registerEditorExtension(e);
     }

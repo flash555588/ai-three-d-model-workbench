@@ -7,6 +7,7 @@ import type { App } from "obsidian";
 import { EditorView, Decoration, WidgetType } from "@codemirror/view";
 import { StateField, StateEffect, RangeSet, Range } from "@codemirror/state";
 import { SUPPORTED_MODEL_EXTENSIONS } from "../../domain/constants";
+import type { PluginSettings } from "../../domain/models";
 import type { BabylonModelPreview } from "../../render/babylon/scene";
 
 // ── Widget ────────────────────────────────────────────────────────
@@ -202,15 +203,17 @@ const updateEmbeds = StateEffect.define<void>();
 
 type DecoSet = RangeSet<Decoration>;
 
-export function registerLivePreviewExtension(app: App) {
+export function registerLivePreviewExtension(app: App, getSettings: () => PluginSettings) {
   const embedField = StateField.define<DecoSet>({
     create(state): DecoSet {
-      const ranges = findEmbeds({ state } as EditorView, app, true);
+      const s = getSettings();
+      const ranges = findEmbeds({ state } as EditorView, app, s.autoRotateDefault);
       return ranges.length > 0 ? RangeSet.of(ranges, true) : RangeSet.empty;
     },
     update(value, tr): DecoSet {
       if (tr.docChanged || tr.effects.some((e) => e.is(updateEmbeds))) {
-        const ranges = findEmbeds(tr.state as any, app, true);
+        const s = getSettings();
+        const ranges = findEmbeds(tr.state as any, app, s.autoRotateDefault);
         return ranges.length > 0 ? RangeSet.of(ranges, true) : RangeSet.empty;
       }
       return value.map(tr.changes);

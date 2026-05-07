@@ -18,6 +18,14 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   sendPreviewImagesToRemote: false,
   sendGeometrySummaryToRemote: false,
   defaultKnowledgeTaxonomy: "default-v1",
+  // Performance & display
+  defaultCanvasHeight: 400,
+  autoRotateDefault: false,
+  autoRotateSpeed: 0.5,
+  renderQuality: "high",
+  // Snapshot export
+  snapshotFolder: "Media/3D Previews",
+  snapshotNaming: "model-name",
 };
 
 export const DEFAULT_CAMERA_CONFIG: CameraConfig = {
