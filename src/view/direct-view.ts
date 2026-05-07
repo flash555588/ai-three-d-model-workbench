@@ -1,4 +1,5 @@
 import { FileView, TFile, type WorkspaceLeaf } from "obsidian";
+import type { PluginSettings } from "../domain/models";
 import { BabylonModelPreview } from "../render/babylon/scene";
 import { createHelperButtons } from "./inline/helper-buttons";
 
@@ -6,9 +7,11 @@ export const DIRECT_VIEW_TYPE = "ai3d-direct-view";
 
 export class DirectModelView extends FileView {
   private preview: BabylonModelPreview | null = null;
+  private getSettings: () => PluginSettings;
 
-  constructor(leaf: WorkspaceLeaf) {
+  constructor(leaf: WorkspaceLeaf, getSettings: () => PluginSettings) {
     super(leaf);
+    this.getSettings = getSettings;
   }
 
   getViewType(): string {
@@ -64,6 +67,7 @@ export class DirectModelView extends FileView {
         // Remove just closes the tab
         this.leaf.detach();
       },
+      this.getSettings,
     );
 
     try {

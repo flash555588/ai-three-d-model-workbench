@@ -48,7 +48,7 @@ export default class AI3DModelWorkbench extends Plugin {
     this.addSettingTab(new AI3DSettingTab(this.app, this));
 
     // Register direct file view for .glb/.gltf/.stl
-    this.registerView(DIRECT_VIEW_TYPE, (leaf) => new DirectModelView(leaf));
+    this.registerView(DIRECT_VIEW_TYPE, (leaf) => new DirectModelView(leaf, () => this.getSettings()));
     this.registerExtensions([...SUPPORTED_MODEL_EXTENSIONS], DIRECT_VIEW_TYPE);
 
     // Register ```3d and ```3dgrid code block processors

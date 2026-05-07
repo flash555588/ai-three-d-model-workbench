@@ -252,9 +252,10 @@ export function mountWorkbench(
 
     loading = true;
 
-    // Destroy previous preview
+    // Destroy previous preview and clean up old error messages
     preview?.destroy();
     preview = null;
+    previewHost.querySelectorAll(".ai3d-inline-empty:not(.ai3d-empty-state)").forEach(el => el.remove());
 
     // Clear empty state, show loading
     emptyState.style.display = "none";
@@ -277,6 +278,8 @@ export function mountWorkbench(
       ps.store.setState({ modelPreview: summary });
     } catch (err) {
       console.error("[AI3D] Failed to load model:", err);
+      preview?.destroy();
+      preview = null;
       canvas.remove();
       emptyState.style.display = "";
       const errDiv = previewHost.createDiv({ cls: "ai3d-inline-empty" });
@@ -303,37 +306,53 @@ function createDefaultProfile(): ModelAssetProfile {
   return { tags: [], notes: "", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
 }
 
+/** Guard against concurrent or duplicate note generation calls. */
+let noteGenerationLock: Promise<void> | null = null;
+
 async function generateKnowledgeNote(app: App, state: PluginState) {
-  const path = state.currentModelPath;
-  if (!path) return;
+  // Serialize concurrent calls to prevent duplicate note creation
+  if (noteGenerationLock) await noteGenerationLock;
+  let resolveLock!: () => void;
+  noteGenerationLock = new Promise<void>(r => { resolveLock = r; });
 
-  const profile = state.modelAssetProfiles[path];
-  const preview = state.modelPreview;
-  const fileName = path.split("/").pop() ?? "model";
-  const baseName = fileName.replace(/\.[^.]+$/, "");
-  const reportFolder = state.settings.reportFolder;
-  const notePath = `${reportFolder}/${baseName} Report.md`;
+  try {
+    const path = state.currentModelPath;
+    if (!path) return;
 
-  // Check if note already exists
-  const exists = await app.vault.adapter.exists(notePath);
-  if (exists) {
-    const file = app.vault.getAbstractFileByPath(notePath);
-    if (file instanceof TFile) {
-      // Update existing file
-      const content = buildNoteContent(baseName, path, profile, preview);
-      await app.vault.modify(file, content);
+    const profile = state.modelAssetProfiles[path];
+    const preview = state.modelPreview;
+    const fileName = path.split("/").pop() ?? "model";
+    const baseName = fileName.replace(/\.[^.]+$/, "");
+    const reportFolder = state.settings.reportFolder;
+    const notePath = `${reportFolder}/${baseName} Report.md`;
+    const content = buildNoteContent(baseName, path, profile, preview);
+
+    // If file exists, update it; otherwise create (with fallback if concurrent creation won)
+    const existingFile = app.vault.getAbstractFileByPath(notePath);
+    if (existingFile instanceof TFile) {
+      await app.vault.modify(existingFile, content);
+      return;
     }
-    return;
-  }
 
-  // Ensure folder exists
-  const folder = app.vault.getAbstractFileByPath(reportFolder);
-  if (!folder) {
-    await app.vault.createFolder(reportFolder).catch(() => {});
-  }
+    // Ensure folder exists
+    const folder = app.vault.getAbstractFileByPath(reportFolder);
+    if (!folder) {
+      await app.vault.createFolder(reportFolder).catch(() => {});
+    }
 
-  const content = buildNoteContent(baseName, path, profile, preview);
-  await app.vault.create(notePath, content);
+    try {
+      await app.vault.create(notePath, content);
+    } catch {
+      // File was created concurrently — fall back to modify
+      const file = app.vault.getAbstractFileByPath(notePath);
+      if (file instanceof TFile) {
+        await app.vault.modify(file, content);
+      }
+    }
+  } finally {
+    resolveLock();
+    if (noteGenerationLock) noteGenerationLock = null;
+  }
 }
 
 function buildNoteContent(
