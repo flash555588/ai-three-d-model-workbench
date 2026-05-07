@@ -183,6 +183,7 @@ export function mountWorkbench(
         <div class="ai3d-section">
           <div class="ai3d-section-body">
             <div class="ai3d-actions">
+              ${preview ? html`<button class="ai3d-axis-btn" data-action="reset">Reset View</button>` : ""}
               <button class="ai3d-axis-btn" data-action="save">Save Profile</button>
               <button class="ai3d-axis-btn" data-action="note">Generate Note</button>
             </div>
@@ -194,6 +195,13 @@ export function mountWorkbench(
       actionsEl.querySelector("[data-action='save']")!.addEventListener("click", async () => {
         await ps.save();
       });
+
+      const resetAction = actionsEl.querySelector("[data-action='reset']");
+      if (resetAction) {
+        resetAction.addEventListener("click", () => {
+          preview?.resetView();
+        });
+      }
 
       actionsEl.querySelector("[data-action='note']")!.addEventListener("click", async () => {
         await generateKnowledgeNote(app, ps.store.getState());
