@@ -155,6 +155,12 @@ export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSe
         if (ext === "stl" && modelCfg.wireframe !== undefined) {
           preview.setWireframe(modelCfg.wireframe);
         }
+
+        // Show animation button if model has animations
+        if (preview.hasAnimations()) {
+          const toolbar = host.nextElementSibling as any;
+          toolbar?._showAnimButton?.();
+        }
       } catch (err) {
         preview?.destroy();
         preview = null;
