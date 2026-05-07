@@ -98,6 +98,16 @@ export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSe
       const canvas = document.createElement("canvas");
       canvas.style.width = "100%";
       canvas.style.height = "100%";
+      canvas.tabIndex = 0;
+      canvas.addEventListener("keydown", (e) => {
+        if (destroyed || !preview) return;
+        const key = e.key.toLowerCase();
+        if (key === "r") { preview.resetView?.(); e.preventDefault(); }
+        else if (key === "w") { preview.toggleWireframe?.(); e.preventDefault(); }
+        else if (key === "g") { preview.toggleOrientationGizmo?.(); e.preventDefault(); }
+        else if (key === "b") { preview.toggleBoundingBox?.(); e.preventDefault(); }
+        else if (key === " ") { preview.toggleAnimation?.(); e.preventDefault(); }
+      });
       host.appendChild(canvas);
 
       // Add helper buttons
@@ -283,6 +293,13 @@ export function registerGridCodeBlockProcessor(app: App, getSettings: () => Plug
       // Create grid container
       const gridHost = el.createDiv({ cls: "ai3d-grid-host" });
       const canvas = document.createElement("canvas");
+      canvas.tabIndex = 0;
+      canvas.addEventListener("keydown", (e) => {
+        if (destroyed || !renderer) return;
+        const key = e.key.toLowerCase();
+        if (key === "r") { renderer.resetView?.(); e.preventDefault(); }
+        else if (key === "w") { renderer.toggleWireframe?.(); e.preventDefault(); }
+      });
       gridHost.appendChild(canvas);
 
       const rowHeight = config.rowHeight ?? 300;
