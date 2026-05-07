@@ -754,7 +754,7 @@
   border-radius: var(--radius-s);
   overflow: hidden;
   border: 1px solid var(--background-modifier-border);
-  background: #1e1e22;
+  background: var(--background-primary);
 }
 
 .ai3d-embed-canvas {

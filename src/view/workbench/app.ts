@@ -310,7 +310,7 @@ function createDefaultProfile(): ModelAssetProfile {
 /** Guard against concurrent or duplicate note generation calls. */
 let noteGenerationLock: Promise<void> | null = null;
 
-async function generateKnowledgeNote(app: App, state: PluginState) {
+export async function generateKnowledgeNote(app: App, state: PluginState) {
   // Serialize concurrent calls to prevent duplicate note creation
   if (noteGenerationLock) await noteGenerationLock;
   let resolveLock!: () => void;

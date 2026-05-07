@@ -29,6 +29,7 @@ import { ensureLoadersRegistered } from "./loaders/register";
 import { setExplode, resetExplode } from "./explode";
 import { setupPicking } from "./picking";
 import { arrayBufferToBase64 } from "../../utils/base64";
+import { isMobile } from "../../utils/device";
 import { OrientationGizmo } from "./orientation-gizmo";
 
 /** Guard against concurrent OBJ loads monkey-patching the same prototype. */
@@ -595,7 +596,8 @@ export class BabylonModelPreview {
    */
   setRenderQuality(quality: "low" | "medium" | "high"): void {
     const scaleMap = { low: 2, medium: 1.33, high: 1 };
-    const scale = scaleMap[quality];
+    const mobileBoost = isMobile() ? 1.5 : 1;
+    const scale = scaleMap[quality] * mobileBoost;
     this.engine.setHardwareScalingLevel(scale);
 
     if (this.shadowGenerator) {

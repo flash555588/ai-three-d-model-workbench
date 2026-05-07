@@ -110,65 +110,7 @@ export default class AI3DModelWorkbench extends Plugin {
   }
 
   private async generateNote() {
-    const state = this.ps.store.getState();
-    if (!state.currentModelPath) return;
-
-    // The note generation is handled in app.ts's generateKnowledgeNote
-    // This command just triggers the same flow via a store flag
-    // For Phase 0, we call the app-level function directly
-    const { mountWorkbench } = await import("./view/workbench/app");
-    // Note: actual generation is wired through the UI button in app.ts
-    // This command exists as a programmatic entry point
-    const profile = state.modelAssetProfiles[state.currentModelPath];
-    const preview = state.modelPreview;
-    const fileName = state.currentModelPath.split("/").pop() ?? "model";
-    const baseName = fileName.replace(/\.[^.]+$/, "");
-    const reportFolder = state.settings.reportFolder;
-    const notePath = `${reportFolder}/${baseName} Report.md`;
-
-    const folder = this.app.vault.getAbstractFileByPath(reportFolder);
-    if (!folder) {
-      await this.app.vault.createFolder(reportFolder).catch(() => {});
-    }
-
-    const frontmatter = [
-      "---",
-      `source_model: "${state.currentModelPath}"`,
-      `format: ${state.currentModelPath.split(".").pop()?.toLowerCase() ?? "unknown"}`,
-      `status: ready`,
-      `updated_at: ${new Date().toISOString()}`,
-      ...(profile?.tags.length ? [`knowledge_tags:`, ...profile.tags.map((t: string) => `  - ${t}`)] : []),
-      "---",
-    ].join("\n");
-
-    const body = [
-      frontmatter,
-      "",
-      `# ${baseName}`,
-      "",
-      "## Summary",
-      "",
-      ...(preview
-        ? [
-            "| Metric | Value |",
-            "|--------|-------|",
-            `| Meshes | ${preview.meshCount} |`,
-            `| ${preview.splatCount ? "Splats" : "Triangles"} | ${(preview.splatCount ?? preview.triangleCount).toLocaleString()} |`,
-            `| Vertices | ${preview.vertexCount.toLocaleString()} |`,
-            `| Materials | ${preview.materialCount} |`,
-            "",
-          ]
-        : ["(No preview data available)", ""]),
-      "## Key Parts",
-      "",
-      "(Parts will be populated after analysis)",
-      "",
-      "## Review Notes",
-      "",
-      profile?.notes ?? "",
-      "",
-    ].join("\n");
-
-    await this.app.vault.create(notePath, body);
+    const { generateKnowledgeNote } = await import("./view/workbench/app");
+    await generateKnowledgeNote(this.app, this.ps.store.getState());
   }
 }
