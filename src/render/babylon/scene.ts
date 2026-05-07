@@ -25,14 +25,10 @@ import type {
   ThreeDBlockConfig,
 } from "../../domain/models";
 import "./loaders/register";
-import { registerSTLLoader } from "./loaders/stl-loader";
-import { registerPLYLoader } from "./loaders/ply-loader";
+import { ensureLoadersRegistered } from "./loaders/register";
 import { setExplode, resetExplode } from "./explode";
 import { setupPicking } from "./picking";
 import { arrayBufferToBase64 } from "../../utils/base64";
-
-let stlRegistered = false;
-let plyRegistered = false;
 
 /** Guard against concurrent OBJ loads monkey-patching the same prototype. */
 let objMtlLock: Promise<void> | null = null;
@@ -43,7 +39,7 @@ export class BabylonModelPreview {
   private camera: ArcRotateCamera;
   private rootMesh: Mesh | null = null;
   private loadedExt: string = "";
-  private frameId = 0;
+  private rendering = false;
   private cleanupPicking: (() => void) | null = null;
   private resizeObs: ResizeObserver;
   private configLights: Light[] = [];
@@ -87,14 +83,7 @@ export class BabylonModelPreview {
     readFile?: (path: string) => Promise<ArrayBuffer>,
     modelPath?: string,
   ): Promise<ModelPreviewSummary> {
-    if (!stlRegistered) {
-      await registerSTLLoader();
-      stlRegistered = true;
-    }
-    if (!plyRegistered) {
-      await registerPLYLoader();
-      plyRegistered = true;
-    }
+    await ensureLoadersRegistered();
 
     if (this.rootMesh) {
       this.rootMesh.dispose(true, true);
@@ -559,7 +548,7 @@ export class BabylonModelPreview {
   }
 
   destroy() {
-    cancelAnimationFrame(this.frameId);
+    this.engine.stopRenderLoop();
     this.cleanupPicking?.();
     this.cleanupPicking = null;
     this.camera.detachControl();
@@ -583,12 +572,9 @@ export class BabylonModelPreview {
   }
 
   private startRenderLoop() {
-    cancelAnimationFrame(this.frameId);
-    const loop = () => {
-      this.scene.render();
-      this.frameId = requestAnimationFrame(loop);
-    };
-    this.frameId = requestAnimationFrame(loop);
+    if (this.rendering) return;
+    this.rendering = true;
+    this.engine.runRenderLoop(() => this.scene.render());
   }
 
   /**

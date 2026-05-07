@@ -95,9 +95,7 @@ function readValue(view: DataView, offset: number, type: string, littleEndian: b
 
 // ── Binary PLY parser ─────────────────────────────────────────────
 
-function parseBinaryPLY(buffer: ArrayBuffer, header: PLYHeader, littleEndian: boolean) {
-  const text = new TextDecoder().decode(new Uint8Array(buffer));
-  const headerEnd = text.indexOf("end_header") + "end_header".length + 1;
+function parseBinaryPLY(buffer: ArrayBuffer, header: PLYHeader, littleEndian: boolean, headerEnd: number) {
   let offset = headerEnd;
 
   const view = new DataView(buffer);
@@ -228,11 +226,12 @@ function parsePLY(scene: Scene, data: ArrayBuffer): Mesh {
 
   const text = new TextDecoder().decode(new Uint8Array(data));
   const header = parsePLYHeader(text);
+  const headerEnd = text.indexOf("end_header") + "end_header".length + 1;
 
   const isBinary = header.format !== "ascii";
   const littleEndian = header.format === "binary_little_endian";
   const parsed = isBinary
-    ? parseBinaryPLY(data, header, littleEndian)
+    ? parseBinaryPLY(data, header, littleEndian, headerEnd)
     : parseASCIIPly(text, header);
 
   if (parsed.positions.length === 0) {

@@ -10,6 +10,7 @@ import { StateField, StateEffect, RangeSet, Range } from "@codemirror/state";
 import { SUPPORTED_MODEL_EXTENSIONS } from "../../domain/constants";
 import type { PluginSettings } from "../../domain/models";
 import type { BabylonModelPreview } from "../../render/babylon/scene";
+import { resolveVaultPath } from "../../utils/resolve-path";
 
 // ── Widget ────────────────────────────────────────────────────────
 
@@ -142,6 +143,12 @@ function findEmbeds(
       const start = text.indexOf("![[", pos);
       if (start === -1) break;
 
+      // Skip escaped embeds: \![[model.glb]]
+      if (start > 0 && text[start - 1] === "\\") {
+        pos = start + 3;
+        continue;
+      }
+
       const end = text.indexOf("]]", start + 3);
       if (end === -1) break;
 
@@ -188,16 +195,6 @@ function findEmbeds(
   }
 
   return ranges;
-}
-
-function resolveVaultPath(app: App, rawPath: string): string | null {
-  const exact = app.vault.getAbstractFileByPath(rawPath);
-  if (exact) return exact.path;
-
-  const resolved = (app as any).metadataCache?.getFirstLinkpathDest?.(rawPath, "");
-  if (resolved) return resolved.path;
-
-  return null;
 }
 
 // ── StateEffect ───────────────────────────────────────────────────

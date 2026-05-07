@@ -4,6 +4,7 @@ import { SUPPORTED_MODEL_EXTENSIONS } from "../../domain/constants";
 import type { PluginSettings } from "../../domain/models";
 import { BabylonModelPreview } from "../../render/babylon/scene";
 import { GridRenderer } from "../../render/babylon/grid";
+import { resolveVaultPath } from "../../utils/resolve-path";
 import { getPreset, composeSections } from "../../render/babylon/presets";
 import { createHelperButtons, type HelperToolbar } from "./helper-buttons";
 import type { ThreeDBlockConfig, ModelConfig, GridBlockConfig } from "../../domain/models";
@@ -67,7 +68,7 @@ export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSe
         console.warn(`[AI3D] \`\`\`3d only supports one model; ${config.models.length - 1} additional models ignored. Use \`\`\`3dgrid for multi-model.`);
       }
       const modelCfg = config.models[0];
-      const modelPath = resolveModelPath(app, modelCfg.path);
+      const modelPath = resolveVaultPath(app,modelCfg.path);
       if (!modelPath) {
         el.createDiv({
           cls: "ai3d-inline-empty",
@@ -172,22 +173,6 @@ export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSe
 }
 
 /**
- * Resolve a model path using Obsidian's link resolution.
- * Supports both exact vault paths and link-style paths.
- */
-function resolveModelPath(app: App, rawPath: string): string | null {
-  // Try exact path first
-  const exact = app.vault.getAbstractFileByPath(rawPath);
-  if (exact) return rawPath;
-
-  // Try metadataCache link resolution (handles links without full path)
-  const resolved = (app as any).metadataCache?.getFirstLinkpathDest?.(rawPath, "");
-  if (resolved) return resolved.path;
-
-  return null;
-}
-
-/**
  * Normalize a raw parsed JSON object into ThreeDBlockConfig.
  * Handles both single-model shorthand and full config.
  */
@@ -276,7 +261,7 @@ export function registerGridCodeBlockProcessor(app: App, getSettings: () => Plug
       const resolved: ModelConfig[] = [];
       for (const entry of config.models) {
         const rawPath = typeof entry === "string" ? entry : entry.path;
-        const path = resolveModelPath(app, rawPath);
+        const path = resolveVaultPath(app,rawPath);
         if (!path) {
           el.createDiv({ cls: "ai3d-inline-empty", text: `File not found: ${rawPath}` });
           return;
@@ -353,7 +338,7 @@ export function registerGridCodeBlockProcessor(app: App, getSettings: () => Plug
             Number(config.params?.gap) || 0.02,
             (entry) => {
               const rawPath = typeof entry === "string" ? entry : entry.path;
-              const path = resolveModelPath(app, rawPath);
+              const path = resolveVaultPath(app,rawPath);
               if (!path) return null;
               return typeof entry === "string" ? { path } : { ...entry, path };
             },

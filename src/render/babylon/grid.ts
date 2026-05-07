@@ -10,12 +10,8 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js";
 import type { ModelConfig, GridBlockConfig, ModelPlacement, PresetCameraDef, CellLayout, PresetResult } from "../../domain/models";
 import "./loaders/register";
-import { registerSTLLoader } from "./loaders/stl-loader";
-import { registerPLYLoader } from "./loaders/ply-loader";
+import { ensureLoadersRegistered } from "./loaders/register";
 import { arrayBufferToBase64 } from "../../utils/base64";
-
-let stlRegistered = false;
-let plyRegistered = false;
 
 /** Babylon.js uses 32-bit layerMask — one bit per cell, so max 32 cells. */
 const MAX_CELLS = 32;
@@ -35,7 +31,7 @@ export class GridRenderer {
   private cells: GridCell[] = [];
   private initialCameras: { alpha: number; beta: number; radius: number; target: Vector3 }[] = [];
   private wireframeEnabled = false;
-  private frameId = 0;
+  private rendering = false;
   private resizeObs: ResizeObserver;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -57,14 +53,7 @@ export class GridRenderer {
     config: GridBlockConfig,
     readFile: (path: string) => Promise<ArrayBuffer>,
   ): Promise<void> {
-    if (!stlRegistered) {
-      await registerSTLLoader();
-      stlRegistered = true;
-    }
-    if (!plyRegistered) {
-      await registerPLYLoader();
-      plyRegistered = true;
-    }
+    await ensureLoadersRegistered();
 
     const effectiveModels = models.length > MAX_CELLS
       ? (console.warn(`[AI3D Grid] Capping ${models.length} models to ${MAX_CELLS} (layerMask limit)`), models.slice(0, MAX_CELLS))
@@ -103,14 +92,7 @@ export class GridRenderer {
     result: PresetResult,
     readFile: (path: string) => Promise<ArrayBuffer>,
   ): Promise<void> {
-    if (!stlRegistered) {
-      await registerSTLLoader();
-      stlRegistered = true;
-    }
-    if (!plyRegistered) {
-      await registerPLYLoader();
-      plyRegistered = true;
-    }
+    await ensureLoadersRegistered();
 
     // Load each unique model placement (deduplicated by path+position)
     const effectivePlacements = result.placements.length > MAX_CELLS
@@ -407,12 +389,9 @@ export class GridRenderer {
   }
 
   private startRenderLoop(): void {
-    cancelAnimationFrame(this.frameId);
-    const loop = () => {
-      this.renderFrame();
-      this.frameId = requestAnimationFrame(loop);
-    };
-    this.frameId = requestAnimationFrame(loop);
+    if (this.rendering) return;
+    this.rendering = true;
+    this.engine.runRenderLoop(() => this.renderFrame());
   }
 
   // ── Public API ─────────────────────────────────────────────────────
@@ -490,7 +469,7 @@ export class GridRenderer {
   }
 
   destroy(): void {
-    cancelAnimationFrame(this.frameId);
+    this.engine.stopRenderLoop();
     for (const cell of this.cells) cell.camera.detachControl();
     this.resizeObs.disconnect();
     this.scene.dispose();

@@ -11,3 +11,15 @@ import "@babylonjs/loaders/OBJ/objFileLoader";
 
 // SPLAT — Gaussian Splatting (.splat, .ply gaussian)
 import "@babylonjs/loaders/SPLAT/splatFileLoader";
+
+import { registerSTLLoader } from "./stl-loader";
+import { registerPLYLoader } from "./ply-loader";
+
+let customLoadersReady = false;
+
+/** Register all SceneLoader plugins (GLTF/OBJ/SPLAT via side-effect imports, STL/PLY custom). */
+export async function ensureLoadersRegistered(): Promise<void> {
+  if (customLoadersReady) return;
+  await Promise.all([registerSTLLoader(), registerPLYLoader()]);
+  customLoadersReady = true;
+}
