@@ -48,6 +48,7 @@ export class BabylonModelPreview {
   private gridMesh: Mesh | null = null;
   private axisMeshes: Mesh[] = [];
   private autoRotateBehavior: any = null;
+  private wireframeEnabled = false;
   private initialCamera = { alpha: Math.PI / 4, beta: Math.PI / 3, radius: 5, target: Vector3.Zero() };
 
   constructor(canvas: HTMLCanvasElement) {
@@ -414,12 +415,18 @@ export class BabylonModelPreview {
 
   setWireframe(enabled: boolean): void {
     if (!this.rootMesh) return;
+    this.wireframeEnabled = enabled;
     const children = this.rootMesh.getChildMeshes(true);
     for (const m of children) {
       if (m.material) {
         (m.material as StandardMaterial).wireframe = enabled;
       }
     }
+  }
+
+  toggleWireframe(): boolean {
+    this.setWireframe(!this.wireframeEnabled);
+    return this.wireframeEnabled;
   }
 
   captureSnapshot(): string | null {

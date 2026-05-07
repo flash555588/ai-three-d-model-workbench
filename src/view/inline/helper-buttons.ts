@@ -6,6 +6,7 @@ export interface SnapshotProvider {
   captureSnapshot(): string | null;
   resetView?(): void;
   exportModelInfo?(modelPath?: string): string;
+  toggleWireframe?(): boolean;
 }
 
 /**
@@ -57,6 +58,20 @@ export function createHelperButtons(
     }
   });
   toolbar.appendChild(infoBtn);
+
+  // Wireframe toggle button (grid/square icon)
+  const wireBtn = document.createElement("button");
+  wireBtn.className = "ai3d-inline-btn";
+  wireBtn.setAttribute("aria-label", "Toggle wireframe");
+  wireBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/></svg>`;
+  wireBtn.addEventListener("click", () => {
+    const preview = getPreview();
+    if (!preview?.toggleWireframe) return;
+    const on = preview.toggleWireframe();
+    wireBtn.style.color = on ? "var(--interactive-accent)" : "";
+    showTooltip(wireBtn, on ? "Wireframe" : "Solid");
+  });
+  toolbar.appendChild(wireBtn);
 
   // Remove button (trash)
   const removeBtn = document.createElement("button");
