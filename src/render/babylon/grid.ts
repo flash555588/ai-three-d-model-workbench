@@ -212,6 +212,7 @@ export class GridRenderer {
     path: string,
     data: ArrayBuffer,
     index: number,
+    readFile?: (path: string) => Promise<ArrayBuffer>,
   ): Promise<{ root: AbstractMesh; allMeshes: AbstractMesh[] }> {
     const ext = path.split(".").pop()?.replace(".", "").toLowerCase() ?? "glb";
     const dataUrl = `data:application/octet-stream;base64,${arrayBufferToBase64(data)}`;
@@ -219,6 +220,12 @@ export class GridRenderer {
       glb: ".glb", gltf: ".gltf", stl: ".stl", obj: ".obj", splat: ".splat", ply: ".ply",
     };
     const fileExt = extToLoader[ext] ?? `.${ext}`;
+
+    // OBJ material injection
+    let restoreOBJ: (() => void) | null = null;
+    if (ext === "obj" && readFile) {
+      restoreOBJ = await injectOBJMTL(data, path, readFile);
+    }
 
     const result = await SceneLoader.ImportMeshAsync(
       "",
@@ -228,6 +235,7 @@ export class GridRenderer {
       undefined,
       fileExt,
     );
+    restoreOBJ?.();
     if (result.meshes.length === 0) throw new Error(`No mesh in ${path}`);
 
     const root = result.meshes[0];
@@ -245,7 +253,7 @@ export class GridRenderer {
     index: number,
   ): Promise<AbstractMesh[]> {
     const data = await readFile(placement.path);
-    const { root, allMeshes } = await this.importMesh(placement.path, data, index);
+    const { root, allMeshes } = await this.importMesh(placement.path, data, index, readFile);
 
     // Position in world space
     if (placement.position) {
@@ -318,7 +326,7 @@ export class GridRenderer {
   ): Promise<void> {
     const data = await readFile(model.path);
     const ext = model.path.split(".").pop()?.replace(".", "").toLowerCase() ?? "glb";
-    const { root, allMeshes } = await this.importMesh(model.path, data, index);
+    const { root, allMeshes } = await this.importMesh(model.path, data, index, readFile);
 
     // Apply STL color if specified
     if (ext === "stl" && model.color) {
@@ -459,6 +467,38 @@ export class GridRenderer {
     this.scene.dispose();
     this.engine.dispose();
     this.cells = [];
+  }
+}
+
+// ── OBJ Material Injection ──────────────────────────────────────────
+
+async function injectOBJMTL(
+  objData: ArrayBuffer,
+  modelPath: string,
+  readFile: (path: string) => Promise<ArrayBuffer>,
+): Promise<(() => void) | null> {
+  const objText = new TextDecoder().decode(new Uint8Array(objData));
+  const mtlMatch = objText.match(/mtllib\s+(.+)/);
+  if (!mtlMatch) return null;
+
+  const mtlFilename = mtlMatch[1].trim().split(/\s+/)[0];
+  const modelDir = modelPath.includes("/") ? modelPath.slice(0, modelPath.lastIndexOf("/")) : "";
+  const mtlPath = modelDir ? `${modelDir}/${mtlFilename}` : mtlFilename;
+
+  try {
+    const mtlData = await readFile(mtlPath);
+    const mtlText = new TextDecoder().decode(new Uint8Array(mtlData));
+    const { OBJFileLoader } = await import("@babylonjs/loaders/OBJ/objFileLoader.js");
+    const proto = OBJFileLoader.prototype as any;
+    const original = proto._loadMTL;
+    proto._loadMTL = function (
+      _url: string, _rootUrl: string, onSuccess: (data: string) => void,
+    ) { onSuccess(mtlText); };
+    console.log(`[AI3D Grid] Injected MTL: ${mtlPath}`);
+    return () => { proto._loadMTL = original; };
+  } catch {
+    console.debug(`[AI3D Grid] No MTL found at ${mtlPath}`);
+    return null;
   }
 }
 

@@ -70,7 +70,12 @@ export class DirectModelView extends FileView {
       this.preview = new BabylonModelPreview(canvas);
       const data = await this.app.vault.readBinary(file);
       const ext = file.extension.toLowerCase();
-      await this.preview.loadModel(data, ext);
+      const readFile = async (p: string) => {
+        const f = this.app.vault.getAbstractFileByPath(p);
+        if (!f) throw new Error(`File not found: ${p}`);
+        return this.app.vault.readBinary(f as any);
+      };
+      await this.preview.loadModel(data, ext, readFile, file.path);
     } catch (err) {
       this.preview?.destroy();
       this.preview = null;

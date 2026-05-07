@@ -229,9 +229,14 @@ export function mountWorkbench(
     try {
       const data = await app.vault.readBinary(file as any);
       const ext = path.split(".").pop() ?? "glb";
+      const readFile = async (p: string) => {
+        const f = app.vault.getAbstractFileByPath(p);
+        if (!f) throw new Error(`File not found: ${p}`);
+        return app.vault.readBinary(f as any);
+      };
 
       preview = new BabylonModelPreview(canvas);
-      const summary = await preview.loadModel(data, ext);
+      const summary = await preview.loadModel(data, ext, readFile, path);
       ps.store.setState({ modelPreview: summary });
     } catch (err) {
       console.error("[AI3D] Failed to load model:", err);

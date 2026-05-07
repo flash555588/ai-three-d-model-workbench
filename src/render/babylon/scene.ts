@@ -76,7 +76,12 @@ export class BabylonModelPreview {
     requestAnimationFrame(() => this.engine.resize());
   }
 
-  async loadModel(data: ArrayBuffer, ext: string): Promise<ModelPreviewSummary> {
+  async loadModel(
+    data: ArrayBuffer,
+    ext: string,
+    readFile?: (path: string) => Promise<ArrayBuffer>,
+    modelPath?: string,
+  ): Promise<ModelPreviewSummary> {
     if (!stlRegistered) {
       await registerSTLLoader();
       stlRegistered = true;
@@ -109,6 +114,13 @@ export class BabylonModelPreview {
     // Use data URL instead of blob URL — Obsidian's Electron converts
     // blob: URLs to blob:app://... which Babylon's GLTF loader cannot parse.
     const dataUrl = `data:application/octet-stream;base64,${arrayBufferToBase64(data)}`;
+
+    // OBJ material injection: read MTL from vault and inject into Babylon OBJ loader
+    let restoreOBJLoader: (() => void) | null = null;
+    if (extLower === "obj" && readFile && modelPath) {
+      restoreOBJLoader = await this.injectOBJMaterials(data, modelPath, readFile);
+    }
+
     const result = await SceneLoader.ImportMeshAsync(
       "",
       "",
@@ -120,6 +132,9 @@ export class BabylonModelPreview {
     if (result.meshes.length > 0) {
       this.rootMesh = result.meshes[0] as Mesh;
     }
+
+    // Restore OBJ loader's original _loadMTL
+    restoreOBJLoader?.();
 
     if (!this.rootMesh) {
       throw new Error("No mesh found in model file");
@@ -460,6 +475,50 @@ export class BabylonModelPreview {
       this.frameId = requestAnimationFrame(loop);
     };
     this.frameId = requestAnimationFrame(loop);
+  }
+
+  /**
+   * OBJ material injection: read MTL file from vault and override Babylon's OBJ loader
+   * to use the vault content instead of fetching from a non-existent URL.
+   * Returns a restore function to undo the loader override.
+   */
+  private async injectOBJMaterials(
+    objData: ArrayBuffer,
+    modelPath: string,
+    readFile: (path: string) => Promise<ArrayBuffer>,
+  ): Promise<(() => void) | null> {
+    // Parse mtllib reference from OBJ text
+    const objText = new TextDecoder().decode(new Uint8Array(objData));
+    const mtlMatch = objText.match(/mtllib\s+(.+)/);
+    if (!mtlMatch) return null;
+
+    const mtlFilename = mtlMatch[1].trim().split(/\s+/)[0]; // take first file if multiple
+    const modelDir = modelPath.includes("/") ? modelPath.slice(0, modelPath.lastIndexOf("/")) : "";
+    const mtlPath = modelDir ? `${modelDir}/${mtlFilename}` : mtlFilename;
+
+    try {
+      const mtlData = await readFile(mtlPath);
+      const mtlText = new TextDecoder().decode(new Uint8Array(mtlData));
+
+      // Override OBJFileLoader._loadMTL to return vault content directly
+      const { OBJFileLoader } = await import("@babylonjs/loaders/OBJ/objFileLoader.js");
+      const proto = OBJFileLoader.prototype as any;
+      const original = proto._loadMTL;
+      proto._loadMTL = function (
+        _url: string,
+        _rootUrl: string,
+        onSuccess: (data: string) => void,
+      ) {
+        onSuccess(mtlText);
+      };
+
+      console.log(`[AI3D] Injected MTL: ${mtlPath}`);
+      return () => { proto._loadMTL = original; };
+    } catch {
+      // MTL file not found — OBJ will render with default material
+      console.debug(`[AI3D] No MTL file found at ${mtlPath}, using default material`);
+      return null;
+    }
   }
 
   private computeSummary(root: Mesh): ModelPreviewSummary {

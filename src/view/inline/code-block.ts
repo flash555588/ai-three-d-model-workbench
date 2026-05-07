@@ -131,9 +131,14 @@ export function registerCodeBlockProcessor(app: App) {
 
         preview = new BabylonModelPreview(canvas);
         const data = await app.vault.readBinary(file as any);
+        const readFile = async (p: string) => {
+          const f = app.vault.getAbstractFileByPath(p);
+          if (!f) throw new Error(`File not found: ${p}`);
+          return app.vault.readBinary(f as any);
+        };
 
         if (destroyed) return;
-        await preview.loadModel(data, ext);
+        await preview.loadModel(data, ext, readFile, modelPath);
 
         if (destroyed) return;
         preview.applyConfig(config);
