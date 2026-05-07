@@ -1,5 +1,5 @@
 import { FuzzySuggestModal, type App, type TFile } from "obsidian";
-import { SUPPORTED_MODEL_EXTENSIONS } from "../domain/constants";
+import { isSupportedModelExtension } from "../io/formats/registry";
 
 export class ModelFileSuggestModal extends FuzzySuggestModal<TFile> {
   private onChoose: (file: TFile) => void;
@@ -13,7 +13,7 @@ export class ModelFileSuggestModal extends FuzzySuggestModal<TFile> {
   getItems(): TFile[] {
     return this.app.vault.getFiles().filter((f) => {
       const ext = f.extension.toLowerCase();
-      return SUPPORTED_MODEL_EXTENSIONS.has(ext);
+      return isSupportedModelExtension(ext);
     });
   }
 

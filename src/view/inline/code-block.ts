@@ -1,6 +1,6 @@
 import type { App, MarkdownPostProcessorContext } from "obsidian";
 import { TFile } from "obsidian";
-import { SUPPORTED_MODEL_EXTENSIONS } from "../../domain/constants";
+import { isDirectModelExtension, listDirectModelExtensions } from "../../io/formats/registry";
 import type { PluginSettings } from "../../domain/models";
 import { BabylonModelPreview } from "../../render/babylon/scene";
 import { GridRenderer } from "../../render/babylon/grid";
@@ -78,10 +78,10 @@ export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSe
       }
 
       const ext = modelPath.split(".").pop()?.toLowerCase() ?? "";
-      if (!SUPPORTED_MODEL_EXTENSIONS.has(ext)) {
+      if (!isDirectModelExtension(ext)) {
         el.createDiv({
           cls: "ai3d-inline-empty",
-          text: `Unsupported format: .${ext}. Supported: ${[...SUPPORTED_MODEL_EXTENSIONS].join(", ")}`,
+          text: `Unsupported format: .${ext}. Supported: ${listDirectModelExtensions().join(", ")}`,
         });
         return;
       }
@@ -280,10 +280,10 @@ export function registerGridCodeBlockProcessor(app: App, getSettings: () => Plug
           return;
         }
         const ext = path.split(".").pop()?.toLowerCase() ?? "";
-        if (!SUPPORTED_MODEL_EXTENSIONS.has(ext)) {
+        if (!isDirectModelExtension(ext)) {
           el.createDiv({
             cls: "ai3d-inline-empty",
-            text: `Unsupported format: .${ext}. Supported: ${[...SUPPORTED_MODEL_EXTENSIONS].join(", ")}`,
+            text: `Unsupported format: .${ext}. Supported: ${listDirectModelExtensions().join(", ")}`,
           });
           return;
         }

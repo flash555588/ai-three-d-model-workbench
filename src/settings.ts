@@ -95,6 +95,35 @@ export class AI3DSettingTab extends PluginSettingTab {
           }),
       );
 
+    new Setting(containerEl)
+      .setName("Log level")
+      .setDesc("Controls plugin runtime log verbosity in the developer console.")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("debug", "Debug")
+          .addOption("info", "Info")
+          .addOption("warn", "Warn")
+          .addOption("error", "Error")
+          .setValue(this.plugin.getSettings().logLevel)
+          .onChange(async (val: string) => {
+            this.plugin.updateSettings({ logLevel: val as "debug" | "info" | "warn" | "error" });
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Enable FreeCAD converter (experimental)")
+      .setDesc("Enable CAD conversion route for STEP/IGES/BREP family formats. Disabled by default.")
+      .addToggle((toggle) => {
+        const enabled = this.plugin.getSettings().enabledConverterIds.includes("freecad");
+        return toggle.setValue(enabled).onChange(async (val) => {
+          const current = this.plugin.getSettings().enabledConverterIds;
+          const next = val
+            ? Array.from(new Set([...current, "freecad"]))
+            : current.filter((id) => id !== "freecad");
+          this.plugin.updateSettings({ enabledConverterIds: next });
+        });
+      });
+
     // ── Performance ──────────────────────────────────────────────
 
     containerEl.createEl("h3", { text: "Performance & Display" });

@@ -1,6 +1,7 @@
 import type { PluginSettings, CameraConfig, LightConfig, SceneConfig } from "./models";
+import { listSupportedModelExtensions } from "../io/formats/registry";
 
-export const SUPPORTED_MODEL_EXTENSIONS = new Set(["glb", "gltf", "stl", "obj", "splat", "ply"]);
+export const SUPPORTED_MODEL_EXTENSIONS = new Set(listSupportedModelExtensions());
 
 export const MAX_TAGS_PER_FIELD = 12;
 
@@ -27,6 +28,10 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   // Snapshot export
   snapshotFolder: "Media/3D Previews",
   snapshotNaming: "model-name",
+  // Conversion channel
+  enabledConverterIds: [],
+  // Logging
+  logLevel: "warn",
 };
 
 export const DEFAULT_CAMERA_CONFIG: CameraConfig = {

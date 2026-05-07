@@ -1,11 +1,12 @@
 import { Plugin, type TFile, WorkspaceLeaf } from "obsidian";
 import type { PluginSettings } from "./domain/models";
-import { DEFAULT_SETTINGS, SUPPORTED_MODEL_EXTENSIONS } from "./domain/constants";
+import { listDirectModelExtensions, isSupportedModelExtension } from "./io/formats/registry";
 import { createPluginStore, type PluginStore } from "./store/plugin-store";
 import { AnalysisView, VIEW_TYPE } from "./view/analysis-view";
 import { DirectModelView, DIRECT_VIEW_TYPE } from "./view/direct-view";
 import { ModelFileSuggestModal } from "./view/model-file-suggest-modal";
 import { AI3DSettingTab } from "./settings";
+import { setLogLevel } from "./utils/log";
 
 export default class AI3DModelWorkbench extends Plugin {
   private ps!: PluginStore;
@@ -16,12 +17,15 @@ export default class AI3DModelWorkbench extends Plugin {
 
   async updateSettings(partial: Partial<PluginSettings>) {
     const current = this.ps.store.getState().settings;
-    this.ps.store.setState({ settings: { ...current, ...partial } });
+    const next = { ...current, ...partial };
+    this.ps.store.setState({ settings: next });
+    setLogLevel(next.logLevel);
   }
 
   async onload() {
     this.ps = createPluginStore(this);
     await this.ps.load();
+    setLogLevel(this.getSettings().logLevel);
 
     this.registerView(VIEW_TYPE, (leaf) => new AnalysisView(leaf, this.ps));
 
@@ -49,7 +53,7 @@ export default class AI3DModelWorkbench extends Plugin {
 
     // Register direct file view for .glb/.gltf/.stl
     this.registerView(DIRECT_VIEW_TYPE, (leaf) => new DirectModelView(leaf, () => this.getSettings()));
-    this.registerExtensions([...SUPPORTED_MODEL_EXTENSIONS], DIRECT_VIEW_TYPE);
+    this.registerExtensions(listDirectModelExtensions(), DIRECT_VIEW_TYPE);
 
     // Register ```3d and ```3dgrid code block processors
     const { registerCodeBlockProcessor, registerGridCodeBlockProcessor } = await import("./view/inline/code-block");
@@ -94,7 +98,7 @@ export default class AI3DModelWorkbench extends Plugin {
   private async importModel() {
     new ModelFileSuggestModal(this.app, async (file: TFile) => {
       const ext = file.extension.toLowerCase();
-      if (!SUPPORTED_MODEL_EXTENSIONS.has(ext)) {
+      if (!isSupportedModelExtension(ext)) {
         return;
       }
 

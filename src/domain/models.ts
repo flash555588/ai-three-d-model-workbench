@@ -29,6 +29,10 @@ export interface PluginSettings {
   // Snapshot export
   snapshotFolder: string;
   snapshotNaming: "timestamp" | "model-name";
+  // Conversion channel
+  enabledConverterIds: string[];
+  // Logging
+  logLevel: "debug" | "info" | "warn" | "error";
 }
 
 // ── Persisted Plugin State ───────────────────────────────────────

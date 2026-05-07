@@ -7,7 +7,7 @@ import type { App } from "obsidian";
 import { TFile } from "obsidian";
 import { EditorView, Decoration, WidgetType } from "@codemirror/view";
 import { StateField, StateEffect, RangeSet, Range } from "@codemirror/state";
-import { SUPPORTED_MODEL_EXTENSIONS } from "../../domain/constants";
+import { isDirectModelExtension } from "../../io/formats/registry";
 import type { PluginSettings } from "../../domain/models";
 import type { BabylonModelPreview } from "../../render/babylon/scene";
 import { resolveVaultPath } from "../../utils/resolve-path";
@@ -157,7 +157,7 @@ function findEmbeds(
       const filename = parts[0].trim();
 
       const ext = filename.split(".").pop()?.toLowerCase() ?? "";
-      if (!SUPPORTED_MODEL_EXTENSIONS.has(ext)) {
+      if (!isDirectModelExtension(ext)) {
         pos = end + 2;
         continue;
       }

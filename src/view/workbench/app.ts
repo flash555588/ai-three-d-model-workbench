@@ -5,6 +5,11 @@ import type { PluginState, ModelAssetProfile } from "../../domain/models";
 import { normalizeTagList } from "../../utils/format";
 import { BabylonModelPreview } from "../../render/babylon/scene";
 import { html } from "./h";
+import { prepareModelInput } from "../../io/model-pipeline";
+import { createConversionManager } from "../../io/conversion/factory";
+import { createLogger } from "../../utils/log";
+
+const log = createLogger("workbench");
 
 export function mountWorkbench(
   container: HTMLElement,
@@ -265,8 +270,21 @@ export function mountWorkbench(
     previewHost.appendChild(canvas);
 
     try {
-      const data = await app.vault.readBinary(file);
-      const ext = path.split(".").pop() ?? "glb";
+      log.info("begin model load", { path });
+      const conversionManager = createConversionManager({
+        enabledConverterIds: state.settings.enabledConverterIds,
+      });
+      const prepared = await prepareModelInput({ path, conversionManager });
+      for (const warning of prepared.warnings) {
+        log.warn("model prepare warning", { path, warning });
+      }
+
+      const preparedFile = app.vault.getAbstractFileByPath(prepared.effectivePath);
+      if (!(preparedFile instanceof TFile)) {
+        throw new Error(`File not found: ${prepared.effectivePath}`);
+      }
+
+      const data = await app.vault.readBinary(preparedFile);
       const readFile = async (p: string) => {
         const f = app.vault.getAbstractFileByPath(p);
         if (!(f instanceof TFile)) throw new Error(`File not found: ${p}`);
@@ -274,12 +292,19 @@ export function mountWorkbench(
       };
 
       preview = new BabylonModelPreview(canvas);
-      const summary = await preview.loadModel(data, ext, readFile, path);
+      const summary = await preview.loadModel(data, prepared.effectiveExt, readFile, prepared.effectivePath);
       const s = ps.store.getState().settings;
       preview.setRenderQuality(s.renderQuality, s.renderScale);
       ps.store.setState({ modelPreview: summary });
+      log.info("model load completed", {
+        path,
+        effectivePath: prepared.effectivePath,
+        effectiveExt: prepared.effectiveExt,
+        meshCount: summary.meshCount,
+        triangleCount: summary.triangleCount,
+      });
     } catch (err) {
-      console.error("[AI3D] Failed to load model:", err);
+      log.error("model load failed", { path, error: err instanceof Error ? err.message : String(err) });
       preview?.destroy();
       preview = null;
       canvas.remove();

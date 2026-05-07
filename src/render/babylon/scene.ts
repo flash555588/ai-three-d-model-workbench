@@ -76,7 +76,9 @@ export class BabylonModelPreview {
     this.camera.lowerRadiusLimit = 0.1;
     this.camera.wheelPrecision = 30;
 
-    new HemisphericLight("default-light", new Vector3(0, 1, 0.5), this.scene);
+    this.scene.ambientColor = new Color3(0.3, 0.3, 0.3);
+    const hemi = new HemisphericLight("default-light", new Vector3(0, 1, 0.5), this.scene);
+    hemi.intensity = 1.2;
 
     this.resizeObs = new ResizeObserver(() => this.engine.resize());
     this.resizeObs.observe(canvas);
@@ -116,19 +118,124 @@ export class BabylonModelPreview {
     // blob: URLs to blob:app://... which Babylon's GLTF loader cannot parse.
     const dataUrl = `data:application/octet-stream;base64,${arrayBufferToBase64(data)}`;
 
-    // OBJ material injection: read MTL from vault and inject into Babylon OBJ loader.
+    // OBJ: override _loadMTL to read MTL from vault instead of network fetch.
     // Serialized via objMtlLock to prevent concurrent loads from clobbering the prototype.
-    let restoreOBJLoader: (() => void) | null = null;
     if (extLower === "obj" && readFile && modelPath) {
       if (objMtlLock) await objMtlLock;
       let resolveLock!: () => void;
       objMtlLock = new Promise<void>(r => { resolveLock = r; });
       try {
-        restoreOBJLoader = await this.injectOBJMaterials(data, modelPath, readFile);
+        const { OBJFileLoader } = await import("@babylonjs/loaders/OBJ/objFileLoader.js");
+        const proto = OBJFileLoader.prototype as any;
+        const originalLoadMTL = proto._loadMTL;
+
+        // Pre-load MTL content from vault (if exists)
+        const objText = new TextDecoder().decode(new Uint8Array(data));
+        const mtlMatch = objText.match(/mtllib\s+(.+)/);
+        let mtlContent: string | null = null;
+        let texCount = 0;
+        let texMissing = 0;
+        if (mtlMatch && readFile && modelPath) {
+          const mtlFilename = mtlMatch[1].trim().split(/\s+/)[0];
+          const modelDir = modelPath.includes("/") ? modelPath.slice(0, modelPath.lastIndexOf("/")) : "";
+          const mtlPath = modelDir ? `${modelDir}/${mtlFilename}` : mtlFilename;
+          try {
+            const mtlData = await readFile(mtlPath);
+            const raw = new TextDecoder().decode(new Uint8Array(mtlData));
+            const lines = raw.split("\n");
+
+            // Resolve texture files referenced in MTL from vault.
+            // Try: 1) full relative path, 2) same-dir filename,
+            //      3) OBJ-name with image extensions (e.g. bat.jpeg),
+            //      4) common basecolor/texture names in same dir
+            const TEX_RE = /^\s*(map_Kd|map_Ka|map_Ks|map_Ns|map_d|map_bump|bump|disp|decal)\s+(.+)/i;
+            const objBasename = modelPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") ?? "";
+            const IMG_EXTS = ["jpg", "jpeg", "png", "bmp", "tga", "webp", "tif", "tiff"];
+            for (let i = 0; i < lines.length; i++) {
+              const m = lines[i].match(TEX_RE);
+              if (!m) continue;
+              const rawPath = m[2].trim();
+              const texFilename = rawPath.split(/[\\/]/).pop()!;
+              const texBase = texFilename.replace(/\.[^.]+$/, "");
+              // Build candidate paths
+              const candidates: string[] = [
+                // 1) full relative path
+                ...(modelDir ? [`${modelDir}/${rawPath}`] : [rawPath]),
+                // 2) same-dir exact filename
+                ...(modelDir ? [`${modelDir}/${texFilename}`] : [texFilename]),
+              ];
+              // 3) OBJ-name with image extensions
+              if (objBasename) {
+                for (const ext of IMG_EXTS) {
+                  candidates.push(modelDir ? `${modelDir}/${objBasename}.${ext}` : `${objBasename}.${ext}`);
+                }
+              }
+              // 4) original texture basename with different extensions
+              for (const ext of IMG_EXTS) {
+                const alt = `${texBase}.${ext}`;
+                if (alt !== texFilename) {
+                  candidates.push(modelDir ? `${modelDir}/${alt}` : alt);
+                }
+              }
+              let resolved = false;
+              for (const cand of candidates) {
+                try {
+                  const texBuf = await readFile(cand);
+                  const ext = cand.split(".").pop()?.toLowerCase() ?? "png";
+                  const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg"
+                    : ext === "png" ? "image/png"
+                    : ext === "bmp" ? "image/bmp"
+                    : ext === "tga" ? "image/x-tga"
+                    : ext === "webp" ? "image/webp"
+                    : `image/${ext}`;
+                  const dataUrl = `data:${mime};base64,${arrayBufferToBase64(texBuf)}`;
+                  lines[i] = `${m[1]} ${dataUrl}`;
+                  texCount++;
+                  resolved = true;
+                  console.log(`[AI3D] Texture resolved: ${cand}`);
+                  break;
+                } catch { /* try next candidate */ }
+              }
+              if (!resolved) {
+                lines[i] = ""; // strip — prevents red-black checkerboard
+                texMissing++;
+              }
+            }
+
+            // If MTL has no Kd (diffuse color), add default light gray
+            const filtered = lines.filter(l => l !== "");
+            const hasKd = filtered.some(l => /^\s*Kd\s+/i.test(l));
+            if (!hasKd) {
+              const nmIdx = filtered.findIndex(l => /^\s*newmtl\s+/i.test(l));
+              filtered.splice(nmIdx >= 0 ? nmIdx + 1 : 0, 0, "Kd 0.80 0.80 0.80");
+            }
+            mtlContent = filtered.join("\n");
+            console.log(`[AI3D] MTL: ${mtlPath} | textures: ${texCount} loaded, ${texMissing} missing`);
+          } catch {
+            console.debug(`[AI3D] No MTL in vault: ${mtlPath}`);
+          }
+        }
+
+        // Override _loadMTL to use vault content or skip (prevents network fetch)
+        proto._loadMTL = function(_url: string, _rootUrl: string, onSuccess: (data: string) => void) {
+          const content = mtlContent ?? "";
+          console.log(`[AI3D] _loadMTL called: url=${_url}, content_len=${content.length}, has_Kd=${content.includes("Kd")}, has_map=${content.includes("map_")}`);
+          onSuccess(content);
+        };
+
         const result = await SceneLoader.ImportMeshAsync("", "", dataUrl, scene, undefined, fileExt);
         if (result.meshes.length > 0) this.rootMesh = result.meshes[0] as Mesh;
+        // Log material state after OBJ load
+        for (const m of result.meshes) {
+          const mat = m.material;
+          console.log(`[AI3D] OBJ mesh "${m.name}" material:`, mat ? `${mat.name} diffuse=${(mat as any).diffuseColor}` : "NONE");
+        }
+
+        // Restore original _loadMTL
+        proto._loadMTL = originalLoadMTL;
+      } catch (e) {
+        console.error("[AI3D] OBJ load error:", e);
       } finally {
-        restoreOBJLoader?.();
         resolveLock();
         objMtlLock = null;
       }
@@ -418,7 +525,9 @@ export class BabylonModelPreview {
     const children = this.rootMesh.getChildMeshes(true);
     for (const m of children) {
       if (m.material && m.material.name === "stl-mat") {
-        (m.material as StandardMaterial).diffuseColor = color;
+        const mat = m.material as StandardMaterial;
+        mat.diffuseColor = color;
+        mat.emissiveColor = color.scale(0.1);
       }
     }
   }
@@ -669,50 +778,6 @@ export class BabylonModelPreview {
         this.gizmo.render(this.engine);
       }
     });
-  }
-
-  /**
-   * OBJ material injection: read MTL file from vault and override Babylon's OBJ loader
-   * to use the vault content instead of fetching from a non-existent URL.
-   * Returns a restore function to undo the loader override.
-   */
-  private async injectOBJMaterials(
-    objData: ArrayBuffer,
-    modelPath: string,
-    readFile: (path: string) => Promise<ArrayBuffer>,
-  ): Promise<(() => void) | null> {
-    // Parse mtllib reference from OBJ text
-    const objText = new TextDecoder().decode(new Uint8Array(objData));
-    const mtlMatch = objText.match(/mtllib\s+(.+)/);
-    if (!mtlMatch) return null;
-
-    const mtlFilename = mtlMatch[1].trim().split(/\s+/)[0]; // take first file if multiple
-    const modelDir = modelPath.includes("/") ? modelPath.slice(0, modelPath.lastIndexOf("/")) : "";
-    const mtlPath = modelDir ? `${modelDir}/${mtlFilename}` : mtlFilename;
-
-    try {
-      const mtlData = await readFile(mtlPath);
-      const mtlText = new TextDecoder().decode(new Uint8Array(mtlData));
-
-      // Override OBJFileLoader._loadMTL to return vault content directly
-      const { OBJFileLoader } = await import("@babylonjs/loaders/OBJ/objFileLoader.js");
-      const proto = OBJFileLoader.prototype as any;
-      const original = proto._loadMTL;
-      proto._loadMTL = function (
-        _url: string,
-        _rootUrl: string,
-        onSuccess: (data: string) => void,
-      ) {
-        onSuccess(mtlText);
-      };
-
-      console.log(`[AI3D] Injected MTL: ${mtlPath}`);
-      return () => { proto._loadMTL = original; };
-    } catch {
-      // MTL file not found — OBJ will render with default material
-      console.debug(`[AI3D] No MTL file found at ${mtlPath}, using default material`);
-      return null;
-    }
   }
 
   private computeSummary(root: Mesh): ModelPreviewSummary {
