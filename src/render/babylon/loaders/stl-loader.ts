@@ -141,6 +141,14 @@ function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): Mesh {
   return mesh;
 }
 
+/**
+ * Parse a binary STL ArrayBuffer and add the resulting mesh to a Scene.
+ * Bypasses SceneLoader — works around Babylon v9 data-URL handling issues.
+ */
+export function loadSTLBuffer(scene: Scene, buffer: ArrayBuffer): Mesh {
+  return parseBinarySTL(scene, buffer);
+}
+
 export async function registerSTLLoader() {
   const { SceneLoader } = await import("@babylonjs/core/Loading/sceneLoader.js");
   SceneLoader.RegisterPlugin(stlPlugin as any);

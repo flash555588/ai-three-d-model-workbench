@@ -125,11 +125,11 @@ class ModelEmbedWidget extends WidgetType {
 // ── Document scanner ──────────────────────────────────────────────
 
 function findEmbeds(
-  view: EditorView,
+  viewOrState: EditorView | import("@codemirror/state").EditorState,
   app: App,
   autoRotate: boolean,
 ): Range<Decoration>[] {
-  const doc = view.state.doc;
+  const doc = "state" in viewOrState ? viewOrState.state.doc : viewOrState.doc;
   const ranges: Range<Decoration>[] = [];
 
   for (let i = 1; i <= doc.lines; i++) {
@@ -182,12 +182,13 @@ function findEmbeds(
       const from = line.from + start;
       const to = line.from + end + 2;
 
+      // Widget decorations require zero-length ranges — place at the start of the embed
       ranges.push(
         Decoration.widget({
           widget: new ModelEmbedWidget(app, modelPath, w, h, autoRotate),
           block: true,
           side: 1,
-        }).range(from, to),
+        }).range(from),
       );
 
       pos = end + 2;
@@ -209,13 +210,13 @@ export function registerLivePreviewExtension(app: App, getSettings: () => Plugin
   const embedField = StateField.define<DecoSet>({
     create(state): DecoSet {
       const s = getSettings();
-      const ranges = findEmbeds({ state } as EditorView, app, s.autoRotateDefault);
+      const ranges = findEmbeds(state, app, s.autoRotateDefault);
       return ranges.length > 0 ? RangeSet.of(ranges, true) : RangeSet.empty;
     },
     update(value, tr): DecoSet {
       if (tr.docChanged || tr.effects.some((e) => e.is(updateEmbeds))) {
         const s = getSettings();
-        const ranges = findEmbeds(tr.state as any, app, s.autoRotateDefault);
+        const ranges = findEmbeds(tr.state, app, s.autoRotateDefault);
         return ranges.length > 0 ? RangeSet.of(ranges, true) : RangeSet.empty;
       }
       return value.map(tr.changes);
