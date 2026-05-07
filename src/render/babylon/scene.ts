@@ -29,6 +29,7 @@ import { registerSTLLoader } from "./loaders/stl-loader";
 import { registerPLYLoader } from "./loaders/ply-loader";
 import { setExplode, resetExplode } from "./explode";
 import { setupPicking } from "./picking";
+import { arrayBufferToBase64 } from "../../utils/base64";
 
 let stlRegistered = false;
 let plyRegistered = false;
@@ -47,7 +48,7 @@ export class BabylonModelPreview {
   private groundMesh: Mesh | null = null;
   private gridMesh: Mesh | null = null;
   private axisMeshes: Mesh[] = [];
-  private autoRotateBehavior: any = null;
+  private autoRotateBehavior: AutoRotationBehavior | null = null;
   private wireframeEnabled = false;
   private animPlaying = false;
   private initialCamera = { alpha: Math.PI / 4, beta: Math.PI / 3, radius: 5, target: Vector3.Zero() };
@@ -656,14 +657,4 @@ export class BabylonModelPreview {
       rootName: root.name,
     };
   }
-}
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  const CHUNK = 0x8000;
-  const parts: string[] = [];
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    parts.push(String.fromCharCode(...bytes.subarray(i, i + CHUNK)));
-  }
-  return btoa(parts.join(""));
 }

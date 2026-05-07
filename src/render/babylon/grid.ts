@@ -7,10 +7,12 @@ import { Color4 } from "@babylonjs/core/Maths/math.color.js";
 import { Viewport } from "@babylonjs/core/Maths/math.viewport.js";
 import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader.js";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js";
 import type { ModelConfig, GridBlockConfig, ModelPlacement, PresetCameraDef, CellLayout, PresetResult } from "../../domain/models";
 import "./loaders/register";
 import { registerSTLLoader } from "./loaders/stl-loader";
 import { registerPLYLoader } from "./loaders/ply-loader";
+import { arrayBufferToBase64 } from "../../utils/base64";
 
 let stlRegistered = false;
 let plyRegistered = false;
@@ -329,8 +331,8 @@ export class GridRenderer {
       const { Color3 } = await import("@babylonjs/core/Maths/math.color.js");
       const color = Color3.FromHexString(model.color);
       for (const m of allMeshes) {
-        if (m.material && m.material.name === "stl-mat") {
-          (m.material as any).diffuseColor = color;
+        if (m.material instanceof StandardMaterial && m.material.name === "stl-mat") {
+          m.material.diffuseColor = color;
         }
       }
     }
@@ -338,7 +340,7 @@ export class GridRenderer {
     // Apply wireframe if specified
     if (ext === "stl" && model.wireframe !== undefined) {
       for (const m of allMeshes) {
-        if (m.material) (m.material as any).wireframe = model.wireframe;
+        if (m.material instanceof StandardMaterial) m.material.wireframe = model.wireframe;
       }
     }
 
@@ -389,34 +391,26 @@ export class GridRenderer {
 
   // ── Render ─────────────────────────────────────────────────────────
 
+  private renderFrame(): void {
+    const engine = this.engine;
+    const scene = this.scene;
+    engine.clear(scene.clearColor, true, true);
+    for (const cell of this.cells) {
+      engine.setViewport(cell.camera.viewport);
+      const vp = cell.camera.viewport;
+      const cw = engine.getRenderWidth();
+      const ch = engine.getRenderHeight();
+      engine.enableScissor(vp.x * cw, vp.y * ch, vp.width * cw, vp.height * ch);
+      scene.activeCamera = cell.camera;
+      scene.render();
+      engine.disableScissor();
+    }
+  }
+
   private startRenderLoop(): void {
     cancelAnimationFrame(this.frameId);
-    const scene = this.scene;
-    const engine = this.engine;
-    const cells = this.cells;
-
     const loop = () => {
-      // Clear the full canvas once
-      engine.clear(scene.clearColor, true, true);
-
-      for (const cell of cells) {
-        // Set viewport and scissor for this cell
-        engine.setViewport(cell.camera.viewport);
-        const vp = cell.camera.viewport;
-        const cw = engine.getRenderWidth();
-        const ch = engine.getRenderHeight();
-        engine.enableScissor(vp.x * cw, vp.y * ch, vp.width * cw, vp.height * ch);
-
-        // Show only this cell's meshes
-        for (const c of cells) {
-          for (const m of c.meshes) m.isVisible = c === cell;
-        }
-        scene.activeCamera = cell.camera;
-        scene.render();
-
-        engine.disableScissor();
-      }
-
+      this.renderFrame();
       this.frameId = requestAnimationFrame(loop);
     };
     this.frameId = requestAnimationFrame(loop);
@@ -427,25 +421,7 @@ export class GridRenderer {
   captureSnapshot(): string | null {
     const canvas = this.engine.getRenderingCanvas();
     if (!canvas) return null;
-    const scene = this.scene;
-    const engine = this.engine;
-
-    engine.clear(scene.clearColor, true, true);
-    for (const cell of this.cells) {
-      engine.setViewport(cell.camera.viewport);
-      const vp = cell.camera.viewport;
-      const cw = engine.getRenderWidth();
-      const ch = engine.getRenderHeight();
-      engine.enableScissor(vp.x * cw, vp.y * ch, vp.width * cw, vp.height * ch);
-
-      for (const c of this.cells) {
-        for (const m of c.meshes) m.isVisible = c === cell;
-      }
-      scene.activeCamera = cell.camera;
-      scene.render();
-      engine.disableScissor();
-    }
-
+    this.renderFrame();
     return canvas.toDataURL("image/png");
   }
 
@@ -478,8 +454,8 @@ export class GridRenderer {
     this.wireframeEnabled = !this.wireframeEnabled;
     for (const cell of this.cells) {
       for (const m of cell.meshes) {
-        if ((m as any).material) {
-          (m as any).material.wireframe = this.wireframeEnabled;
+        if (m.material instanceof StandardMaterial) {
+          m.material.wireframe = this.wireframeEnabled;
         }
       }
     }
@@ -523,14 +499,3 @@ export class GridRenderer {
   }
 }
 
-// ── Utilities ────────────────────────────────────────────────────────
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  const CHUNK = 0x8000;
-  const parts: string[] = [];
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    parts.push(String.fromCharCode(...bytes.subarray(i, i + CHUNK)));
-  }
-  return btoa(parts.join(""));
-}

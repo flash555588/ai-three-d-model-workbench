@@ -4,7 +4,7 @@ import type { PluginSettings } from "../../domain/models";
 import { BabylonModelPreview } from "../../render/babylon/scene";
 import { GridRenderer } from "../../render/babylon/grid";
 import { getPreset, composeSections } from "../../render/babylon/presets";
-import { createHelperButtons } from "./helper-buttons";
+import { createHelperButtons, type HelperToolbar } from "./helper-buttons";
 import type { ThreeDBlockConfig, ModelConfig, GridBlockConfig } from "../../domain/models";
 
 /**
@@ -102,7 +102,7 @@ export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSe
       let preview: BabylonModelPreview | null = null;
       let destroyed = false;
 
-      createHelperButtons(host, app, () => preview, () => modelPath, () => {
+      const toolbar: HelperToolbar = createHelperButtons(host, app, () => preview, () => modelPath, () => {
         if (destroyed) return;
         destroyed = true;
         observer.disconnect();
@@ -158,8 +158,7 @@ export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSe
 
         // Show animation button if model has animations
         if (preview.hasAnimations()) {
-          const toolbar = host.nextElementSibling as any;
-          toolbar?._showAnimButton?.();
+          toolbar.showAnimButton();
         }
       } catch (err) {
         preview?.destroy();

@@ -15,7 +15,7 @@ import type { BabylonModelPreview } from "../../render/babylon/scene";
 class ModelEmbedWidget extends WidgetType {
   private preview: BabylonModelPreview | null = null;
   private mounted = false;
-  private observer: MutationObserver | null = null;
+  private pollId = 0;
 
   constructor(
     private app: App,
@@ -31,7 +31,8 @@ class ModelEmbedWidget extends WidgetType {
     return (
       this.modelPath === other.modelPath &&
       this.width === other.width &&
-      this.height === other.height
+      this.height === other.height &&
+      this.autoRotate === other.autoRotate
     );
   }
 
@@ -54,16 +55,19 @@ class ModelEmbedWidget extends WidgetType {
     error.style.display = "none";
     host.appendChild(error);
 
-    // Wait until widget is connected to DOM, then initialize
-    this.observer = new MutationObserver(() => {
-      if (!this.mounted && host.isConnected) {
+    // Poll host.isConnected via rAF — avoids O(N*M) MutationObserver on document.body
+    let attempts = 0;
+    const poll = () => {
+      if (this.mounted) return;
+      if (host.isConnected) {
         this.mounted = true;
-        this.observer?.disconnect();
-        this.observer = null;
         this.initPreview(canvas, loading, error);
+        return;
       }
-    });
-    this.observer.observe(document.body, { childList: true, subtree: true });
+      if (++attempts > 120) return; // ~2s at 60fps, give up
+      this.pollId = requestAnimationFrame(poll);
+    };
+    this.pollId = requestAnimationFrame(poll);
 
     return host;
   }
@@ -102,8 +106,8 @@ class ModelEmbedWidget extends WidgetType {
   }
 
   override destroy(): void {
-    this.observer?.disconnect();
-    this.observer = null;
+    cancelAnimationFrame(this.pollId);
+    this.pollId = 0;
     if (this.preview) {
       this.preview.destroy();
       this.preview = null;

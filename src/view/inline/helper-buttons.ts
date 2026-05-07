@@ -11,10 +11,15 @@ export interface SnapshotProvider {
   toggleAnimation?(): boolean;
 }
 
+/** Handle returned by createHelperButtons — callers hold a direct reference. */
+export interface HelperToolbar {
+  showAnimButton(): void;
+}
+
 /**
  * Create helper buttons BELOW the preview host (as a sibling).
- * @param previewHost — the .ai3d-preview-host or .ai3d-grid-host element
- * @param getSettings — lazy accessor for plugin settings
+ * Returns a HelperToolbar handle so callers can show/hide the animation button
+ * without relying on fragile DOM sibling position.
  */
 export function createHelperButtons(
   previewHost: HTMLElement,
@@ -23,7 +28,7 @@ export function createHelperButtons(
   getModelPath: () => string,
   onRemove: () => void,
   getSettings?: () => PluginSettings,
-): void {
+): HelperToolbar {
   const toolbar = document.createElement("div");
   toolbar.className = "ai3d-helper-toolbar";
 
@@ -91,9 +96,6 @@ export function createHelperButtons(
     showTooltip(animBtn, playing ? "Playing" : "Paused");
   });
   toolbar.appendChild(animBtn);
-
-  // Expose a way to show the anim button after model load
-  (toolbar as any)._showAnimButton = () => { animBtn.style.display = ""; };
 
   // Remove button (trash)
   const removeBtn = document.createElement("button");
@@ -197,12 +199,21 @@ export function createHelperButtons(
 
   // Insert toolbar as a sibling AFTER the preview host
   previewHost.parentElement?.insertBefore(toolbar, previewHost.nextSibling);
+
+  return {
+    showAnimButton() { animBtn.style.display = ""; },
+  };
 }
 
+// Track one tooltip per anchor to prevent stacking (#28)
+const activeTooltips = new WeakMap<HTMLElement, HTMLElement>();
+
 function showTooltip(anchor: HTMLElement, text: string): void {
+  activeTooltips.get(anchor)?.remove();
   const tip = document.createElement("div");
   tip.className = "ai3d-tooltip";
   tip.textContent = text;
   anchor.parentElement?.appendChild(tip);
-  setTimeout(() => tip.remove(), 1500);
+  activeTooltips.set(anchor, tip);
+  setTimeout(() => { tip.remove(); activeTooltips.delete(anchor); }, 1500);
 }
