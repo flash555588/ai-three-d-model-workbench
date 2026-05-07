@@ -31,6 +31,7 @@ export class GridRenderer {
   private engine: Engine;
   private scene: Scene;
   private cells: GridCell[] = [];
+  private initialCameras: { alpha: number; beta: number; radius: number; target: Vector3 }[] = [];
   private frameId = 0;
   private resizeObs: ResizeObserver;
 
@@ -302,6 +303,10 @@ export class GridRenderer {
     camera.layerMask = 1 << globalIndex;
     const canvas = this.engine.getRenderingCanvas();
     if (canvas) camera.attachControl(canvas, true);
+    this.initialCameras.push({
+      alpha: camera.alpha, beta: camera.beta,
+      radius: camera.radius, target: camera.target.clone(),
+    });
     return camera;
   }
 
@@ -374,6 +379,10 @@ export class GridRenderer {
     camera.layerMask = 1 << index;
     const canvas = this.engine.getRenderingCanvas();
     if (canvas) camera.attachControl(canvas, true);
+    this.initialCameras.push({
+      alpha: camera.alpha, beta: camera.beta,
+      radius: camera.radius, target: camera.target.clone(),
+    });
     return camera;
   }
 
@@ -449,6 +458,19 @@ export class GridRenderer {
 
   getCellCount(): number {
     return this.cells.length;
+  }
+
+  resetView(): void {
+    for (let i = 0; i < this.cells.length; i++) {
+      const cam = this.cells[i].camera;
+      const init = this.initialCameras[i];
+      if (init) {
+        cam.alpha = init.alpha;
+        cam.beta = init.beta;
+        cam.radius = init.radius;
+        cam.target = init.target.clone();
+      }
+    }
   }
 
   destroy(): void {
