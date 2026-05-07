@@ -185,6 +185,7 @@ export function mountWorkbench(
             <div class="ai3d-actions">
               ${preview ? html`<button class="ai3d-axis-btn" data-action="reset">Reset View</button>` : ""}
               ${preview ? html`<button class="ai3d-axis-btn" data-action="info">Insert Info</button>` : ""}
+              ${preview?.hasAnimations() ? html`<button class="ai3d-axis-btn" data-action="anim">Play</button>` : ""}
               <button class="ai3d-axis-btn" data-action="save">Save Profile</button>
               <button class="ai3d-axis-btn" data-action="note">Generate Note</button>
             </div>
@@ -218,6 +219,15 @@ export function mountWorkbench(
           } else {
             navigator.clipboard.writeText(md);
           }
+        });
+      }
+
+      const animAction = actionsEl.querySelector("[data-action='anim']");
+      if (animAction) {
+        animAction.addEventListener("click", () => {
+          if (!preview?.toggleAnimation) return;
+          const playing = preview.toggleAnimation();
+          animAction.textContent = playing ? "Pause" : "Play";
         });
       }
 
