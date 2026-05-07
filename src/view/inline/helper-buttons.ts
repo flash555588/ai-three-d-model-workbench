@@ -5,6 +5,7 @@ import type { PluginSettings } from "../../domain/models";
 export interface SnapshotProvider {
   captureSnapshot(): string | null;
   resetView?(): void;
+  exportModelInfo?(modelPath?: string): string;
 }
 
 /**
@@ -36,6 +37,26 @@ export function createHelperButtons(
     }
   });
   toolbar.appendChild(resetBtn);
+
+  // Export model info button (info circle)
+  const infoBtn = document.createElement("button");
+  infoBtn.className = "ai3d-inline-btn";
+  infoBtn.setAttribute("aria-label", "Copy model info as Markdown");
+  infoBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+  infoBtn.addEventListener("click", async () => {
+    const preview = getPreview();
+    if (!preview?.exportModelInfo) return;
+    try {
+      const md = preview.exportModelInfo(getModelPath());
+      if (!md) return;
+      await navigator.clipboard.writeText(md);
+      showTooltip(infoBtn, "Copied!");
+    } catch (err) {
+      console.error("[AI3D] Export model info failed:", err);
+      showTooltip(infoBtn, "Failed");
+    }
+  });
+  toolbar.appendChild(infoBtn);
 
   // Remove button (trash)
   const removeBtn = document.createElement("button");
