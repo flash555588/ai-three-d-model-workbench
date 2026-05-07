@@ -29,6 +29,7 @@ import { ensureLoadersRegistered } from "./loaders/register";
 import { setExplode, resetExplode } from "./explode";
 import { setupPicking } from "./picking";
 import { arrayBufferToBase64 } from "../../utils/base64";
+import { OrientationGizmo } from "./orientation-gizmo";
 
 /** Guard against concurrent OBJ loads monkey-patching the same prototype. */
 let objMtlLock: Promise<void> | null = null;
@@ -49,6 +50,8 @@ export class BabylonModelPreview {
   private axisMeshes: Mesh[] = [];
   private autoRotateBehavior: AutoRotationBehavior | null = null;
   private wireframeEnabled = false;
+  private gizmo: OrientationGizmo | null = null;
+  private gizmoEnabled = false;
   private animPlaying = false;
   private initialCamera = { alpha: Math.PI / 4, beta: Math.PI / 3, radius: 5, target: Vector3.Zero() };
 
@@ -460,6 +463,14 @@ export class BabylonModelPreview {
     return canvas.toDataURL("image/png");
   }
 
+  toggleOrientationGizmo(): boolean {
+    this.gizmoEnabled = !this.gizmoEnabled;
+    if (this.gizmoEnabled && !this.gizmo) {
+      this.gizmo = new OrientationGizmo(this.engine, this.camera);
+    }
+    return this.gizmoEnabled;
+  }
+
   // ── Existing API ─────────────────────────────────────────────────
 
   setExplode(factor: number, axis: "x" | "y" | "z") {
@@ -575,6 +586,8 @@ export class BabylonModelPreview {
     this.engine.stopRenderLoop();
     this.cleanupPicking?.();
     this.cleanupPicking = null;
+    this.gizmo?.dispose();
+    this.gizmo = null;
     this.camera.detachControl();
     this.resizeObs.disconnect();
     if (this.autoRotateBehavior) {
@@ -598,7 +611,13 @@ export class BabylonModelPreview {
   private startRenderLoop() {
     if (this.rendering) return;
     this.rendering = true;
-    this.engine.runRenderLoop(() => this.scene.render());
+    this.engine.runRenderLoop(() => {
+      this.scene.render();
+      if (this.gizmo && this.gizmoEnabled) {
+        this.gizmo.syncWith(this.camera);
+        this.gizmo.render(this.engine);
+      }
+    });
   }
 
   /**

@@ -7,6 +7,7 @@ export interface SnapshotProvider {
   resetView?(): void;
   exportModelInfo?(modelPath?: string): string;
   toggleWireframe?(): boolean;
+  toggleOrientationGizmo?(): boolean;
   hasAnimations?(): boolean;
   toggleAnimation?(): boolean;
 }
@@ -79,6 +80,20 @@ export function createHelperButtons(
     showTooltip(wireBtn, on ? "Wireframe" : "Solid");
   });
   toolbar.appendChild(wireBtn);
+
+  // Orientation gizmo toggle button (compass/axis icon)
+  const gizmoBtn = document.createElement("button");
+  gizmoBtn.className = "ai3d-inline-btn";
+  gizmoBtn.setAttribute("aria-label", "Toggle orientation axes");
+  gizmoBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M2 12h20"/><path d="M12 2l4 4"/><path d="M12 2l-4 4"/><path d="M22 12l-4-4"/><path d="M22 12l-4 4"/></svg>`;
+  gizmoBtn.addEventListener("click", () => {
+    const preview = getPreview();
+    if (!preview?.toggleOrientationGizmo) return;
+    const on = preview.toggleOrientationGizmo();
+    gizmoBtn.style.color = on ? "var(--interactive-accent)" : "";
+    showTooltip(gizmoBtn, on ? "Axes On" : "Axes Off");
+  });
+  toolbar.appendChild(gizmoBtn);
 
   // Animation play/pause button (play triangle — hidden until animations detected)
   const animBtn = document.createElement("button");
