@@ -32,6 +32,7 @@ export class GridRenderer {
   private scene: Scene;
   private cells: GridCell[] = [];
   private initialCameras: { alpha: number; beta: number; radius: number; target: Vector3 }[] = [];
+  private wireframeEnabled = false;
   private frameId = 0;
   private resizeObs: ResizeObserver;
 
@@ -471,6 +472,18 @@ export class GridRenderer {
         cam.target = init.target.clone();
       }
     }
+  }
+
+  toggleWireframe(): boolean {
+    this.wireframeEnabled = !this.wireframeEnabled;
+    for (const cell of this.cells) {
+      for (const m of cell.meshes) {
+        if ((m as any).material) {
+          (m as any).material.wireframe = this.wireframeEnabled;
+        }
+      }
+    }
+    return this.wireframeEnabled;
   }
 
   exportModelInfo(): string {
