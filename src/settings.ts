@@ -138,5 +138,18 @@ export class AI3DSettingTab extends PluginSettingTab {
             this.plugin.updateSettings({ renderQuality: val as "low" | "medium" | "high" });
           }),
       );
+
+    new Setting(containerEl)
+      .setName("Resolution scale")
+      .setDesc("Render resolution multiplier. 1.0 = native, 0.5 = half, 2.0 = double (supersampling). Range: 0.25–2.0.")
+      .addSlider((slider) =>
+        slider
+          .setLimits(0.25, 2.0, 0.25)
+          .setValue(this.plugin.getSettings().renderScale)
+          .setDynamicTooltip()
+          .onChange(async (val) => {
+            this.plugin.updateSettings({ renderScale: val });
+          }),
+      );
   }
 }

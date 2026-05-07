@@ -24,6 +24,8 @@ export interface PluginSettings {
   autoRotateDefault: boolean;
   autoRotateSpeed: number;
   renderQuality: "low" | "medium" | "high";
+  /** Render resolution multiplier: 0.25 (quarter) to 2.0 (double). 1.0 = native. */
+  renderScale: number;
   // Snapshot export
   snapshotFolder: string;
   snapshotNaming: "timestamp" | "model-name";

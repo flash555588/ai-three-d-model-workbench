@@ -11,6 +11,8 @@ export interface SnapshotProvider {
   toggleBoundingBox?(): boolean;
   hasAnimations?(): boolean;
   toggleAnimation?(): boolean;
+  /** Set render resolution scale (1.0 = native). Returns the applied scale. */
+  setRenderScale?(scale: number): number;
 }
 
 /** Handle returned by createHelperButtons — callers hold a direct reference. */
@@ -109,6 +111,26 @@ export function createHelperButtons(
     showTooltip(bboxBtn, on ? "BBox On" : "BBox Off");
   });
   toolbar.appendChild(bboxBtn);
+
+  // Resolution scale cycle button (percentage display)
+  const RES_PRESETS = [0.5, 0.75, 1.0, 1.5, 2.0];
+  let resIndex = 2; // default 1.0x
+  const resBtn = document.createElement("button");
+  resBtn.className = "ai3d-inline-btn ai3d-res-btn";
+  resBtn.setAttribute("aria-label", "Change resolution (click to cycle)");
+  resBtn.textContent = "1.0x";
+  resBtn.style.fontSize = "10px";
+  resBtn.style.fontWeight = "600";
+  resBtn.style.minWidth = "32px";
+  resBtn.addEventListener("click", () => {
+    const preview = getPreview();
+    if (!preview?.setRenderScale) return;
+    resIndex = (resIndex + 1) % RES_PRESETS.length;
+    const applied = preview.setRenderScale(RES_PRESETS[resIndex]);
+    resBtn.textContent = `${applied}x`;
+    showTooltip(resBtn, `Resolution: ${applied}x`);
+  });
+  toolbar.appendChild(resBtn);
 
   // Animation play/pause button (play triangle — hidden until animations detected)
   const animBtn = document.createElement("button");

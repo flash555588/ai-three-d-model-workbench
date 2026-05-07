@@ -23,6 +23,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   autoRotateDefault: false,
   autoRotateSpeed: 0.5,
   renderQuality: "high",
+  renderScale: 1.0,
   // Snapshot export
   snapshotFolder: "Media/3D Previews",
   snapshotNaming: "model-name",

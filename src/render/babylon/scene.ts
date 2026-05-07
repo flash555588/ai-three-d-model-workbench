@@ -474,6 +474,17 @@ export class BabylonModelPreview {
     return this.gizmoEnabled;
   }
 
+  /**
+   * Set render resolution scale directly (1.0 = native).
+   * Returns the applied scale value.
+   */
+  setRenderScale(scale: number): number {
+    const clamped = Math.max(0.25, Math.min(scale, 2.0));
+    const mobileBoost = isMobile() ? 1.5 : 1;
+    this.engine.setHardwareScalingLevel(mobileBoost / clamped);
+    return clamped;
+  }
+
   toggleBoundingBox(): boolean {
     this.bboxEnabled = !this.bboxEnabled;
     if (this.bboxEnabled) {
@@ -589,15 +600,18 @@ export class BabylonModelPreview {
   }
 
   /**
-   * Apply render quality preset.
+   * Apply render quality preset and optional resolution scale.
    * - low:    0.5x resolution, no shadow blur
    * - medium: 0.75x resolution, basic shadow blur
    * - high:   1.0x resolution, full shadow blur (default)
+   * @param renderScale User-controlled resolution multiplier (1.0 = native).
+   *   Lower values = less pixels = better performance.
    */
-  setRenderQuality(quality: "low" | "medium" | "high"): void {
+  setRenderQuality(quality: "low" | "medium" | "high", renderScale = 1.0): void {
     const scaleMap = { low: 2, medium: 1.33, high: 1 };
     const mobileBoost = isMobile() ? 1.5 : 1;
-    const scale = scaleMap[quality] * mobileBoost;
+    // hardwareScalingLevel: higher = fewer pixels. renderScale < 1 = fewer pixels.
+    const scale = scaleMap[quality] * mobileBoost / Math.max(renderScale, 0.25);
     this.engine.setHardwareScalingLevel(scale);
 
     if (this.shadowGenerator) {

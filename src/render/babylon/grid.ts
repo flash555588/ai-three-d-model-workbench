@@ -12,6 +12,7 @@ import type { ModelConfig, GridBlockConfig, ModelPlacement, PresetCameraDef, Cel
 import "./loaders/register";
 import { ensureLoadersRegistered } from "./loaders/register";
 import { arrayBufferToBase64 } from "../../utils/base64";
+import { isMobile } from "../../utils/device";
 
 /** Babylon.js uses 32-bit layerMask — one bit per cell, so max 32 cells. */
 const MAX_CELLS = 32;
@@ -413,6 +414,13 @@ export class GridRenderer {
 
   getCellCount(): number {
     return this.cells.length;
+  }
+
+  setRenderScale(scale: number): number {
+    const clamped = Math.max(0.25, Math.min(scale, 2.0));
+    const mobileBoost = isMobile() ? 1.5 : 1;
+    this.engine.setHardwareScalingLevel(mobileBoost / clamped);
+    return clamped;
   }
 
   resetView(): void {
