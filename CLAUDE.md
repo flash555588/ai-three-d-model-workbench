@@ -44,9 +44,10 @@ Entry point: `src/main.ts` → esbuild bundles to `main.js` (CJS, ES2018). `main
 | FileView | `src/view/analysis-view.ts` | `FileView` subclass mounting the workbench |
 | File picker | `src/view/model-file-suggest-modal.ts` | `FuzzySuggestModal` filtered to `SUPPORTED_MODEL_EXTENSIONS` |
 | Code block | `src/view/inline/code-block.ts` | ```` ```3d path ```` or JSON config processor with config application and helper buttons; ```` ```3dgrid ```` multi-model grid processor |
+| Live Preview | `src/view/inline/live-preview.ts` | CM6 StateField + Widget for `![[model.ext]]` embed rendering in Live Preview |
 | Helper buttons | `src/view/inline/helper-buttons.ts` | Remove, Copy snapshot, Export snapshot toolbar; `SnapshotProvider` interface for both `BabylonModelPreview` and `GridRenderer` |
 | Direct view | `src/view/direct-view.ts` | `FileView` for opening .glb/.gltf/.stl files directly in a viewer tab |
-| Live Preview | `src/view/inline/live-preview.ts` | Phase 0 stub — Stage 1 will add CM6 embed rendering |
+| Live Preview | `src/view/inline/live-preview.ts` | CM6 StateField + Widget for `![[model.ext]]` embed rendering in Live Preview |
 | Settings | `src/settings.ts` | `PluginSettingTab` with 3 fields (folders + auto-generate toggle) |
 | Utilities | `src/utils/format.ts` | `formatFileSize`, `escapeObsidianMarkup`, `normalizeTagList` |
 | Device | `src/utils/device.ts` | `isMobile()`, `hardwareScale()` — mobile detection and Babylon resolution tuning |
