@@ -1,4 +1,5 @@
 import type { App } from "obsidian";
+import { TFile } from "obsidian";
 import type { PluginStore } from "../../store/plugin-store";
 import type { PluginState, ModelAssetProfile } from "../../domain/models";
 import { normalizeTagList } from "../../utils/format";
@@ -247,7 +248,7 @@ export function mountWorkbench(
     if (!path || loading) return;
 
     const file = app.vault.getAbstractFileByPath(path);
-    if (!file) return;
+    if (!(file instanceof TFile)) return;
 
     loading = true;
 
@@ -263,12 +264,12 @@ export function mountWorkbench(
     previewHost.appendChild(canvas);
 
     try {
-      const data = await app.vault.readBinary(file as any);
+      const data = await app.vault.readBinary(file);
       const ext = path.split(".").pop() ?? "glb";
       const readFile = async (p: string) => {
         const f = app.vault.getAbstractFileByPath(p);
-        if (!f) throw new Error(`File not found: ${p}`);
-        return app.vault.readBinary(f as any);
+        if (!(f instanceof TFile)) throw new Error(`File not found: ${p}`);
+        return app.vault.readBinary(f);
       };
 
       preview = new BabylonModelPreview(canvas);
@@ -317,10 +318,10 @@ async function generateKnowledgeNote(app: App, state: PluginState) {
   const exists = await app.vault.adapter.exists(notePath);
   if (exists) {
     const file = app.vault.getAbstractFileByPath(notePath);
-    if (file) {
+    if (file instanceof TFile) {
       // Update existing file
       const content = buildNoteContent(baseName, path, profile, preview);
-      await app.vault.modify(file as any, content);
+      await app.vault.modify(file, content);
     }
     return;
   }

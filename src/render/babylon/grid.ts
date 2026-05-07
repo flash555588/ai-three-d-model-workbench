@@ -3,7 +3,7 @@ import { Scene } from "@babylonjs/core/scene.js";
 import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera.js";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight.js";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector.js";
-import { Color4 } from "@babylonjs/core/Maths/math.color.js";
+import { Color3, Color4 } from "@babylonjs/core/Maths/math.color.js";
 import { Viewport } from "@babylonjs/core/Maths/math.viewport.js";
 import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader.js";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
@@ -328,7 +328,6 @@ export class GridRenderer {
 
     // Apply STL color if specified
     if (ext === "stl" && model.color) {
-      const { Color3 } = await import("@babylonjs/core/Maths/math.color.js");
       const color = Color3.FromHexString(model.color);
       for (const m of allMeshes) {
         if (m.material instanceof StandardMaterial && m.material.name === "stl-mat") {
@@ -492,6 +491,7 @@ export class GridRenderer {
 
   destroy(): void {
     cancelAnimationFrame(this.frameId);
+    for (const cell of this.cells) cell.camera.detachControl();
     this.resizeObs.disconnect();
     this.scene.dispose();
     this.engine.dispose();

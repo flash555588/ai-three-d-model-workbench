@@ -4,6 +4,7 @@
  */
 
 import type { App } from "obsidian";
+import { TFile } from "obsidian";
 import { EditorView, Decoration, WidgetType } from "@codemirror/view";
 import { StateField, StateEffect, RangeSet, Range } from "@codemirror/state";
 import { SUPPORTED_MODEL_EXTENSIONS } from "../../domain/constants";
@@ -82,12 +83,12 @@ class ModelEmbedWidget extends WidgetType {
       this.preview = new BabylonModelPreview(canvas);
 
       const file = this.app.vault.getAbstractFileByPath(this.modelPath);
-      if (!file || !("extension" in file)) {
+      if (!(file instanceof TFile)) {
         throw new Error(`File not found: ${this.modelPath}`);
       }
 
-      const data = await this.app.vault.readBinary(file as any);
-      const ext = (file as any).extension.toLowerCase();
+      const data = await this.app.vault.readBinary(file);
+      const ext = file.extension.toLowerCase();
       await this.preview.loadModel(data, ext);
 
       if (this.autoRotate) {

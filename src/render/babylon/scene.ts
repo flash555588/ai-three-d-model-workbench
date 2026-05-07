@@ -34,6 +34,9 @@ import { arrayBufferToBase64 } from "../../utils/base64";
 let stlRegistered = false;
 let plyRegistered = false;
 
+/** Guard against concurrent OBJ loads monkey-patching the same prototype. */
+let objMtlLock: Promise<void> | null = null;
+
 export class BabylonModelPreview {
   private engine: Engine;
   private scene: Scene;
@@ -117,26 +120,26 @@ export class BabylonModelPreview {
     // blob: URLs to blob:app://... which Babylon's GLTF loader cannot parse.
     const dataUrl = `data:application/octet-stream;base64,${arrayBufferToBase64(data)}`;
 
-    // OBJ material injection: read MTL from vault and inject into Babylon OBJ loader
+    // OBJ material injection: read MTL from vault and inject into Babylon OBJ loader.
+    // Serialized via objMtlLock to prevent concurrent loads from clobbering the prototype.
     let restoreOBJLoader: (() => void) | null = null;
     if (extLower === "obj" && readFile && modelPath) {
-      restoreOBJLoader = await this.injectOBJMaterials(data, modelPath, readFile);
+      if (objMtlLock) await objMtlLock;
+      let resolveLock!: () => void;
+      objMtlLock = new Promise<void>(r => { resolveLock = r; });
+      try {
+        restoreOBJLoader = await this.injectOBJMaterials(data, modelPath, readFile);
+        const result = await SceneLoader.ImportMeshAsync("", "", dataUrl, scene, undefined, fileExt);
+        if (result.meshes.length > 0) this.rootMesh = result.meshes[0] as Mesh;
+      } finally {
+        restoreOBJLoader?.();
+        resolveLock();
+        objMtlLock = null;
+      }
+    } else {
+      const result = await SceneLoader.ImportMeshAsync("", "", dataUrl, scene, undefined, fileExt);
+      if (result.meshes.length > 0) this.rootMesh = result.meshes[0] as Mesh;
     }
-
-    const result = await SceneLoader.ImportMeshAsync(
-      "",
-      "",
-      dataUrl,
-      scene,
-      undefined,
-      fileExt,
-    );
-    if (result.meshes.length > 0) {
-      this.rootMesh = result.meshes[0] as Mesh;
-    }
-
-    // Restore OBJ loader's original _loadMTL
-    restoreOBJLoader?.();
 
     if (!this.rootMesh) {
       throw new Error("No mesh found in model file");
@@ -302,7 +305,13 @@ export class BabylonModelPreview {
 
   private setupShadow(light: Light): void {
     if (!this.rootMesh) return;
-    const sg = new ShadowGenerator(1024, light as any);
+    // ShadowGenerator requires a ShadowLight (DirectionalLight | PointLight | SpotLight).
+    // HemisphericLight cannot cast shadows — silently skip.
+    if (!(light instanceof DirectionalLight || light instanceof PointLight || light instanceof SpotLight)) {
+      console.warn("[AI3D] Light type does not support shadows:", light.name);
+      return;
+    }
+    const sg = new ShadowGenerator(1024, light);
     sg.useBlurExponentialShadowMap = true;
     sg.blurKernel = 32;
     const children = this.rootMesh.getChildMeshes(true);
@@ -345,8 +354,8 @@ export class BabylonModelPreview {
   }
 
   private createGround(): void {
-    if (this.groundMesh) return;
-    const bbox = this.rootMesh!.getHierarchyBoundingVectors();
+    if (!this.rootMesh || this.groundMesh) return;
+    const bbox = this.rootMesh.getHierarchyBoundingVectors();
     const diag = bbox.max.subtract(bbox.min);
     const size = Math.max(diag.x, diag.z) * 3;
     const y = bbox.min.y;
@@ -362,8 +371,8 @@ export class BabylonModelPreview {
   }
 
   private createGrid(): void {
-    if (this.gridMesh) return;
-    const bbox = this.rootMesh!.getHierarchyBoundingVectors();
+    if (!this.rootMesh || this.gridMesh) return;
+    const bbox = this.rootMesh.getHierarchyBoundingVectors();
     const diag = bbox.max.subtract(bbox.min);
     const size = Math.max(diag.x, diag.z) * 2;
     const y = bbox.min.y - 0.01;
@@ -378,8 +387,8 @@ export class BabylonModelPreview {
   }
 
   private createAxis(): void {
-    if (this.axisMeshes.length > 0) return;
-    const bbox = this.rootMesh!.getHierarchyBoundingVectors();
+    if (!this.rootMesh || this.axisMeshes.length > 0) return;
+    const bbox = this.rootMesh.getHierarchyBoundingVectors();
     const diag = bbox.max.subtract(bbox.min);
     const len = Math.max(diag.x, diag.y, diag.z) * 1.5;
     const origin = bbox.min;
@@ -553,6 +562,7 @@ export class BabylonModelPreview {
     cancelAnimationFrame(this.frameId);
     this.cleanupPicking?.();
     this.cleanupPicking = null;
+    this.camera.detachControl();
     this.resizeObs.disconnect();
     if (this.autoRotateBehavior) {
       this.camera.removeBehavior(this.autoRotateBehavior);

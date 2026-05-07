@@ -1,4 +1,4 @@
-import { FileView, type TFile, type WorkspaceLeaf } from "obsidian";
+import { FileView, TFile, type WorkspaceLeaf } from "obsidian";
 import { BabylonModelPreview } from "../render/babylon/scene";
 import { createHelperButtons } from "./inline/helper-buttons";
 
@@ -72,8 +72,8 @@ export class DirectModelView extends FileView {
       const ext = file.extension.toLowerCase();
       const readFile = async (p: string) => {
         const f = this.app.vault.getAbstractFileByPath(p);
-        if (!f) throw new Error(`File not found: ${p}`);
-        return this.app.vault.readBinary(f as any);
+        if (!(f instanceof TFile)) throw new Error(`File not found: ${p}`);
+        return this.app.vault.readBinary(f);
       };
       await this.preview.loadModel(data, ext, readFile, file.path);
     } catch (err) {

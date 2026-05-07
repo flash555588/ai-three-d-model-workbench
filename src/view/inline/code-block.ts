@@ -1,4 +1,5 @@
 import type { App, MarkdownPostProcessorContext } from "obsidian";
+import { TFile } from "obsidian";
 import { SUPPORTED_MODEL_EXTENSIONS } from "../../domain/constants";
 import type { PluginSettings } from "../../domain/models";
 import { BabylonModelPreview } from "../../render/babylon/scene";
@@ -125,17 +126,17 @@ export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSe
 
       try {
         const file = app.vault.getAbstractFileByPath(modelPath);
-        if (!file || !("extension" in file)) {
+        if (!(file instanceof TFile)) {
           host.createDiv({ cls: "ai3d-inline-empty", text: `File not found: ${modelPath}` });
           return;
         }
 
         preview = new BabylonModelPreview(canvas);
-        const data = await app.vault.readBinary(file as any);
+        const data = await app.vault.readBinary(file);
         const readFile = async (p: string) => {
           const f = app.vault.getAbstractFileByPath(p);
-          if (!f) throw new Error(`File not found: ${p}`);
-          return app.vault.readBinary(f as any);
+          if (!(f instanceof TFile)) throw new Error(`File not found: ${p}`);
+          return app.vault.readBinary(f);
         };
 
         if (destroyed) return;
@@ -334,8 +335,8 @@ export function registerGridCodeBlockProcessor(app: App, getSettings: () => Plug
         renderer = new GridRenderer(canvas);
         const readFile = async (path: string) => {
           const file = app.vault.getAbstractFileByPath(path);
-          if (!file) throw new Error(`File not found: ${path}`);
-          return app.vault.readBinary(file as any);
+          if (!(file instanceof TFile)) throw new Error(`File not found: ${path}`);
+          return app.vault.readBinary(file);
         };
 
         if (config.preset === "compose") {
