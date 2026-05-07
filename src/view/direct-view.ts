@@ -74,12 +74,14 @@ export class DirectModelView extends FileView {
       this.preview = new BabylonModelPreview(canvas);
       const data = await this.app.vault.readBinary(file);
       const ext = file.extension.toLowerCase();
+      console.log(`[AI3D] DirectView loading: ${file.path} (${ext}, ${data.byteLength} bytes)`);
       const readFile = async (p: string) => {
         const f = this.app.vault.getAbstractFileByPath(p);
         if (!(f instanceof TFile)) throw new Error(`File not found: ${p}`);
         return this.app.vault.readBinary(f);
       };
       await this.preview.loadModel(data, ext, readFile, file.path);
+      console.log(`[AI3D] DirectView loaded successfully: ${file.path}`);
     } catch (err) {
       this.preview?.destroy();
       this.preview = null;

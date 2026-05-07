@@ -77,11 +77,12 @@ function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): Mesh {
   const { Color3 } = require("@babylonjs/core/Maths/math.color.js") as typeof import("@babylonjs/core/Maths/math.color.js");
 
   if (buffer.byteLength < 84) {
-    throw new Error("STL buffer too small: missing header");
+    throw new Error(`STL buffer too small: ${buffer.byteLength} bytes (need 84+)`);
   }
 
   const view = new DataView(buffer);
   const triangleCount = view.getUint32(80, true);
+  console.log(`[AI3D STL] Parsing ${buffer.byteLength} bytes, ${triangleCount} triangles`);
 
   if (triangleCount === 0) {
     throw new Error("STL file contains 0 triangles");
