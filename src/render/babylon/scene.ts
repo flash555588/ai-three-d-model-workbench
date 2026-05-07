@@ -29,7 +29,7 @@ import { registerSTLLoader } from "./loaders/stl-loader";
 import { registerPLYLoader } from "./loaders/ply-loader";
 import { setExplode, resetExplode } from "./explode";
 import { setupPicking } from "./picking";
-import { hardwareScale } from "../../utils/device";
+import { isMobile, hardwareScale } from "../../utils/device";
 
 let stlRegistered = false;
 let plyRegistered = false;
@@ -51,8 +51,8 @@ export class BabylonModelPreview {
   private autoRotateBehavior: any = null;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true, adaptToDeviceRatio: false });
-    this.engine.setHardwareScalingLevel(hardwareScale());
+    this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true });
+    if (isMobile()) this.engine.setHardwareScalingLevel(hardwareScale());
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.12, 0.12, 0.14, 1);
 
