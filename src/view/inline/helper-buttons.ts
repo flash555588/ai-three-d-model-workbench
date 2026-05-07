@@ -7,6 +7,8 @@ export interface SnapshotProvider {
   resetView?(): void;
   exportModelInfo?(modelPath?: string): string;
   toggleWireframe?(): boolean;
+  hasAnimations?(): boolean;
+  toggleAnimation?(): boolean;
 }
 
 /**
@@ -72,6 +74,26 @@ export function createHelperButtons(
     showTooltip(wireBtn, on ? "Wireframe" : "Solid");
   });
   toolbar.appendChild(wireBtn);
+
+  // Animation play/pause button (play triangle — hidden until animations detected)
+  const animBtn = document.createElement("button");
+  animBtn.className = "ai3d-inline-btn";
+  animBtn.setAttribute("aria-label", "Play/Pause animation");
+  animBtn.style.display = "none";
+  animBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+  animBtn.addEventListener("click", () => {
+    const preview = getPreview();
+    if (!preview?.toggleAnimation) return;
+    const playing = preview.toggleAnimation();
+    animBtn.innerHTML = playing
+      ? `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`
+      : `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+    showTooltip(animBtn, playing ? "Playing" : "Paused");
+  });
+  toolbar.appendChild(animBtn);
+
+  // Expose a way to show the anim button after model load
+  (toolbar as any)._showAnimButton = () => { animBtn.style.display = ""; };
 
   // Remove button (trash)
   const removeBtn = document.createElement("button");
