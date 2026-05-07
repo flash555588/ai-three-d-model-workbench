@@ -48,6 +48,7 @@ export class BabylonModelPreview {
   private gridMesh: Mesh | null = null;
   private axisMeshes: Mesh[] = [];
   private autoRotateBehavior: any = null;
+  private initialCamera = { alpha: Math.PI / 4, beta: Math.PI / 3, radius: 5, target: Vector3.Zero() };
 
   constructor(canvas: HTMLCanvasElement) {
     this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true });
@@ -150,6 +151,13 @@ export class BabylonModelPreview {
     this.camera.upperRadiusLimit = radius * 10;
     this.camera.minZ = radius * 0.001;
     this.camera.maxZ = radius * 20;
+
+    this.initialCamera = {
+      alpha: this.camera.alpha,
+      beta: this.camera.beta,
+      radius: this.camera.radius,
+      target: center.clone(),
+    };
 
     this.startRenderLoop();
     this.engine.resize();
@@ -429,6 +437,15 @@ export class BabylonModelPreview {
 
   resetExplode() {
     if (this.rootMesh) resetExplode(this.rootMesh);
+  }
+
+  resetView(): void {
+    if (this.rootMesh) resetExplode(this.rootMesh);
+    this.camera.mode = 0; // perspective
+    this.camera.alpha = this.initialCamera.alpha;
+    this.camera.beta = this.initialCamera.beta;
+    this.camera.radius = this.initialCamera.radius;
+    this.camera.target = this.initialCamera.target.clone();
   }
 
   getRootMesh(): Mesh | null {
