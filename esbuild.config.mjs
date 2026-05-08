@@ -19,7 +19,12 @@ const context = await esbuild.context({
     "@codemirror/view",
     "@lezer/common",
     "@lezer/highlight",
-    "@lezer/lr"
+    "@lezer/lr",
+    "node:fs",
+    "node:fs/promises",
+    "node:path",
+    "node:child_process",
+    "node:os",
   ],
   format: "cjs",
   target: "es2018",

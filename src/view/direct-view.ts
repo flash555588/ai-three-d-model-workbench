@@ -2,16 +2,24 @@ import { FileView, TFile, type WorkspaceLeaf } from "obsidian";
 import type { PluginSettings } from "../domain/models";
 import { BabylonModelPreview } from "../render/babylon/scene";
 import { createHelperButtons } from "./inline/helper-buttons";
+import { createConversionManager } from "../io/conversion/factory";
+import type { ConvertedAssetCache } from "../io/cache/converted-asset-cache";
+import { prepareModelInput } from "../io/model-pipeline";
+import { toPreviewSource } from "../io/preview/preview-source";
+import { readBinaryPath, resolveVaultAbsolutePath } from "../utils/resolve-path";
+import { listPreferredConversionExts } from "../io/formats/route-preferences";
 
 export const DIRECT_VIEW_TYPE = "ai3d-direct-view";
 
 export class DirectModelView extends FileView {
   private preview: BabylonModelPreview | null = null;
   private getSettings: () => PluginSettings;
+  private convertedAssetCache: ConvertedAssetCache;
 
-  constructor(leaf: WorkspaceLeaf, getSettings: () => PluginSettings) {
+  constructor(leaf: WorkspaceLeaf, getSettings: () => PluginSettings, convertedAssetCache: ConvertedAssetCache) {
     super(leaf);
     this.getSettings = getSettings;
+    this.convertedAssetCache = convertedAssetCache;
   }
 
   getViewType(): string {
@@ -71,16 +79,23 @@ export class DirectModelView extends FileView {
     );
 
     try {
+      const settings = this.getSettings();
+      const conversionManager = createConversionManager(settings);
+      const absolutePath = resolveVaultAbsolutePath(this.app, file.path) ?? undefined;
+      const prepared = await prepareModelInput({
+        path: file.path,
+        absolutePath,
+        preferConversionExts: listPreferredConversionExts(settings),
+        conversionManager,
+        convertedAssetCache: this.convertedAssetCache,
+      });
+      const source = toPreviewSource(prepared);
+
       this.preview = new BabylonModelPreview(canvas);
-      const data = await this.app.vault.readBinary(file);
-      const ext = file.extension.toLowerCase();
-      console.log(`[AI3D] DirectView loading: ${file.path} (${ext}, ${data.byteLength} bytes)`);
-      const readFile = async (p: string) => {
-        const f = this.app.vault.getAbstractFileByPath(p);
-        if (!(f instanceof TFile)) throw new Error(`File not found: ${p}`);
-        return this.app.vault.readBinary(f);
-      };
-      await this.preview.loadModel(data, ext, readFile, file.path);
+      const data = await readBinaryPath(this.app, source.path);
+      console.log(`[AI3D] DirectView loading: ${file.path} via ${source.path} (${source.ext}, ${data.byteLength} bytes)`);
+      const readFile = async (p: string) => readBinaryPath(this.app, p);
+      await this.preview.loadModel(data, source.ext, readFile, source.path);
       console.log(`[AI3D] DirectView loaded successfully: ${file.path}`);
     } catch (err) {
       this.preview?.destroy();

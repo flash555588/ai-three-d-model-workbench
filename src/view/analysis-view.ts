@@ -1,16 +1,19 @@
 import { FileView, type WorkspaceLeaf } from "obsidian";
 import type { PluginStore } from "../store/plugin-store";
+import type { ConvertedAssetCache } from "../io/cache/converted-asset-cache";
 import { mountWorkbench } from "./workbench/app";
 
 export const VIEW_TYPE = "ai-3d-workbench";
 
 export class AnalysisView extends FileView {
   private store: PluginStore;
+  private convertedAssetCache: ConvertedAssetCache;
   private unmount: (() => void) | null = null;
 
-  constructor(leaf: WorkspaceLeaf, store: PluginStore) {
+  constructor(leaf: WorkspaceLeaf, store: PluginStore, convertedAssetCache: ConvertedAssetCache) {
     super(leaf);
     this.store = store;
+    this.convertedAssetCache = convertedAssetCache;
   }
 
   getViewType(): string {
@@ -26,7 +29,7 @@ export class AnalysisView extends FileView {
   }
 
   async onOpen(): Promise<void> {
-    this.unmount = mountWorkbench(this.contentEl, this.app, this.store);
+    this.unmount = mountWorkbench(this.contentEl, this.app, this.store, this.convertedAssetCache);
   }
 
   async onClose(): Promise<void> {

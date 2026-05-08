@@ -1,13 +1,83 @@
 import type { App, MarkdownPostProcessorContext } from "obsidian";
-import { TFile } from "obsidian";
-import { isDirectModelExtension, listDirectModelExtensions } from "../../io/formats/registry";
+import { isSupportedModelExtension, listSupportedModelExtensions } from "../../io/formats/registry";
 import type { PluginSettings } from "../../domain/models";
 import { BabylonModelPreview } from "../../render/babylon/scene";
 import { GridRenderer } from "../../render/babylon/grid";
-import { resolveVaultPath } from "../../utils/resolve-path";
+import { readBinaryPath, resolveVaultAbsolutePath, resolveVaultPath } from "../../utils/resolve-path";
 import { getPreset, composeSections } from "../../render/babylon/presets";
 import { createHelperButtons, type HelperToolbar } from "./helper-buttons";
-import type { ThreeDBlockConfig, ModelConfig, GridBlockConfig } from "../../domain/models";
+import type { ThreeDBlockConfig, ModelConfig, GridBlockConfig, ComposeSection } from "../../domain/models";
+import { createConversionManager } from "../../io/conversion/factory";
+import type { ConvertedAssetCache } from "../../io/cache/converted-asset-cache";
+import { prepareModelInput } from "../../io/model-pipeline";
+import { toPreviewSource } from "../../io/preview/preview-source";
+import { listPreferredConversionExts } from "../../io/formats/route-preferences";
+
+interface PreparedInlineModel {
+  sourcePath: string;
+  effectivePath: string;
+  effectiveExt: string;
+  model: ModelConfig;
+  warnings: string[];
+}
+
+async function prepareInlineModel(
+  app: App,
+  entry: string | ModelConfig,
+  settings: PluginSettings,
+  convertedAssetCache: ConvertedAssetCache,
+): Promise<PreparedInlineModel> {
+  const inputModel = typeof entry === "string" ? { path: entry } : entry;
+  const sourcePath = resolveVaultPath(app, inputModel.path);
+  if (!sourcePath) {
+    throw new Error(`File not found: ${inputModel.path}`);
+  }
+
+  const sourceExt = sourcePath.split(".").pop()?.toLowerCase() ?? "";
+  if (!isSupportedModelExtension(sourceExt)) {
+    throw new Error(`Unsupported format: .${sourceExt}. Supported: ${listSupportedModelExtensions().join(", ")}`);
+  }
+
+  const absolutePath = resolveVaultAbsolutePath(app, sourcePath) ?? undefined;
+  const conversionManager = createConversionManager(settings);
+  const prepared = await prepareModelInput({
+    path: sourcePath,
+    absolutePath,
+    preferConversionExts: listPreferredConversionExts(settings),
+    conversionManager,
+    convertedAssetCache,
+  });
+  const source = toPreviewSource(prepared);
+
+  return {
+    sourcePath,
+    effectivePath: source.path,
+    effectiveExt: source.ext,
+    warnings: source.warnings,
+    model: {
+      ...inputModel,
+      path: source.path,
+    },
+  };
+}
+
+async function prepareInlineSection(
+  app: App,
+  section: ComposeSection,
+  settings: PluginSettings,
+  convertedAssetCache: ConvertedAssetCache,
+): Promise<ComposeSection> {
+  const models: ModelConfig[] = [];
+  for (const entry of section.models) {
+    const prepared = await prepareInlineModel(app, entry, settings, convertedAssetCache);
+    models.push(prepared.model);
+  }
+
+  return {
+    ...section,
+    models,
+  };
+}
 
 /**
  * Register the ```3d code block processor.
@@ -19,7 +89,11 @@ import type { ThreeDBlockConfig, ModelConfig, GridBlockConfig } from "../../doma
  *            { "models": [{ "path": "model.glb" }], "scene": { "autoRotate": true } }
  *            ```
  */
-export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSettings) {
+export function registerCodeBlockProcessor(
+  app: App,
+  getSettings: () => PluginSettings,
+  convertedAssetCache: ConvertedAssetCache,
+) {
   return {
     id: "3d",
     handler: async (
@@ -78,10 +152,10 @@ export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSe
       }
 
       const ext = modelPath.split(".").pop()?.toLowerCase() ?? "";
-      if (!isDirectModelExtension(ext)) {
+      if (!isSupportedModelExtension(ext)) {
         el.createDiv({
           cls: "ai3d-inline-empty",
-          text: `Unsupported format: .${ext}. Supported: ${listDirectModelExtensions().join(", ")}`,
+          text: `Unsupported format: .${ext}. Supported: ${listSupportedModelExtensions().join(", ")}`,
         });
         return;
       }
@@ -136,22 +210,22 @@ export function registerCodeBlockProcessor(app: App, getSettings: () => PluginSe
       observer.observe(el, { childList: true, subtree: true });
 
       try {
-        const file = app.vault.getAbstractFileByPath(modelPath);
-        if (!(file instanceof TFile)) {
-          host.createDiv({ cls: "ai3d-inline-empty", text: `File not found: ${modelPath}` });
-          return;
-        }
-
+        const absolutePath = resolveVaultAbsolutePath(app, modelPath) ?? undefined;
+        const conversionManager = createConversionManager(settings);
+        const prepared = await prepareModelInput({
+          path: modelPath,
+          absolutePath,
+          preferConversionExts: listPreferredConversionExts(settings),
+          conversionManager,
+          convertedAssetCache,
+        });
+        const source = toPreviewSource(prepared);
         preview = new BabylonModelPreview(canvas);
-        const data = await app.vault.readBinary(file);
-        const readFile = async (p: string) => {
-          const f = app.vault.getAbstractFileByPath(p);
-          if (!(f instanceof TFile)) throw new Error(`File not found: ${p}`);
-          return app.vault.readBinary(f);
-        };
+        const data = await readBinaryPath(app, source.path);
+        const readFile = async (p: string) => readBinaryPath(app, p);
 
         if (destroyed) return;
-        await preview.loadModel(data, ext, readFile, modelPath);
+        await preview.loadModel(data, source.ext, readFile, source.path);
 
         if (destroyed) return;
         // Apply auto-rotate default from settings if not specified in config
@@ -242,7 +316,11 @@ function normalizeConfig(raw: any): ThreeDBlockConfig {
  * { "models": ["a.glb", "b.glb", "c.glb"], "columns": 3, "rowHeight": 300 }
  * ```
  */
-export function registerGridCodeBlockProcessor(app: App, getSettings: () => PluginSettings) {
+export function registerGridCodeBlockProcessor(
+  app: App,
+  getSettings: () => PluginSettings,
+  convertedAssetCache: ConvertedAssetCache,
+) {
   return {
     id: "3dgrid",
     handler: async (
@@ -265,30 +343,27 @@ export function registerGridCodeBlockProcessor(app: App, getSettings: () => Plug
         return;
       }
 
-      if (!config.models || config.models.length === 0) {
+      if (config.preset !== "compose" && (!config.models || config.models.length === 0)) {
         el.createDiv({ cls: "ai3d-inline-empty", text: "No models specified." });
         return;
       }
 
-      // Resolve and validate paths
-      const resolved: ModelConfig[] = [];
-      for (const entry of config.models) {
-        const rawPath = typeof entry === "string" ? entry : entry.path;
-        const path = resolveVaultPath(app,rawPath);
-        if (!path) {
-          el.createDiv({ cls: "ai3d-inline-empty", text: `File not found: ${rawPath}` });
-          return;
-        }
-        const ext = path.split(".").pop()?.toLowerCase() ?? "";
-        if (!isDirectModelExtension(ext)) {
+      const settings = getSettings();
+      const preparedModels: PreparedInlineModel[] = [];
+      for (const entry of config.models ?? []) {
+        try {
+          const prepared = await prepareInlineModel(app, entry, settings, convertedAssetCache);
+          preparedModels.push(prepared);
+        } catch (err) {
           el.createDiv({
             cls: "ai3d-inline-empty",
-            text: `Unsupported format: .${ext}. Supported: ${listDirectModelExtensions().join(", ")}`,
+            text: err instanceof Error ? err.message : String(err),
           });
           return;
         }
-        resolved.push(typeof entry === "string" ? { path } : { ...entry, path });
       }
+      const resolved: ModelConfig[] = preparedModels.map((item) => item.model);
+      let helperSourcePath = preparedModels[0]?.sourcePath ?? "";
 
       // Create grid container
       const gridHost = el.createDiv({ cls: "ai3d-grid-host" });
@@ -316,7 +391,7 @@ export function registerGridCodeBlockProcessor(app: App, getSettings: () => Plug
       let renderer: GridRenderer | null = null;
       let destroyed = false;
 
-      createHelperButtons(gridHost, app, () => renderer, () => resolved[0]?.path ?? "", () => {
+      createHelperButtons(gridHost, app, () => renderer, () => helperSourcePath, () => {
         if (destroyed) return;
         destroyed = true;
         observer.disconnect();
@@ -338,11 +413,7 @@ export function registerGridCodeBlockProcessor(app: App, getSettings: () => Plug
 
       try {
         renderer = new GridRenderer(canvas);
-        const readFile = async (path: string) => {
-          const file = app.vault.getAbstractFileByPath(path);
-          if (!(file instanceof TFile)) throw new Error(`File not found: ${path}`);
-          return app.vault.readBinary(file);
-        };
+        const readFile = async (path: string) => readBinaryPath(app, path);
 
         if (config.preset === "compose") {
           // Compose: each section has its own preset + models
@@ -352,15 +423,35 @@ export function registerGridCodeBlockProcessor(app: App, getSettings: () => Plug
             renderer = null;
             return;
           }
+          const preparedSections: ComposeSection[] = [];
+          for (const section of config.sections) {
+            try {
+              if (!helperSourcePath) {
+                const firstEntry = section.models[0];
+                if (firstEntry) {
+                  const rawPath = typeof firstEntry === "string" ? firstEntry : firstEntry.path;
+                  helperSourcePath = resolveVaultPath(app, rawPath) ?? rawPath;
+                }
+              }
+              const preparedSection = await prepareInlineSection(app, section, settings, convertedAssetCache);
+              preparedSections.push(preparedSection);
+            } catch (err) {
+              gridHost.createDiv({
+                cls: "ai3d-inline-empty",
+                text: err instanceof Error ? err.message : String(err),
+              });
+              renderer.destroy();
+              renderer = null;
+              return;
+            }
+          }
           const result = composeSections(
-            config.sections,
+            preparedSections,
             config.direction ?? "horizontal",
             Number(config.params?.gap) || 0.02,
             (entry) => {
-              const rawPath = typeof entry === "string" ? entry : entry.path;
-              const path = resolveVaultPath(app,rawPath);
-              if (!path) return null;
-              return typeof entry === "string" ? { path } : { ...entry, path };
+              if (typeof entry === "string") return null;
+              return entry;
             },
             getPreset,
           );

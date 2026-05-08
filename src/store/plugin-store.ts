@@ -12,6 +12,7 @@ export interface PluginStore {
 const INITIAL_STATE: PluginState = {
   settings: { ...DEFAULT_SETTINGS },
   currentModelPath: null,
+  convertedAssetRecords: [],
   modelAssetProfiles: {},
   agentDraft: "",
   agentPlan: null,
@@ -35,6 +36,7 @@ export function createPluginStore(plugin: Plugin): PluginStore {
     const s = store.getState();
     const data: PersistedPluginState = {
       settings: s.settings,
+      convertedAssetRecords: s.convertedAssetRecords,
       modelAssetProfiles: s.modelAssetProfiles,
       agentDraft: s.agentDraft,
       agentPlan: s.agentPlan,
@@ -53,6 +55,7 @@ export function createPluginStore(plugin: Plugin): PluginStore {
       if (!saved) return;
       store.setState({
         settings: { ...DEFAULT_SETTINGS, ...(saved.settings ?? {}) },
+        convertedAssetRecords: saved.convertedAssetRecords ?? [],
         modelAssetProfiles: saved.modelAssetProfiles ?? {},
         agentDraft: saved.agentDraft ?? "",
         agentPlan: saved.agentPlan ?? null,

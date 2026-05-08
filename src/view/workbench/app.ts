@@ -7,7 +7,11 @@ import { BabylonModelPreview } from "../../render/babylon/scene";
 import { html } from "./h";
 import { prepareModelInput } from "../../io/model-pipeline";
 import { createConversionManager } from "../../io/conversion/factory";
+import type { ConvertedAssetCache } from "../../io/cache/converted-asset-cache";
+import { toPreviewSource } from "../../io/preview/preview-source";
 import { createLogger } from "../../utils/log";
+import { readBinaryPath, resolveVaultAbsolutePath } from "../../utils/resolve-path";
+import { listPreferredConversionExts } from "../../io/formats/route-preferences";
 
 const log = createLogger("workbench");
 
@@ -15,6 +19,7 @@ export function mountWorkbench(
   container: HTMLElement,
   app: App,
   ps: PluginStore,
+  convertedAssetCache: ConvertedAssetCache,
 ): () => void {
   container.classList.add("ai3d-workbench");
 
@@ -271,35 +276,33 @@ export function mountWorkbench(
 
     try {
       log.info("begin model load", { path });
-      const conversionManager = createConversionManager({
-        enabledConverterIds: state.settings.enabledConverterIds,
+      const absolutePath = resolveVaultAbsolutePath(app, path) ?? undefined;
+      const conversionManager = createConversionManager(state.settings);
+      const prepared = await prepareModelInput({
+        path,
+        absolutePath,
+        preferConversionExts: listPreferredConversionExts(state.settings),
+        conversionManager,
+        convertedAssetCache,
       });
-      const prepared = await prepareModelInput({ path, conversionManager });
-      for (const warning of prepared.warnings) {
+      const source = toPreviewSource(prepared);
+      for (const warning of source.warnings) {
         log.warn("model prepare warning", { path, warning });
       }
 
-      const preparedFile = app.vault.getAbstractFileByPath(prepared.effectivePath);
-      if (!(preparedFile instanceof TFile)) {
-        throw new Error(`File not found: ${prepared.effectivePath}`);
-      }
-
-      const data = await app.vault.readBinary(preparedFile);
-      const readFile = async (p: string) => {
-        const f = app.vault.getAbstractFileByPath(p);
-        if (!(f instanceof TFile)) throw new Error(`File not found: ${p}`);
-        return app.vault.readBinary(f);
-      };
+      const data = await readBinaryPath(app, source.path);
+      const readFile = async (p: string) => readBinaryPath(app, p);
 
       preview = new BabylonModelPreview(canvas);
-      const summary = await preview.loadModel(data, prepared.effectiveExt, readFile, prepared.effectivePath);
+      const summary = await preview.loadModel(data, source.ext, readFile, source.path);
       const s = ps.store.getState().settings;
       preview.setRenderQuality(s.renderQuality, s.renderScale);
       ps.store.setState({ modelPreview: summary });
       log.info("model load completed", {
         path,
-        effectivePath: prepared.effectivePath,
-        effectiveExt: prepared.effectiveExt,
+        effectivePath: source.path,
+        effectiveExt: source.ext,
+        strategy: source.strategy,
         meshCount: summary.meshCount,
         triangleCount: summary.triangleCount,
       });

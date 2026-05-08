@@ -1,9 +1,15 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type AI3DModelWorkbench from "./main";
 import { DEFAULT_SETTINGS } from "./domain/constants";
+import {
+  describeConverterCommandSource,
+  inspectAllConverterCommands,
+  type ConverterCommandStatus,
+} from "./io/conversion/command-discovery";
 
 export class AI3DSettingTab extends PluginSettingTab {
   private plugin: AI3DModelWorkbench;
+  private diagnosticsRunId = 0;
 
   constructor(app: App, plugin: AI3DModelWorkbench) {
     super(app, plugin);
@@ -13,6 +19,7 @@ export class AI3DSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+    let refreshCommandDiagnostics: (() => Promise<void>) | undefined;
 
     containerEl.createEl("h2", { text: "AI 3D Model Workbench" });
 
@@ -124,6 +131,117 @@ export class AI3DSettingTab extends PluginSettingTab {
         });
       });
 
+    new Setting(containerEl)
+      .setName("Enable obj2gltf converter (experimental)")
+      .setDesc("Keep OBJ direct loading as default. Enable this only if you want an optional local normalization route through obj2gltf.")
+      .addToggle((toggle) => {
+        const enabled = this.plugin.getSettings().enabledConverterIds.includes("obj2gltf");
+        return toggle.setValue(enabled).onChange(async (val) => {
+          const current = this.plugin.getSettings().enabledConverterIds;
+          const next = val
+            ? Array.from(new Set([...current, "obj2gltf"]))
+            : current.filter((id) => id !== "obj2gltf");
+          this.plugin.updateSettings({ enabledConverterIds: next });
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("Prefer obj2gltf for OBJ")
+      .setDesc("Recommended default is off. Turn this on only when you want normalized GLB outputs or direct OBJ loading is not good enough.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.getSettings().preferObj2gltfForObj)
+          .onChange(async (val) => {
+            this.plugin.updateSettings({ preferObj2gltfForObj: val });
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Enable FBX2glTF converter (experimental)")
+      .setDesc("Keep FBX direct loading as the recommended default. Enable this only if you want an optional local fallback or normalized GLB route via FBX2glTF.")
+      .addToggle((toggle) => {
+        const enabled = this.plugin.getSettings().enabledConverterIds.includes("fbx2gltf");
+        return toggle.setValue(enabled).onChange(async (val) => {
+          const current = this.plugin.getSettings().enabledConverterIds;
+          const next = val
+            ? Array.from(new Set([...current, "fbx2gltf"]))
+            : current.filter((id) => id !== "fbx2gltf");
+          this.plugin.updateSettings({ enabledConverterIds: next });
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("Prefer FBX2glTF for FBX")
+      .setDesc("Recommended default is off. Turn this on only for problematic FBX assets or when you explicitly want normalized GLB outputs.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.getSettings().preferFbx2gltfForFbx)
+          .onChange(async (val) => {
+            this.plugin.updateSettings({ preferFbx2gltfForFbx: val });
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("FreeCAD command path")
+      .setDesc("Optional path to FreeCADCmd. Overrides auto-discovery and AI3D_FREECAD_CMD when set.")
+      .addText((text) =>
+        text
+          .setPlaceholder("C:/Program Files/FreeCAD 0.22/bin/FreeCADCmd.exe")
+          .setValue(this.plugin.getSettings().freecadCommand)
+          .onChange(async (val) => {
+            this.plugin.updateSettings({ freecadCommand: val.trim() });
+            void refreshCommandDiagnostics?.();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("obj2gltf command path")
+      .setDesc("Optional path to obj2gltf CLI. Overrides auto-discovery and AI3D_OBJ2GLTF_CMD when set.")
+      .addText((text) =>
+        text
+          .setPlaceholder("obj2gltf.cmd")
+          .setValue(this.plugin.getSettings().obj2gltfCommand)
+          .onChange(async (val) => {
+            this.plugin.updateSettings({ obj2gltfCommand: val.trim() });
+            void refreshCommandDiagnostics?.();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("FBX2glTF command path")
+      .setDesc("Optional path to FBX2glTF CLI. Overrides auto-discovery and AI3D_FBX2GLTF_CMD when set.")
+      .addText((text) =>
+        text
+          .setPlaceholder("FBX2glTF.exe")
+          .setValue(this.plugin.getSettings().fbx2gltfCommand)
+          .onChange(async (val) => {
+            this.plugin.updateSettings({ fbx2gltfCommand: val.trim() });
+            void refreshCommandDiagnostics?.();
+          }),
+      );
+
+    const diagnosticsSetting = new Setting(containerEl)
+      .setName("Converter command diagnostics")
+      .setDesc("Shows the exact executable path the plugin would use right now. This is the same discovery chain used by runtime conversion and cache identity.");
+
+    diagnosticsSetting.addButton((button) =>
+      button
+        .setButtonText("Check now")
+        .onClick(async () => {
+          button.setDisabled(true);
+          button.setButtonText("Checking...");
+          await refreshCommandDiagnostics?.();
+          button.setButtonText("Check now");
+          button.setDisabled(false);
+          new Notice("AI 3D converter command diagnostics refreshed.");
+        }),
+    );
+
+    const diagnosticsEl = containerEl.createDiv();
+    diagnosticsEl.style.marginTop = "0.5rem";
+    refreshCommandDiagnostics = () => this.renderCommandDiagnostics(diagnosticsEl);
+    void refreshCommandDiagnostics();
+
     // ── Performance ──────────────────────────────────────────────
 
     containerEl.createEl("h3", { text: "Performance & Display" });
@@ -180,5 +298,41 @@ export class AI3DSettingTab extends PluginSettingTab {
             this.plugin.updateSettings({ renderScale: val });
           }),
       );
+  }
+
+  private async renderCommandDiagnostics(containerEl: HTMLElement): Promise<void> {
+    const runId = ++this.diagnosticsRunId;
+    containerEl.empty();
+    containerEl.createEl("p", { text: "Checking converter command availability..." });
+
+    const statuses = await inspectAllConverterCommands(this.plugin.getSettings());
+    if (runId !== this.diagnosticsRunId) {
+      return;
+    }
+
+    containerEl.empty();
+    for (const status of statuses) {
+      this.renderCommandStatus(containerEl, status);
+    }
+  }
+
+  private renderCommandStatus(containerEl: HTMLElement, status: ConverterCommandStatus): void {
+    const block = containerEl.createDiv();
+    block.style.marginBottom = "0.9rem";
+
+    block.createEl("strong", {
+      text: `${status.label}: ${status.available ? "available" : "not found"}`,
+    });
+
+    const lines = [
+      `Source: ${describeConverterCommandSource(status.source)}`,
+      `Command: ${status.command}`,
+      status.resolvedPath && status.resolvedPath !== status.command ? `Resolved path: ${status.resolvedPath}` : "",
+      status.detail,
+    ].filter(Boolean);
+
+    for (const line of lines) {
+      block.createEl("div", { text: line });
+    }
   }
 }

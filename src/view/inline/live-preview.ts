@@ -4,13 +4,16 @@
  */
 
 import type { App } from "obsidian";
-import { TFile } from "obsidian";
 import { EditorView, Decoration, WidgetType } from "@codemirror/view";
 import { StateField, StateEffect, RangeSet, Range } from "@codemirror/state";
-import { isDirectModelExtension } from "../../io/formats/registry";
+import { isSupportedModelExtension } from "../../io/formats/registry";
 import type { PluginSettings } from "../../domain/models";
 import type { BabylonModelPreview } from "../../render/babylon/scene";
-import { resolveVaultPath } from "../../utils/resolve-path";
+import { readBinaryPath, resolveVaultAbsolutePath, resolveVaultPath } from "../../utils/resolve-path";
+import { createConversionManager } from "../../io/conversion/factory";
+import type { ConvertedAssetCache } from "../../io/cache/converted-asset-cache";
+import { prepareModelInput } from "../../io/model-pipeline";
+import { listPreferredConversionExts } from "../../io/formats/route-preferences";
 
 // ── Widget ────────────────────────────────────────────────────────
 
@@ -25,6 +28,13 @@ class ModelEmbedWidget extends WidgetType {
     private width: number,
     private height: number,
     private autoRotate: boolean,
+    private enabledConverterIds: string[],
+    private freecadCommand: string,
+    private obj2gltfCommand: string,
+    private fbx2gltfCommand: string,
+    private preferObj2gltfForObj: boolean,
+    private preferFbx2gltfForFbx: boolean,
+    private convertedAssetCache: ConvertedAssetCache,
   ) {
     super();
   }
@@ -34,7 +44,14 @@ class ModelEmbedWidget extends WidgetType {
       this.modelPath === other.modelPath &&
       this.width === other.width &&
       this.height === other.height &&
-      this.autoRotate === other.autoRotate
+      this.autoRotate === other.autoRotate &&
+      this.enabledConverterIds.join("|") === other.enabledConverterIds.join("|") &&
+      this.freecadCommand === other.freecadCommand &&
+      this.obj2gltfCommand === other.obj2gltfCommand &&
+      this.fbx2gltfCommand === other.fbx2gltfCommand &&
+      this.preferObj2gltfForObj === other.preferObj2gltfForObj &&
+      this.preferFbx2gltfForFbx === other.preferFbx2gltfForFbx &&
+      this.convertedAssetCache === other.convertedAssetCache
     );
   }
 
@@ -82,15 +99,30 @@ class ModelEmbedWidget extends WidgetType {
     try {
       const { BabylonModelPreview } = await import("../../render/babylon/scene");
       this.preview = new BabylonModelPreview(canvas);
-
-      const file = this.app.vault.getAbstractFileByPath(this.modelPath);
-      if (!(file instanceof TFile)) {
-        throw new Error(`File not found: ${this.modelPath}`);
-      }
-
-      const data = await this.app.vault.readBinary(file);
-      const ext = file.extension.toLowerCase();
-      await this.preview.loadModel(data, ext);
+      const absolutePath = resolveVaultAbsolutePath(this.app, this.modelPath) ?? undefined;
+      const conversionManager = createConversionManager({
+        enabledConverterIds: this.enabledConverterIds,
+        freecadCommand: this.freecadCommand,
+        obj2gltfCommand: this.obj2gltfCommand,
+        fbx2gltfCommand: this.fbx2gltfCommand,
+      });
+      const prepared = await prepareModelInput({
+        path: this.modelPath,
+        absolutePath,
+        preferConversionExts: listPreferredConversionExts({
+          preferObj2gltfForObj: this.preferObj2gltfForObj,
+          preferFbx2gltfForFbx: this.preferFbx2gltfForFbx,
+        }),
+        conversionManager,
+        convertedAssetCache: this.convertedAssetCache,
+      });
+      const data = await readBinaryPath(this.app, prepared.effectivePath);
+      await this.preview.loadModel(
+        data,
+        prepared.effectiveExt,
+        (path) => readBinaryPath(this.app, path),
+        prepared.effectivePath,
+      );
 
       if (this.autoRotate) {
         this.preview.applyConfig({
@@ -128,6 +160,13 @@ function findEmbeds(
   viewOrState: EditorView | import("@codemirror/state").EditorState,
   app: App,
   autoRotate: boolean,
+  enabledConverterIds: string[],
+  freecadCommand: string,
+  obj2gltfCommand: string,
+  fbx2gltfCommand: string,
+  preferObj2gltfForObj: boolean,
+  preferFbx2gltfForFbx: boolean,
+  convertedAssetCache: ConvertedAssetCache,
 ): Range<Decoration>[] {
   const doc = "state" in viewOrState ? viewOrState.state.doc : viewOrState.doc;
   const ranges: Range<Decoration>[] = [];
@@ -157,7 +196,7 @@ function findEmbeds(
       const filename = parts[0].trim();
 
       const ext = filename.split(".").pop()?.toLowerCase() ?? "";
-      if (!isDirectModelExtension(ext)) {
+      if (!isSupportedModelExtension(ext)) {
         pos = end + 2;
         continue;
       }
@@ -185,7 +224,20 @@ function findEmbeds(
       // Widget decorations require zero-length ranges — place at the start of the embed
       ranges.push(
         Decoration.widget({
-          widget: new ModelEmbedWidget(app, modelPath, w, h, autoRotate),
+          widget: new ModelEmbedWidget(
+            app,
+            modelPath,
+            w,
+            h,
+            autoRotate,
+            enabledConverterIds,
+            freecadCommand,
+            obj2gltfCommand,
+            fbx2gltfCommand,
+            preferObj2gltfForObj,
+            preferFbx2gltfForFbx,
+            convertedAssetCache,
+          ),
           block: true,
           side: 1,
         }).range(from),
@@ -206,17 +258,43 @@ const updateEmbeds = StateEffect.define<void>();
 
 type DecoSet = RangeSet<Decoration>;
 
-export function registerLivePreviewExtension(app: App, getSettings: () => PluginSettings) {
+export function registerLivePreviewExtension(
+  app: App,
+  getSettings: () => PluginSettings,
+  convertedAssetCache: ConvertedAssetCache,
+) {
   const embedField = StateField.define<DecoSet>({
     create(state): DecoSet {
       const s = getSettings();
-      const ranges = findEmbeds(state, app, s.autoRotateDefault);
+      const ranges = findEmbeds(
+        state,
+        app,
+        s.autoRotateDefault,
+        s.enabledConverterIds,
+        s.freecadCommand,
+        s.obj2gltfCommand,
+        s.fbx2gltfCommand,
+        s.preferObj2gltfForObj,
+        s.preferFbx2gltfForFbx,
+        convertedAssetCache,
+      );
       return ranges.length > 0 ? RangeSet.of(ranges, true) : RangeSet.empty;
     },
     update(value, tr): DecoSet {
       if (tr.docChanged || tr.effects.some((e) => e.is(updateEmbeds))) {
         const s = getSettings();
-        const ranges = findEmbeds(tr.state, app, s.autoRotateDefault);
+        const ranges = findEmbeds(
+          tr.state,
+          app,
+          s.autoRotateDefault,
+          s.enabledConverterIds,
+          s.freecadCommand,
+          s.obj2gltfCommand,
+          s.fbx2gltfCommand,
+          s.preferObj2gltfForObj,
+          s.preferFbx2gltfForFbx,
+          convertedAssetCache,
+        );
         return ranges.length > 0 ? RangeSet.of(ranges, true) : RangeSet.empty;
       }
       return value.map(tr.changes);

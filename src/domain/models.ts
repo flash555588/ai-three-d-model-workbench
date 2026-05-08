@@ -31,14 +31,33 @@ export interface PluginSettings {
   snapshotNaming: "timestamp" | "model-name";
   // Conversion channel
   enabledConverterIds: string[];
+  freecadCommand: string;
+  obj2gltfCommand: string;
+  fbx2gltfCommand: string;
+  preferObj2gltfForObj: boolean;
+  preferFbx2gltfForFbx: boolean;
   // Logging
   logLevel: "debug" | "info" | "warn" | "error";
+}
+
+export interface ConvertedAssetRecord {
+  cacheVersion: number;
+  converterId: string;
+  converterCacheKey: string;
+  sourcePath: string;
+  sourceExt: string;
+  targetExt: "glb";
+  outputPath: string;
+  outputExt: "glb";
+  warnings: string[];
+  createdAt: number;
 }
 
 // ── Persisted Plugin State ───────────────────────────────────────
 
 export interface PersistedPluginState {
   settings: PluginSettings;
+  convertedAssetRecords: ConvertedAssetRecord[];
   modelAssetProfiles: Record<string, ModelAssetProfile>;
   agentDraft: string;
   agentPlan: AgentTaskPlan | null;
@@ -49,6 +68,7 @@ export interface PersistedPluginState {
 export interface PluginState {
   settings: PluginSettings;
   currentModelPath: string | null;
+  convertedAssetRecords: ConvertedAssetRecord[];
   modelAssetProfiles: Record<string, ModelAssetProfile>;
   agentDraft: string;
   agentPlan: AgentTaskPlan | null;

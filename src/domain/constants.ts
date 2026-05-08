@@ -30,6 +30,11 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   snapshotNaming: "model-name",
   // Conversion channel
   enabledConverterIds: [],
+  freecadCommand: "",
+  obj2gltfCommand: "",
+  fbx2gltfCommand: "",
+  preferObj2gltfForObj: false,
+  preferFbx2gltfForFbx: false,
   // Logging
   logLevel: "warn",
 };
