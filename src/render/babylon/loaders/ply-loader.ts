@@ -340,6 +340,15 @@ const plyPlugin = {
   rewriteRootURL(rootUrl: string) { return rootUrl; },
 };
 
+/**
+ * Parse a PLY ArrayBuffer and add the resulting mesh to a Scene.
+ * Bypasses SceneLoader — works around Babylon v9 data-URL handling issues
+ * for custom plugins (same pattern as loadSTLBuffer).
+ */
+export function loadPLYBuffer(scene: Scene, buffer: ArrayBuffer): Mesh {
+  return parsePLY(scene, buffer);
+}
+
 export async function registerPLYLoader() {
   const { SceneLoader } = await import("@babylonjs/core/Loading/sceneLoader.js");
   SceneLoader.RegisterPlugin(plyPlugin as any);
