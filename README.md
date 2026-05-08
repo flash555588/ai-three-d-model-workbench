@@ -2,9 +2,9 @@
 
 An Obsidian plugin that renders 3D models in a Babylon.js viewport and connects them to your knowledge notes. Supports 17 formats out of the box, with automatic CAD-to-mesh conversion for engineering files.
 
-
 <img width="2132" height="1502" alt="image" src="https://github.com/user-attachments/assets/05c1bcaf-bef5-4e45-aeff-eb0076df3c67" />
 
+[简体中文](README.zh-CN.md)
 
 ## Features
 
@@ -15,7 +15,7 @@ An Obsidian plugin that renders 3D models in a Babylon.js viewport and connects 
 | Format | Description |
 |--------|------------|
 | GLB / GLTF | Industry-standard 3D format, full material and animation support |
-| STL | Binary and ASCII STL, with per-face color extraction (VisCAM/SolidView) |
+| STL | Binary STL with per-face color extraction (VisCAM/SolidView) |
 | OBJ | Wavefront OBJ with MTL material and vault-relative texture resolution |
 | PLY | Stanford PLY, vertex colors, triangulated mesh and point cloud |
 | SPLAT | Gaussian Splatting point clouds |
@@ -98,33 +98,6 @@ npm run build
 
 The output `main.js` (~1.7 MB, dominated by Babylon.js core) goes into `.obsidian/plugins/ai-3d-model-workbench/`.
 
-## Settings
-
-| Setting | Default | Description |
-|---------|---------|------------|
-| Canvas height | 400 | Default preview height in pixels |
-| Auto-rotate | off | Start models with turntable animation |
-| Auto-rotate speed | 0.5 | Turntable speed |
-| Render quality | high | Resolution quality preset |
-| Render scale | 1.0 | Resolution multiplier (0.25-2.0) |
-| Snapshot folder | Media/3D Previews | Vault folder for exported snapshots |
-| Snapshot naming | model-name | File naming strategy |
-| Report folder | Analysis/3D Reports | Vault folder for knowledge notes |
-| Enabled converters | freecad, sldprt | Which conversion tools are active |
-| Converter commands | (auto-discover) | Override path to Python/FreeCADCmd/obj2gltf/FBX2glTF |
-
-## External Dependencies
-
-CAD and mesh conversion require external tools. The plugin auto-discovers them on PATH; override in settings if needed.
-
-| Converter | Requirement | Install |
-|-----------|------------|---------|
-| freecad (STEP/IGES/BREP) | Python 3 + cadquery + trimesh | `pip install cadquery trimesh` |
-| sldprt (SolidWorks) | FreeCAD with Python bindings | [freecad.org/downloads](https://www.freecad.org/downloads.php) |
-| assimp (3MF/DAE) | Python 3 + trimesh | `pip install trimesh` |
-| obj2gltf (OBJ) | Node.js + obj2gltf | `npm install -g obj2gltf` |
-| fbx2gltf (FBX) | FBX2glTF binary | [github.com/godotengine/FBX2glTF](https://github.com/godotengine/FBX2glTF) |
-
 ## Usage
 
 ### Quick Start
@@ -133,7 +106,7 @@ CAD and mesh conversion require external tools. The plugin auto-discovers them o
 2. In any note, type `![[your-model.glb]]` — the model renders inline in Live Preview
 3. Use the toolbar buttons to copy/download snapshots, or generate a knowledge note
 
-### Three Ways to Embed
+### Embedding Methods
 
 **1. Live Preview embed** — simplest, for single files:
 
@@ -178,11 +151,9 @@ Or with full config:
 
 **4. Direct file view** — click any `.glb`/`.gltf`/`.stl` file in the file explorer to open it in a full viewer tab.
 
-### Working with CAD Files (STEP, IGES, BREP, SLDPRT)
+### Working with CAD Files
 
-CAD files require external conversion tools. See [Third-Party Software Setup](#third-party-software-setup) below.
-
-Once configured, use CAD files the same way as mesh files:
+CAD files require external conversion tools. Once configured, use CAD files the same way as mesh files:
 
 ```markdown
 ![[engine_block.step]]
@@ -220,249 +191,38 @@ Three snapshot options appear below every preview:
 - **Save** — export to vault folder (`Media/3D Previews` by default)
 - **Download** — download as PNG file
 
-### STL Color Support
+## Settings
 
-Binary STL files with per-face colors (VisCAM/SolidView format) are automatically detected and rendered. The 15-bit RGB encoding in the 2-byte attribute field is decoded per-face.
+| Setting | Default | Description |
+|---------|---------|------------|
+| Canvas height | 400 | Default preview height in pixels |
+| Auto-rotate | off | Start models with turntable animation |
+| Auto-rotate speed | 0.5 | Turntable speed |
+| Render quality | high | Resolution quality preset |
+| Render scale | 1.0 | Resolution multiplier (0.25-2.0) |
+| Snapshot folder | Media/3D Previews | Vault folder for exported snapshots |
+| Snapshot naming | model-name | File naming strategy |
+| Report folder | Analysis/3D Reports | Vault folder for knowledge notes |
+| Enabled converters | freecad, sldprt | Which conversion tools are active |
+| Converter commands | (auto-discover) | Override path to Python/FreeCADCmd/obj2gltf/FBX2glTF |
 
-### OBJ with Textures
+## External Dependencies
 
-OBJ files with MTL material libraries are supported. Texture paths are resolved relative to the OBJ file location within the vault. The plugin searches multiple candidates (full path, same-directory filename, basename variants) to find textures.
+CAD and mesh conversion require external tools. The plugin auto-discovers them on PATH; override in settings if needed.
 
-## Third-Party Software Setup
-
-The plugin works immediately with GLB, GLTF, STL, OBJ, PLY, SPLAT, and FBX files. For CAD formats and enhanced conversion, install optional tools below.
-
-### Python + CadQuery (STEP, IGES, BREP)
-
-**What it does**: Reads STEP/STP, IGES/IGS, and BREP files using OpenCASCADE, extracts per-face colors (STEP only), and exports to GLB.
-
-**Install**:
-
-```bash
-# Windows (using py launcher)
-py -m pip install cadquery trimesh
-
-# macOS / Linux
-pip3 install cadquery trimesh
-```
-
-**Verify**:
-
-```bash
-py -c "import cadquery; print('CadQuery OK')"
-py -c "import trimesh; print('trimesh OK')"
-```
-
-**Auto-discovery**: The plugin looks for `py` (Windows) or `python3` (macOS/Linux) on PATH. On Apple Silicon, it also checks `/opt/homebrew/bin/python3`.
-
-**Override**: Set the Python command in Settings > "Python command (CadQuery)" or environment variable `AI3D_FREECAD_CMD`.
-
-### FreeCAD (SLDPRT)
-
-**What it does**: Imports SolidWorks `.sldprt` files via FreeCAD, exports to STEP as intermediate, then triangulates to GLB via OpenCASCADE.
-
-**Install**:
-
-Download and install FreeCAD from [freecad.org/downloads](https://www.freecad.org/downloads.php). The plugin uses `FreeCADCmd.exe` (console mode, no GUI required).
-
-**Auto-discovery** (Windows):
-
-```
-%LOCALAPPDATA%\Programs\FreeCAD 1.1\bin\FreeCADCmd.exe
-%LOCALAPPDATA%\Programs\FreeCAD 1.0\bin\FreeCADCmd.exe
-%LOCALAPPDATA%\Programs\FreeCAD 0.21\bin\FreeCADCmd.exe
-C:\Program Files\FreeCAD\bin\FreeCADCmd.exe
-```
-
-**Auto-discovery** (macOS):
-
-```
-/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd
-/opt/homebrew/bin/freecadcmd
-```
-
-**Auto-discovery** (Linux):
-
-```
-/usr/bin/freecadcmd
-/usr/local/bin/freecadcmd
-/snap/freecad/current/usr/bin/freecadcmd
-```
-
-**Override**: Set the FreeCADCmd path in Settings > "FreeCADCmd path (for SLDPRT)" or environment variable `AI3D_FREECMDCMD`.
-
-**Timeout**: SLDPRT import can be slow for complex assemblies. The converter has a 10-minute timeout.
-
-### Python + trimesh (3MF, DAE)
-
-**What it does**: Converts 3MF and COLLADA (DAE) files to GLB using trimesh + Assimp.
-
-**Install**:
-
-```bash
-py -m pip install trimesh    # Windows
-pip3 install trimesh          # macOS / Linux
-```
-
-**Auto-discovery**: Same Python as CadQuery (see above).
-
-**Override**: Environment variable `AI3D_ASSIMP_CMD`.
-
-### obj2gltf (OBJ, optional)
-
-The plugin already has a built-in OBJ loader. obj2gltf is an optional alternative that can produce higher-fidelity GLB output.
-
-**Install**:
-
-```bash
-npm install -g obj2gltf
-```
-
-**Auto-discovery**: The plugin looks for `obj2gltf.cmd` (Windows) or `obj2gltf` (Unix) on PATH.
-
-**Enable**: Settings > Enable OBJ2GLTF converter, or set "obj2gltf path".
-
-### FBX2glTF (FBX, optional)
-
-The plugin has a built-in FBX loader. FBX2glTF is an optional alternative for better material support.
-
-**Install**:
-
-Download from [github.com/godotengine/FBX2glTF](https://github.com/godotengine/FBX2glTF) and place the binary in a known location.
-
-**Auto-discovery** (Windows):
-
-```
-C:\Program Files\FBX2glTF\FBX2glTF-windows-x64.exe
-C:\Program Files\FBX2glTF\FBX2glTF.exe
-```
-
-**Enable**: Settings > Enable FBX2glTF converter, or set "FBX2glTF path".
-
-### Environment Variables
-
-All converter commands can be overridden via environment variables:
-
-| Variable | Converter |
-|----------|-----------|
-| `AI3D_FREECAD_CMD` | Python (CadQuery/OCCT) |
-| `AI3D_FREECMDCMD` | FreeCADCmd (SLDPRT) |
-| `AI3D_ASSIMP_CMD` | Python (trimesh) |
-| `AI3D_OBJ2GLTF_CMD` | obj2gltf |
-| `AI3D_FBX2GLTF_CMD` | FBX2glTF |
-
-## Demo
-
-See [`docs/demo.md`](docs/demo.md) for a complete walkthrough with examples for every feature.
-
-## Architecture
-
-```
-src/
-  main.ts                          Plugin lifecycle, commands, state
-  domain/models.ts                 Shared interfaces
-  domain/constants.ts              Default settings, supported extensions
-  store/                           Custom store + Obsidian saveData bridge
-  render/babylon/                  Babylon.js scene, grid, presets, loaders
-    loaders/                       Custom STL, PLY parsers + Babylon SceneLoader plugins
-    presets/                       compare, showcase, explode, timeline, gallery, compose
-  io/formats/                      Format registry, routing preferences
-  io/conversion/                   Conversion manager, adapters (Python/CLI bridges)
-    adapters/                      freecad, sldprt, assimp, obj2gltf, fbx2gltf
-  view/workbench/                  Two-zone layout (stable preview + replaceable panels)
-  view/inline/                     Code blocks, live preview, helper buttons
-  view/direct-view.ts              Direct file opening (.glb/.gltf/.stl)
-  settings.ts                      PluginSettingTab
-  utils/                           Path resolution, formatting, device detection
-```
+| Converter | Requirement | Install |
+|-----------|------------|---------|
+| freecad (STEP/IGES/BREP) | Python 3 + cadquery + trimesh | `pip install cadquery trimesh` |
+| sldprt (SolidWorks) | FreeCAD with Python bindings | [freecad.org/downloads](https://www.freecad.org/downloads.php) |
+| assimp (3MF/DAE) | Python 3 + trimesh | `pip install trimesh` |
+| obj2gltf (OBJ) | Node.js + obj2gltf | `npm install -g obj2gltf` |
+| fbx2gltf (FBX) | FBX2glTF binary | [github.com/godotengine/FBX2glTF](https://github.com/godotengine/FBX2glTF) |
 
 ## Model Import Pipeline
 
 ### Overview
 
-The plugin implements a multi-stage pipeline to load 3D models from Obsidian's vault into Babylon.js for rendering. The pipeline handles format detection, routing, data loading, and rendering with format-specific optimizations.
-
-### Architecture Principles
-
-**1. Format Registry Pattern**
-
-All supported formats are registered in a central registry (`src/io/formats/registry.ts`) with metadata:
-
-```typescript
-interface FormatCapability {
-  ext: string;              // File extension (e.g., "stl")
-  family: "mesh" | "point-cloud" | "cad";  // Format family
-  strategy: "direct" | "convert";           // Loading strategy
-  directLoader?: string;    // Babylon loader identifier
-  converterId?: string;     // External converter identifier
-  outputFormat?: string;    // Conversion target format
-  enabled: boolean;         // Runtime enable/disable
-}
-```
-
-This allows the pipeline to make routing decisions without hardcoded conditionals.
-
-**2. Two-Tier Loading Strategy**
-
-The plugin uses a two-tier strategy to balance performance and compatibility:
-
-- **Direct formats**: Loaded directly into Babylon.js via built-in or custom loaders. No external tools required.
-- **Conversion formats**: Converted to GLB via external tools before rendering. Requires Python/CLI tools.
-
-**3. Data URL vs Direct Buffer**
-
-Babylon.js SceneLoader accepts data URLs for loading models. However, custom SceneLoader plugins (STL, PLY) have a known issue in Babylon v9 where data URLs are not properly converted to ArrayBuffer before being passed to the plugin's `importMeshAsync` method.
-
-**Solution**: For custom loaders (STL, PLY), the plugin bypasses SceneLoader entirely and calls the parser directly with the raw ArrayBuffer.
-
-```
-SceneLoader.ImportMeshAsync() flow:
-┌─────────────────────────────────────────────────────────────┐
-│  data:application/octet-stream;base64,...                    │
-│       │                                                      │
-│       ▼                                                      │
-│  Babylon SceneLoader                                         │
-│       │                                                      │
-│       ├─ Built-in loaders (GLTF, OBJ, SPLAT):               │
-│       │   └─ Correctly decodes data URL → ArrayBuffer        │
-│       │                                                      │
-│       └─ Custom plugins (STL, PLY):                          │
-│           └─ May receive data URL string instead of buffer   │
-│              (Babylon v9 bug)                                 │
-└─────────────────────────────────────────────────────────────┘
-
-Direct buffer loading (workaround):
-┌─────────────────────────────────────────────────────────────┐
-│  readBinaryPath() → ArrayBuffer                              │
-│       │                                                      │
-│       ▼                                                      │
-│  loadSTLBuffer(scene, data)  or  loadPLYBuffer(scene, data)  │
-│       │                                                      │
-│       ▼                                                      │
-│  Direct binary parsing → Babylon Mesh                        │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**4. Obsidian Vault Integration**
-
-The plugin integrates with Obsidian's vault system for file access:
-
-- **readBinaryPath()**: Reads files as ArrayBuffer via Obsidian's `vault.adapter.readBinary()`
-- **resolveVaultPath()**: Resolves wiki-link style paths (`[[model.glb]]`) to vault-relative paths
-- **resolveVaultAbsolutePath()**: Converts vault-relative paths to filesystem absolute paths (required for conversion)
-
-**5. State Management**
-
-The plugin uses a custom store primitive (`src/store/create-store.ts`) with:
-
-- **getState()**: Read current state
-- **setState()**: Update state (triggers subscribers)
-- **subscribe()**: React to state changes
-- **Obsidian bridge**: Persists state via `loadData()`/`saveData()` with 500ms debounce
-
-### Loading Strategy
-
-The plugin uses a two-tier loading strategy to handle different format families:
+The plugin implements a multi-stage pipeline to load 3D models from Obsidian's vault into Babylon.js for rendering.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -486,35 +246,37 @@ The plugin uses a two-tier loading strategy to handle different format families:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Direct Formats
+### Format Registry
 
-Direct formats are loaded directly into Babylon.js without external tools:
+All supported formats are registered in a central registry with metadata:
 
-| Format | Loader | Notes |
-|--------|--------|-------|
-| GLB / GLTF | Babylon built-in `GLTFFileLoader` | Full material, animation, PBR support |
-| STL | Custom `stl-loader.ts` | Binary-only, per-face color (VisCAM/SolidView) |
-| OBJ | Babylon built-in `OBJFileLoader` | MTL support, vault-relative texture resolution |
-| PLY | Custom `ply-loader.ts` | ASCII/binary, vertex colors, point cloud |
-| SPLAT | Babylon built-in `SPLATFileLoader` | Gaussian Splatting point clouds |
-| FBX | Community `babylonjs-fbx-loader` | Via SceneLoader plugin |
+```typescript
+interface FormatCapability {
+  ext: string;              // File extension (e.g., "stl")
+  family: "mesh" | "point-cloud" | "cad";  // Format family
+  strategy: "direct" | "convert";           // Loading strategy
+  directLoader?: string;    // Babylon loader identifier
+  converterId?: string;     // External converter identifier
+  outputFormat?: string;    // Conversion target format
+  enabled: boolean;         // Runtime enable/disable
+}
+```
 
-### Conversion Formats
+### Loading Strategy
 
-Conversion formats require external tools and are converted to GLB before rendering:
+**Direct formats** are loaded directly into Babylon.js via built-in or custom loaders. No external tools required.
 
-| Format | Converter | Intermediate | Output |
-|--------|-----------|--------------|--------|
-| STEP / STP | CadQuery + OCCT | Direct triangulation | GLB |
-| IGES / IGS | CadQuery + OCCT | Direct triangulation | GLB |
-| BREP | CadQuery + OCCT | Direct triangulation | GLB |
-| SLDPRT | FreeCAD | STEP → GLB | GLB |
-| 3MF | trimesh + Assimp | Direct mesh | GLB |
-| DAE | trimesh + Assimp | Direct mesh | GLB |
+**Conversion formats** are converted to GLB via external tools before rendering. Requires Python/CLI tools.
 
-### Format Parsing Details
+### Data URL vs Direct Buffer
 
-#### STL (Stereolithography)
+Babylon.js SceneLoader accepts data URLs for loading models. However, custom SceneLoader plugins (STL, PLY) have a known issue in Babylon v9 where data URLs are not properly converted to ArrayBuffer before being passed to the plugin.
+
+**Solution**: For custom loaders (STL, PLY), the plugin bypasses SceneLoader entirely and calls the parser directly with the raw ArrayBuffer.
+
+## Format Parsing Details
+
+### STL (Stereolithography)
 
 **Binary STL Structure**:
 ```
@@ -527,22 +289,13 @@ Offset  Size    Description
                 - 2 bytes: Attribute byte count
 ```
 
-**Parsing Steps**:
-1. Validate buffer size (≥84 bytes)
-2. Detect ASCII STL (starts with "solid") and reject
-3. Read triangle count from offset 80
-4. Validate buffer size (≥84 + count×50 bytes)
-5. Pre-scan for per-face colors (VisCAM/SolidView 15-bit RGB in attribute bytes)
-6. Extract positions, recompute normals (cross product), extract colors
-7. Create Babylon `VertexData` and apply to mesh
-
 **Color Encoding** (VisCAM/SolidView):
 - Bit 15: Color flag (1 = has color)
 - Bits 10-14: Blue (5-bit)
 - Bits 5-9: Green (5-bit)
 - Bits 0-4: Red (5-bit)
 
-#### PLY (Stanford Triangle Format)
+### PLY (Stanford Triangle Format)
 
 **Header Format**:
 ```
@@ -560,30 +313,9 @@ property list uchar int vertex_indices
 end_header
 ```
 
-**Parsing Steps**:
-1. Decode header as ASCII text
-2. Parse format, elements, and properties
-3. Detect binary vs ASCII format
-4. For binary: read vertices and faces using `DataView` with correct endianness
-5. For ASCII: parse line-by-line
-6. Triangulate faces (fan method for polygons)
-7. Compute normals from face geometry
-8. Apply vertex colors if present
-
 **Supported Property Types**: uchar, char, ushort, short, uint, int, float, double
 
-#### OBJ (Wavefront OBJ)
-
-**Loading Flow**:
-1. Parse OBJ text to find `mtllib` reference
-2. Load MTL file from vault (relative to OBJ location)
-3. Resolve texture paths:
-   - Full relative path
-   - Same-directory filename
-   - OBJ-name with image extensions
-   - Original texture basename with different extensions
-4. Override Babylon's `_loadMTL` to use vault content
-5. Call `SceneLoader.ImportMeshAsync()` with MTL content
+### OBJ (Wavefront OBJ)
 
 **Texture Resolution Priority**:
 1. Full relative path from MTL
@@ -591,187 +323,84 @@ end_header
 3. OBJ basename + common image extensions (jpg, png, bmp, tga, webp)
 4. Texture basename + alternative extensions
 
-#### GLB/GLTF (GL Transmission Format)
+## Complete Format Support Matrix
 
-**Features Supported**:
-- PBR materials (metallic-roughness workflow)
-- Animations (skeletal, morph targets)
-- Multiple meshes and materials
-- Texture embedding (GLB) or external references (GLTF)
-- Scene hierarchy and transforms
-
-**Loading**: Uses Babylon's built-in `GLTFFileLoader` with full feature support.
-
-#### SPLAT (Gaussian Splatting)
-
-**Format**: Binary point cloud with per-point properties:
-- Position (xyz)
-- Color (rgb)
-- Opacity
-- Covariance (scale + rotation)
-
-**Loading**: Uses Babylon's built-in `SPLATFileLoader` for Gaussian Splatting rendering.
-
-#### FBX (Autodesk FBX)
-
-**Loading**: Uses community `babylonjs-fbx-loader` package.
-
-**Limitations**:
-- Subject to Babylon v9 SceneLoader data-URL issue
-- Complex FBX features (constraints, deformers) may not be fully supported
-- Large FBX files may cause memory issues
-
-**Workaround**: Enable FBX2glTF converter in settings for better compatibility.
-
-### Complete Format Support Matrix
-
-| Format | Extension | Family | Strategy | Loader | Materials | Colors | Animation | Point Cloud | External Tool |
-|--------|-----------|--------|----------|--------|-----------|--------|-----------|-------------|---------------|
-| GLB | .glb | mesh | direct | Babylon GLTF | PBR | Vertex | Yes | No | No |
-| GLTF | .gltf | mesh | direct | Babylon GLTF | PBR | Vertex | Yes | No | No |
-| STL | .stl | mesh | direct | Custom | Basic | Per-face | No | No | No |
-| OBJ | .obj | mesh | direct | Babylon OBJ | MTL | No | No | No | No |
-| PLY | .ply | mesh | direct | Custom | Basic | Vertex | No | Yes | No |
-| SPLAT | .splat | point-cloud | direct | Babylon SPLAT | No | Per-point | No | Yes | No |
-| FBX | .fbx | mesh | direct | Community | Basic | No | Yes | No | No |
-| STEP | .step | cad | convert | CadQuery | No | Per-face | No | No | Python + CadQuery |
-| STP | .stp | cad | convert | CadQuery | No | Per-face | No | No | Python + CadQuery |
-| IGES | .iges | cad | convert | CadQuery | No | No | No | No | Python + CadQuery |
-| IGS | .igs | cad | convert | CadQuery | No | No | No | No | Python + CadQuery |
-| BREP | .brep | cad | convert | CadQuery | No | No | No | No | Python + CadQuery |
-| SLDPRT | .sldprt | cad | convert | FreeCAD | No | No | No | No | FreeCAD |
-| 3MF | .3mf | mesh | convert | trimesh | Basic | No | No | No | Python + trimesh |
-| DAE | .dae | mesh | convert | trimesh | Basic | No | No | No | Python + trimesh |
-
-**Legend**:
-- **PBR**: Physically-Based Rendering materials (metallic-roughness workflow)
-- **Basic**: Standard diffuse material
-- **Vertex**: Per-vertex color support
-- **Per-face**: Per-face/triangle color support
-- **Per-point**: Per-point color and opacity
-
-### Format Feature Details
-
-| Feature | GLB/GLTF | STL | OBJ | PLY | SPLAT | FBX | CAD (STEP etc.) |
-|---------|----------|-----|-----|-----|-------|-----|-----------------|
-| Mesh rendering | Yes | Yes | Yes | Yes | No | Yes | Yes (converted) |
-| Point cloud | No | No | No | Yes | Yes | No | No |
-| Materials | Full PBR | Basic | MTL | Basic | No | Basic | No |
-| Textures | Embedded | No | External | No | No | No | No |
-| Vertex colors | Yes | No | No | Yes | No | No | No |
-| Face colors | No | Yes | No | No | No | No | Yes (STEP) |
-| Animations | Yes | No | No | No | No | Yes | No |
-| Scene hierarchy | Yes | No | No | No | No | Yes | No |
-| Binary format | GLB | Yes | No | Yes | Yes | Yes | N/A |
-| ASCII format | GLTF | Yes | Yes | Yes | No | No | N/A |
-
-### Path Resolution
-
-Model paths are resolved in this order:
-
-1. **Link-style paths**: `metadataCache.getFirstLinkpathDest()` for Obsidian wiki-link syntax
-2. **Vault-relative paths**: Direct path resolution from vault root
-3. **Absolute paths**: Used for conversion output files
-
-### Data Flow
-
-```
-User Input (```3d model.glb``` or ![[model.glb]])
-    │
-    ├─ resolveVaultPath() → vault-relative path
-    │
-    ├─ getFormatCapability() → format metadata
-    │
-    ├─ [Conversion formats only]
-    │   ├─ resolveVaultAbsolutePath() → filesystem path
-    │   ├─ convertForPreview() → run converter
-    │   └─ read converted .ai3d-converted.glb
-    │
-    ├─ readBinaryPath() → ArrayBuffer
-    │
-    └─ BabylonModelPreview.loadModel(data, ext)
-        ├─ STL/PLY: direct buffer parsing
-        └─ Others: SceneLoader.ImportMeshAsync()
-```
-
-### Caching
-
-Conversion results are cached to avoid redundant processing:
-
-- **Cache location**: Same directory as source file, named `{filename}.ai3d-converted.glb`
-- **Cache validation**: Checks converter identity, cache key, and file existence
-- **Cache invalidation**: Automatic when converter settings change
-- **Manual clear**: Command palette > "Clear Conversion Cache"
+| Format | Extension | Family | Strategy | Materials | Colors | Animation | Point Cloud |
+|--------|-----------|--------|----------|-----------|--------|-----------|-------------|
+| GLB | .glb | mesh | direct | PBR | Vertex | Yes | No |
+| GLTF | .gltf | mesh | direct | PBR | Vertex | Yes | No |
+| STL | .stl | mesh | direct | Basic | Per-face | No | No |
+| OBJ | .obj | mesh | direct | MTL | No | No | No |
+| PLY | .ply | mesh | direct | Basic | Vertex | No | Yes |
+| SPLAT | .splat | point-cloud | direct | No | Per-point | No | Yes |
+| FBX | .fbx | mesh | direct | Basic | No | Yes | No |
+| STEP | .step | cad | convert | No | Per-face | No | No |
+| STP | .stp | cad | convert | No | Per-face | No | No |
+| IGES | .iges | cad | convert | No | No | No | No |
+| IGS | .igs | cad | convert | No | No | No | No |
+| BREP | .brep | cad | convert | No | No | No | No |
+| SLDPRT | .sldprt | cad | convert | No | No | No | No |
+| 3MF | .3mf | mesh | convert | Basic | No | No | No |
+| DAE | .dae | mesh | convert | Basic | No | No | No |
 
 ## Known Limitations
 
 ### Babylon.js v9 SceneLoader Data-URL Issue
 
-Custom Babylon.js SceneLoader plugins (STL, PLY) do not receive raw `ArrayBuffer` data when loaded through `SceneLoader.ImportMeshAsync` with data URLs. The plugin works around this by using direct buffer parsing for these formats:
+Custom Babylon.js SceneLoader plugins (STL, PLY) do not receive raw `ArrayBuffer` data when loaded through `SceneLoader.ImportMeshAsync` with data URLs. The plugin works around this by using direct buffer parsing for these formats.
 
 | Format | Loading Strategy | Status |
 |--------|-----------------|--------|
 | GLB / GLTF | Babylon built-in SceneLoader | Works correctly |
-| STL | Direct `ArrayBuffer` parsing (bypasses SceneLoader) | Works correctly |
-| PLY | Direct `ArrayBuffer` parsing (bypasses SceneLoader) | Works correctly |
+| STL | Direct `ArrayBuffer` parsing | Works correctly |
+| PLY | Direct `ArrayBuffer` parsing | Works correctly |
 | OBJ | Babylon built-in SceneLoader + MTL override | Works correctly |
 | SPLAT | Babylon built-in SceneLoader | Works correctly |
-| FBX | Community `babylonjs-fbx-loader` SceneLoader plugin | Subject to data-URL limitation |
+| FBX | Community `babylonjs-fbx-loader` | Subject to data-URL limitation |
 
-**FBX workaround**: If FBX files fail to render, enable the FBX2glTF converter in settings (Settings > Enable FBX2glTF converter) to convert FBX to GLB before rendering.
+**FBX workaround**: If FBX files fail to render, enable the FBX2glTF converter in settings to convert FBX to GLB before rendering.
 
-### STL Format
+### Other Limitations
 
-- Only binary STL is supported. ASCII STL files are detected and rejected with an error message.
-- Per-face colors use the VisCAM/SolidView 15-bit RGB encoding in the 2-byte attribute field.
+- **STL**: Only binary STL is supported. ASCII STL files are detected and rejected.
+- **OBJ**: MTL texture paths are resolved relative to the OBJ file location within the vault.
+- **CAD**: STEP/IGES/BREP/SLDPRT formats require external tools (Python + CadQuery, or FreeCAD).
 
-### OBJ Format
+## Architecture
 
-- MTL texture paths are resolved relative to the OBJ file location within the vault.
-- If textures are not found, the corresponding material lines are stripped to prevent red-black checkerboard placeholders.
-
-### CAD Conversion
-
-- STEP/IGES/BREP/SLDPRT formats require external tools (Python + CadQuery, or FreeCAD).
-- Conversion results are cached in the source directory as `.ai3d-converted.glb` files.
-- SLDPRT conversion has a 10-minute timeout for complex assemblies.
-
-## Supported Platforms
-
-- **Desktop**: Windows, macOS, Linux
-- **Mobile**: Obsidian Mobile (reduced resolution via hardware scaling)
-- **Minimum Obsidian version**: 1.5.0
+```
+src/
+  main.ts                          Plugin lifecycle, commands, state
+  domain/models.ts                 Shared interfaces
+  domain/constants.ts              Default settings, supported extensions
+  store/                           Custom store + Obsidian saveData bridge
+  render/babylon/                  Babylon.js scene, grid, presets, loaders
+    loaders/                       Custom STL, PLY parsers + Babylon SceneLoader plugins
+    presets/                       compare, showcase, explode, timeline, gallery, compose
+  io/formats/                      Format registry, routing preferences
+  io/conversion/                   Conversion manager, adapters (Python/CLI bridges)
+    adapters/                      freecad, sldprt, assimp, obj2gltf, fbx2gltf
+  view/workbench/                  Two-zone layout (stable preview + replaceable panels)
+  view/inline/                     Code blocks, live preview, helper buttons
+  view/direct-view.ts              Direct file opening (.glb/.gltf/.stl)
+  settings.ts                      PluginSettingTab
+  utils/                           Path resolution, formatting, device detection
+```
 
 ## Deployment
 
 ### Development Environment
 
-**Prerequisites**:
-- Node.js >= 18
-- npm >= 9
+**Prerequisites**: Node.js >= 18, npm >= 9
 
-**Setup**:
 ```bash
-# Clone repository
-git clone https://github.com/your-username/ai-3d-model-workbench.git
-cd ai-3d-model-workbench
-
-# Install dependencies
-npm install
-
-# Development build with watch mode
-npm run dev
-
-# Production build
-npm run build
-
-# Type checking
-npm run typecheck
+npm install           # Install dependencies
+npm run dev           # Development build with watch mode
+npm run build         # Production build
+npm run typecheck     # TypeScript type checking
 ```
 
 ### Build Output
-
-The build produces three files in the project root:
 
 | File | Size | Description |
 |------|------|-------------|
@@ -808,8 +437,6 @@ cp main.js manifest.json styles.css \
 
 ### Environment Variables
 
-Override converter commands via environment variables:
-
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `AI3D_FREECAD_CMD` | Python command for CadQuery | `py` (Windows) / `python3` (Unix) |
@@ -818,157 +445,18 @@ Override converter commands via environment variables:
 | `AI3D_OBJ2GLTF_CMD` | obj2gltf CLI path | Auto-discover |
 | `AI3D_FBX2GLTF_CMD` | FBX2glTF binary path | Auto-discover |
 
-**Setting environment variables (Windows)**:
-```powershell
-# Temporary (current session)
-$env:AI3D_FREECAD_CMD = "C:\Python311\python.exe"
-
-# Permanent (user level)
-[Environment]::SetEnvironmentVariable("AI3D_FREECAD_CMD", "C:\Python311\python.exe", "User")
-```
-
-**Setting environment variables (macOS/Linux)**:
-```bash
-# Add to ~/.bashrc or ~/.zshrc
-export AI3D_FREECAD_CMD="/usr/local/bin/python3"
-export AI3D_FREECMDCMD="/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd"
-```
-
-### Python Dependencies (CAD Conversion)
-
-For STEP/IGES/BREP conversion:
-
-```bash
-# Windows
-py -m pip install cadquery trimesh
-
-# macOS / Linux
-pip3 install cadquery trimesh
-```
-
-**Verify installation**:
-```bash
-py -c "import cadquery; print('CadQuery OK')"
-py -c "import trimesh; print('trimesh OK')"
-```
-
-### FreeCAD Installation (SLDPRT)
-
-1. Download FreeCAD from [freecad.org/downloads](https://www.freecad.org/downloads.php)
-2. Install with default settings
-3. The plugin auto-discovers `FreeCADCmd.exe` in common locations
-4. Override in Settings > "FreeCADCmd path" if needed
-
-### Build Configuration
-
-**esbuild configuration** (`esbuild.config.mjs`):
-
-```javascript
-// Key settings
-{
-  entryPoints: ['src/main.ts'],
-  bundle: true,
-  format: 'cjs',           // Obsidian requires CommonJS
-  target: 'es2018',        // Electron compatibility
-  external: [              // Not bundled
-    'obsidian',
-    'electron',
-    '@codemirror/*',
-    '@lezer/*'
-  ],
-  minify: true,            // Production minification
-  treeShaking: true,       // Remove unused code
-  sourcemap: false,        // No sourcemaps in production
-}
-```
-
-**Bundle size optimization**:
-- Babylon.js subpath imports (`@babylonjs/core/Engines/engine.js`) instead of barrel imports
-- Barrel imports would pull in Physics/WebGPU/XR and inflate to 7 MB
-- Tree-shaking removes unused Babylon.js features
-
-### TypeScript Configuration
-
-**Key settings** (`tsconfig.json`):
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2018",
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "strict": true,
-    "skipLibCheck": true,    // Skip checking .d.ts files
-    "noEmit": true           // esbuild handles compilation
-  }
-}
-```
-
 ### Debugging
-
-**Enable debug logging**:
 
 1. Open Obsidian Settings > AI 3D Model Workbench
 2. Set "Log level" to "Debug"
 3. Open Developer Console (Ctrl+Shift+I / Cmd+Option+I)
 4. Filter by `[AI3D]` to see plugin logs
 
-**Common debug messages**:
-```
-[AI3D STL] Parsing 1234567 bytes, 12345 triangles
-[AI3D] Texture resolved: models/textures/diffuse.png
-[AI3D] MTL: model.mtl | textures: 3 loaded, 0 missing
-[AI3D] OBJ mesh "body" material: body_mtl diffuse=(0.8, 0.8, 0.8)
-```
+## Supported Platforms
 
-### Testing
-
-No test runner is configured. Verification is done via:
-
-```bash
-# Type checking (primary verification gate)
-npm run typecheck
-
-# Production build
-npm run build
-
-# Manual testing in Obsidian
-# 1. Copy build output to vault
-# 2. Enable plugin in Settings > Community Plugins
-# 3. Test each format with sample files
-```
-
-### CI/CD (Optional)
-
-**GitHub Actions workflow** (`.github/workflows/build.yml`):
-
-```yaml
-name: Build
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: plugin
-          path: |
-            main.js
-            manifest.json
-            styles.css
-```
+- **Desktop**: Windows, macOS, Linux
+- **Mobile**: Obsidian Mobile (reduced resolution via hardware scaling)
+- **Minimum Obsidian version**: 1.5.0
 
 ## License
 
