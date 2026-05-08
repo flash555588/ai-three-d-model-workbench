@@ -1,6 +1,6 @@
 # AI 3D Model Workbench
 
-> An Obsidian plugin that renders 3D models in a Babylon.js viewport and connects them to your knowledge notes.
+> An Obsidian plugin that renders 3D models in a Babylon.js viewport and connects them to your knowledge notes. Common mesh formats render directly; CAD, FBX, and interchange formats can be converted to GLB through local tools.
 
 **English** | [简体中文](README.zh-CN.md)
 
@@ -26,7 +26,8 @@
 
 ## Features
 
-- **17 formats** supported out of the box (6 direct + 11 via conversion)
+- **Direct mesh preview** for GLB/GLTF, STL, OBJ, PLY, and SPLAT
+- **Optional conversion** for CAD, FBX, 3MF, and DAE assets
 - **Babylon.js 9.6** engine with WebGL 2 rendering
 - **Three embedding methods**: Live Preview, code blocks, direct file view
 - **Grid system**: render multiple models in a single viewport with presets
@@ -117,9 +118,8 @@ Then run `npm run dev` for watch mode during development.
 | OBJ | `.obj` | MTL materials, vault-relative texture resolution |
 | PLY | `.ply` | ASCII/binary, vertex colors, point cloud support |
 | SPLAT | `.splat` | Gaussian Splatting point clouds |
-| FBX | `.fbx` | Autodesk FBX via community loader |
 
-### CAD Conversion (Requires External Tools)
+### Conversion (Requires External Tools)
 
 | Format | Extension | Converter | Output |
 |--------|-----------|-----------|--------|
@@ -129,10 +129,11 @@ Then run `npm run dev` for watch mode during development.
 | SLDPRT | `.sldprt` | FreeCAD | GLB |
 | 3MF | `.3mf` | Python + trimesh | GLB |
 | DAE | `.dae` | Python + trimesh | GLB |
+| FBX | `.fbx` | FBX2glTF | GLB |
 
 ### Format Feature Matrix
 
-| Feature | GLB/GLTF | STL | OBJ | PLY | SPLAT | FBX | CAD |
+| Feature | GLB/GLTF | STL | OBJ | PLY | SPLAT | FBX (converted) | CAD |
 |---------|----------|-----|-----|-----|-------|-----|-----|
 | Mesh | Yes | Yes | Yes | Yes | No | Yes | Yes |
 | Point Cloud | No | No | No | Yes | Yes | No | No |
@@ -231,6 +232,8 @@ Then run `npm run dev` for watch mode during development.
 | Enable CAD converter | Enable STEP/IGES/BREP via CadQuery |
 | Enable SLDPRT converter | Enable SolidWorks via FreeCAD |
 | Enable mesh converter | Enable 3MF/DAE via trimesh |
+| Enable OBJ2GLTF converter | Optional OBJ normalization through obj2gltf |
+| Enable FBX2glTF converter | Enable FBX conversion through FBX2glTF |
 | Python command | Override Python path |
 | FreeCADCmd path | Override FreeCADCmd path |
 
@@ -238,7 +241,7 @@ Then run `npm run dev` for watch mode during development.
 
 ## External Dependencies
 
-Only needed for CAD and mesh conversion. Direct formats work without any external tools.
+Only needed for CAD, FBX, and mesh conversion. Direct formats work without any external tools.
 
 ### Python + CadQuery (STEP, IGES, BREP)
 
@@ -265,6 +268,41 @@ Auto-discovery paths:
 pip install trimesh
 ```
 
+**Auto-discovery**: Same Python as CadQuery (see above).
+
+**Override**: Environment variable `AI3D_ASSIMP_CMD`.
+
+### obj2gltf (OBJ, optional)
+
+The plugin already has a built-in OBJ loader. obj2gltf is an optional alternative that can produce higher-fidelity GLB output.
+
+**Install**:
+
+```bash
+npm install -g obj2gltf
+```
+
+**Auto-discovery**: The plugin looks for `obj2gltf.cmd` (Windows) or `obj2gltf` (Unix) on PATH.
+
+**Enable**: Settings > Enable OBJ2GLTF converter, or set "obj2gltf path".
+
+### FBX2glTF (FBX)
+
+FBX files are converted to GLB through the local FBX2glTF binary. The older community FBX loader is not bundled because its current release targets Babylon.js 8, while this plugin uses Babylon.js 9.
+
+**Install**:
+
+Download from [github.com/godotengine/FBX2glTF](https://github.com/godotengine/FBX2glTF) and place the binary in a known location.
+
+**Auto-discovery** (Windows):
+
+```
+C:\Program Files\FBX2glTF\FBX2glTF-windows-x64.exe
+C:\Program Files\FBX2glTF\FBX2glTF.exe
+```
+
+**Enable**: Settings > Enable FBX2glTF converter, or set "FBX2glTF path".
+
 ### Environment Variables
 
 | Variable | Purpose |
@@ -272,6 +310,8 @@ pip install trimesh
 | `AI3D_FREECAD_CMD` | Python command for CadQuery |
 | `AI3D_FREECMDCMD` | FreeCADCmd path |
 | `AI3D_ASSIMP_CMD` | Python command for trimesh |
+| `AI3D_OBJ2GLTF_CMD` | obj2gltf command path |
+| `AI3D_FBX2GLTF_CMD` | FBX2glTF command path |
 
 ---
 
@@ -351,7 +391,7 @@ Babylon.js v9 SceneLoader has a bug where custom plugins receive data URL string
 
 | Issue | Affected Formats | Workaround |
 |-------|-----------------|------------|
-| Babylon v9 data-URL bug | FBX (community loader) | Enable FBX2glTF converter |
+| External converter required | FBX | Install and enable FBX2glTF |
 | Binary-only STL | STL | Convert ASCII STL to binary |
 | External tools required | STEP/IGES/BREP/SLDPRT | Install Python + CadQuery or FreeCAD |
 | Texture path resolution | OBJ | Place textures in same directory as OBJ |

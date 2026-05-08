@@ -273,19 +273,18 @@
   - `settings.obj2gltfCommand`
   - `settings.fbx2gltfCommand`
   - `settings.assimpCommand`
-- 已增加 OBJ / FBX 的 direct-first 偏好配置：
+- 已增加 OBJ 的 direct-first 偏好配置：
   - `settings.preferObj2gltfForObj`
-  - `settings.preferFbx2gltfForFbx`
 - 已增加日志级别配置与统一 logger：
   - `settings.logLevel`
   - `src/utils/log.ts`
 - 已在 pipeline / conversion / workbench 关键路径加入结构化日志。
 - 已在设置页增加 Converter command diagnostics 与手动检查入口。
 - 已在命令面板增加 `Check Converter Commands` 命令。
-- FBX 长期默认策略已明确：保持 direct-first，FBX2glTF 仅作为 opt-in fallback 或归一化输出路径。
+- FBX 长期默认策略已明确：通过 FBX2glTF 转换到 GLB，避免绑定与 Babylon.js 9 不兼容的社区 FBX loader。
 
 ### 12.3 本机联调结论（Windows）
-- 已通过本机 harness 验证 OBJ / FBX 偏好切换行为：
+- 已通过本机 harness 验证 OBJ 偏好切换行为：
   - 默认偏好关闭时走 direct。
   - 偏好打开时走 convert。
 - 已通过本机 harness 验证转换缓存行为：
