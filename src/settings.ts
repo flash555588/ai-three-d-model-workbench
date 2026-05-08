@@ -157,8 +157,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Enable FBX2glTF converter (experimental)")
-      .setDesc("Keep FBX direct loading as the recommended default. Enable this only if you want an optional local fallback or normalized GLB route via FBX2glTF.")
+      .setName("Enable FBX2glTF converter")
+      .setDesc("Enable conversion route for FBX files via FBX2glTF. Requires the FBX2glTF binary installed locally.")
       .addToggle((toggle) => {
         const enabled = this.plugin.getSettings().enabledConverterIds.includes("fbx2gltf");
         return toggle.setValue(enabled).onChange(async (val) => {
@@ -169,17 +169,6 @@ export class AI3DSettingTab extends PluginSettingTab {
           this.plugin.updateSettings({ enabledConverterIds: next });
         });
       });
-
-    new Setting(containerEl)
-      .setName("Prefer FBX2glTF for FBX")
-      .setDesc("Recommended default is off. Turn this on only for problematic FBX assets or when you explicitly want normalized GLB outputs.")
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.getSettings().preferFbx2gltfForFbx)
-          .onChange(async (val) => {
-            this.plugin.updateSettings({ preferFbx2gltfForFbx: val });
-          }),
-      );
 
     new Setting(containerEl)
       .setName("Enable mesh converter (3MF/DAE)")

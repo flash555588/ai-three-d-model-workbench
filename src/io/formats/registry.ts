@@ -1,7 +1,7 @@
 import type { FormatCapability } from "./types";
 
 // Direct formats load in Babylon immediately.
-// OBJ/FBX keep direct-first defaults because the plugin already ships direct loaders.
+// OBJ keeps a direct-first default because Babylon ships an OBJ loader.
 // CAD family formats route through a converter and require the matching converter to be enabled in settings.
 export const FORMAT_CAPABILITIES: readonly FormatCapability[] = [
   { ext: "glb", family: "mesh", strategy: "direct", directLoader: "babylon", enabled: true },
@@ -10,7 +10,7 @@ export const FORMAT_CAPABILITIES: readonly FormatCapability[] = [
   { ext: "obj", family: "mesh", strategy: "direct", directLoader: "babylon", converterId: "obj2gltf", outputFormat: "glb", enabled: true },
   { ext: "ply", family: "mesh", strategy: "direct", directLoader: "custom-ply", enabled: true },
   { ext: "splat", family: "point-cloud", strategy: "direct", directLoader: "babylon", enabled: true },
-  { ext: "fbx", family: "mesh", strategy: "direct", directLoader: "babylon", converterId: "fbx2gltf", outputFormat: "glb", enabled: true },
+  { ext: "fbx", family: "mesh", strategy: "convert", converterId: "fbx2gltf", outputFormat: "glb", enabled: true },
 
   { ext: "step", family: "cad", strategy: "convert", converterId: "freecad", outputFormat: "glb", enabled: true },
   { ext: "stp", family: "cad", strategy: "convert", converterId: "freecad", outputFormat: "glb", enabled: true },

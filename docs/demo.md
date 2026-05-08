@@ -43,7 +43,7 @@ The model renders inline in Live Preview mode (not Reading mode — use code blo
 
 ### Supported Extensions for Live Preview
 
-All 17 supported formats work: `.glb`, `.gltf`, `.stl`, `.obj`, `.ply`, `.splat`, `.fbx`, `.step`, `.stp`, `.iges`, `.igs`, `.brep`, `.sldprt`, `.3mf`, `.dae`.
+All supported formats work: `.glb`, `.gltf`, `.stl`, `.obj`, `.ply`, `.splat`, `.fbx`, `.step`, `.stp`, `.iges`, `.igs`, `.brep`, `.sldprt`, `.3mf`, `.dae`. Formats such as `.fbx`, `.step`, `.iges`, `.brep`, `.sldprt`, `.3mf`, and `.dae` require their matching converter to be installed and enabled.
 
 ---
 

@@ -1,6 +1,6 @@
 # AI 3D Model Workbench
 
-An Obsidian plugin that renders 3D models in a Babylon.js viewport and connects them to your knowledge notes. Supports 17 formats out of the box, with automatic CAD-to-mesh conversion for engineering files.
+An Obsidian plugin that renders 3D models in a Babylon.js viewport and connects them to your knowledge notes. Supports common mesh formats out of the box, with optional CAD and FBX conversion for engineering files.
 
 ## Features
 
@@ -15,9 +15,8 @@ An Obsidian plugin that renders 3D models in a Babylon.js viewport and connects 
 | OBJ | Wavefront OBJ with MTL material and vault-relative texture resolution |
 | PLY | Stanford PLY, vertex colors, triangulated mesh and point cloud |
 | SPLAT | Gaussian Splatting point clouds |
-| FBX | Autodesk FBX via built-in loader |
 
-**CAD conversion** (requires external tools, configurable in settings):
+**Conversion** (requires external tools, configurable in settings):
 
 | Format | Tool | Notes |
 |--------|------|-------|
@@ -26,6 +25,7 @@ An Obsidian plugin that renders 3D models in a Babylon.js viewport and connects 
 | BREP | Python + CadQuery/OCCT | Native OpenCASCADE format |
 | SLDPRT | FreeCAD | SolidWorks parts |
 | 3MF / DAE | Python + trimesh | Mesh conversion via Assimp |
+| FBX | FBX2glTF | Autodesk FBX converted to GLB |
 
 ### Rendering
 
@@ -226,7 +226,7 @@ OBJ files with MTL material libraries are supported. Texture paths are resolved 
 
 ## Third-Party Software Setup
 
-The plugin works immediately with GLB, GLTF, STL, OBJ, PLY, SPLAT, and FBX files. For CAD formats and enhanced conversion, install optional tools below.
+The plugin works immediately with GLB, GLTF, STL, OBJ, PLY, and SPLAT files. For CAD formats, FBX, and enhanced conversion, install optional tools below.
 
 ### Python + CadQuery (STEP, IGES, BREP)
 
@@ -318,9 +318,9 @@ npm install -g obj2gltf
 
 **Enable**: Settings > Enable OBJ2GLTF converter, or set "obj2gltf path".
 
-### FBX2glTF (FBX, optional)
+### FBX2glTF (FBX)
 
-The plugin has a built-in FBX loader. FBX2glTF is an optional alternative for better material support.
+FBX files are converted to GLB through the local FBX2glTF binary. The older community FBX loader is not bundled because its current release targets Babylon.js 8, while this plugin uses Babylon.js 9.
 
 **Install**:
 
