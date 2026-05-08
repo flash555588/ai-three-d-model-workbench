@@ -742,6 +742,234 @@ Custom Babylon.js SceneLoader plugins (STL, PLY) do not receive raw `ArrayBuffer
 - **Mobile**: Obsidian Mobile (reduced resolution via hardware scaling)
 - **Minimum Obsidian version**: 1.5.0
 
+## Deployment
+
+### Development Environment
+
+**Prerequisites**:
+- Node.js >= 18
+- npm >= 9
+
+**Setup**:
+```bash
+# Clone repository
+git clone https://github.com/your-username/ai-3d-model-workbench.git
+cd ai-3d-model-workbench
+
+# Install dependencies
+npm install
+
+# Development build with watch mode
+npm run dev
+
+# Production build
+npm run build
+
+# Type checking
+npm run typecheck
+```
+
+### Build Output
+
+The build produces three files in the project root:
+
+| File | Size | Description |
+|------|------|-------------|
+| `main.js` | ~1.7 MB | Plugin code (Babylon.js core is ~98% of size) |
+| `manifest.json` | ~1 KB | Obsidian plugin manifest |
+| `styles.css` | ~5 KB | Plugin styles |
+
+### Installation in Obsidian
+
+**Method 1: Symlink (Development)**
+
+```bash
+# Windows (PowerShell as Administrator)
+New-Item -ItemType SymbolicLink `
+  -Path "$env:USERPROFILE\Documents\ObsidianVault\.obsidian\plugins\ai-3d-model-workbench" `
+  -Target "C:\path\to\ai-3d-model-workbench"
+
+# macOS / Linux
+ln -s /path/to/ai-3d-model-workbench \
+  ~/Documents/ObsidianVault/.obsidian/plugins/ai-3d-model-workbench
+```
+
+**Method 2: Copy (Production)**
+
+```bash
+# Windows
+copy main.js manifest.json styles.css `
+  "$env:USERPROFILE\Documents\ObsidianVault\.obsidian\plugins\ai-3d-model-workbench\"
+
+# macOS / Linux
+cp main.js manifest.json styles.css \
+  ~/Documents/ObsidianVault/.obsidian/plugins/ai-3d-model-workbench/
+```
+
+### Environment Variables
+
+Override converter commands via environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `AI3D_FREECAD_CMD` | Python command for CadQuery | `py` (Windows) / `python3` (Unix) |
+| `AI3D_FREECMDCMD` | FreeCADCmd path for SLDPRT | Auto-discover |
+| `AI3D_ASSIMP_CMD` | Python command for trimesh | `py` (Windows) / `python3` (Unix) |
+| `AI3D_OBJ2GLTF_CMD` | obj2gltf CLI path | Auto-discover |
+| `AI3D_FBX2GLTF_CMD` | FBX2glTF binary path | Auto-discover |
+
+**Setting environment variables (Windows)**:
+```powershell
+# Temporary (current session)
+$env:AI3D_FREECAD_CMD = "C:\Python311\python.exe"
+
+# Permanent (user level)
+[Environment]::SetEnvironmentVariable("AI3D_FREECAD_CMD", "C:\Python311\python.exe", "User")
+```
+
+**Setting environment variables (macOS/Linux)**:
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+export AI3D_FREECAD_CMD="/usr/local/bin/python3"
+export AI3D_FREECMDCMD="/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd"
+```
+
+### Python Dependencies (CAD Conversion)
+
+For STEP/IGES/BREP conversion:
+
+```bash
+# Windows
+py -m pip install cadquery trimesh
+
+# macOS / Linux
+pip3 install cadquery trimesh
+```
+
+**Verify installation**:
+```bash
+py -c "import cadquery; print('CadQuery OK')"
+py -c "import trimesh; print('trimesh OK')"
+```
+
+### FreeCAD Installation (SLDPRT)
+
+1. Download FreeCAD from [freecad.org/downloads](https://www.freecad.org/downloads.php)
+2. Install with default settings
+3. The plugin auto-discovers `FreeCADCmd.exe` in common locations
+4. Override in Settings > "FreeCADCmd path" if needed
+
+### Build Configuration
+
+**esbuild configuration** (`esbuild.config.mjs`):
+
+```javascript
+// Key settings
+{
+  entryPoints: ['src/main.ts'],
+  bundle: true,
+  format: 'cjs',           // Obsidian requires CommonJS
+  target: 'es2018',        // Electron compatibility
+  external: [              // Not bundled
+    'obsidian',
+    'electron',
+    '@codemirror/*',
+    '@lezer/*'
+  ],
+  minify: true,            // Production minification
+  treeShaking: true,       // Remove unused code
+  sourcemap: false,        // No sourcemaps in production
+}
+```
+
+**Bundle size optimization**:
+- Babylon.js subpath imports (`@babylonjs/core/Engines/engine.js`) instead of barrel imports
+- Barrel imports would pull in Physics/WebGPU/XR and inflate to 7 MB
+- Tree-shaking removes unused Babylon.js features
+
+### TypeScript Configuration
+
+**Key settings** (`tsconfig.json`):
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "strict": true,
+    "skipLibCheck": true,    // Skip checking .d.ts files
+    "noEmit": true           // esbuild handles compilation
+  }
+}
+```
+
+### Debugging
+
+**Enable debug logging**:
+
+1. Open Obsidian Settings > AI 3D Model Workbench
+2. Set "Log level" to "Debug"
+3. Open Developer Console (Ctrl+Shift+I / Cmd+Option+I)
+4. Filter by `[AI3D]` to see plugin logs
+
+**Common debug messages**:
+```
+[AI3D STL] Parsing 1234567 bytes, 12345 triangles
+[AI3D] Texture resolved: models/textures/diffuse.png
+[AI3D] MTL: model.mtl | textures: 3 loaded, 0 missing
+[AI3D] OBJ mesh "body" material: body_mtl diffuse=(0.8, 0.8, 0.8)
+```
+
+### Testing
+
+No test runner is configured. Verification is done via:
+
+```bash
+# Type checking (primary verification gate)
+npm run typecheck
+
+# Production build
+npm run build
+
+# Manual testing in Obsidian
+# 1. Copy build output to vault
+# 2. Enable plugin in Settings > Community Plugins
+# 3. Test each format with sample files
+```
+
+### CI/CD (Optional)
+
+**GitHub Actions workflow** (`.github/workflows/build.yml`):
+
+```yaml
+name: Build
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin
+          path: |
+            main.js
+            manifest.json
+            styles.css
+```
+
 ## License
 
 MIT
