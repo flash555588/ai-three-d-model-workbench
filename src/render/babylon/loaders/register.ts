@@ -18,9 +18,18 @@ import { registerPLYLoader } from "./ply-loader";
 
 let customLoadersReady = false;
 
-/** Register all SceneLoader plugins (GLTF/OBJ/SPLAT via side-effect imports, STL/PLY custom). */
+/** Register all SceneLoader plugins (GLTF/OBJ/SPLAT via side-effect imports, STL/PLY custom, FBX community). */
 export async function ensureLoadersRegistered(): Promise<void> {
   if (customLoadersReady) return;
+
+  // Register FBX loader (community package, lazy import)
+  try {
+    const { FBXLoader } = await import("babylonjs-fbx-loader");
+    SceneLoader.RegisterPlugin(new FBXLoader());
+  } catch {
+    // FBX loader not available — silently skip
+  }
+
   await Promise.all([registerSTLLoader(), registerPLYLoader()]);
   customLoadersReady = true;
 }
