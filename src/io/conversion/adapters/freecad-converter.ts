@@ -139,6 +139,7 @@ function buildCadScript(sourcePath: string, outputPath: string, sourceExt: strin
       "",
       "def build_xde_color_lookup(step_path):",
       '    """Load XDE with STEPCAFControl, extract per-face colors via surface signature."""',
+      "    from OCP.BRepAdaptor import BRepAdaptor_Surface",
       "    lookup = {}",
       "    try:",
       "        reader = STEPCAFControl_Reader()",
