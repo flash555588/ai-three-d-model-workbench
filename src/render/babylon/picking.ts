@@ -1,12 +1,10 @@
 import type { Scene } from "@babylonjs/core/scene.js";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
-import type { Material } from "@babylonjs/core/Materials/material.js";
-
-const HIGHLIGHT_MARKER = "__ai3d_highlight_original_mat";
+import "@babylonjs/core/Layers/effectLayerSceneComponent.js";
 
 /**
  * Set up click-to-pick on a scene using onPointerObservable.
- * Clones material on highlight to avoid mutating shared materials.
+ * Uses a HighlightLayer so picking never mutates or replaces model materials.
  * Returns a cleanup function.
  */
 export function setupPicking(
@@ -15,35 +13,18 @@ export function setupPicking(
 ): () => void {
   const { PointerEventTypes } = require("@babylonjs/core/Events/pointerEvents.js") as typeof import("@babylonjs/core/Events/pointerEvents.js");
   const { Color3 } = require("@babylonjs/core/Maths/math.color.js") as typeof import("@babylonjs/core/Maths/math.color.js");
+  const { HighlightLayer } = require("@babylonjs/core/Layers/highlightLayer.js") as typeof import("@babylonjs/core/Layers/highlightLayer.js");
 
-  let highlighted: AbstractMesh | null = null;
-  let originalMaterial: Material | null = null;
-  let highlightMaterial: Material | null = null;
+  const highlightLayer = new HighlightLayer("ai3d-pick-highlight", scene);
+  const highlightColor = new Color3(0.15, 0.45, 1.0);
 
   function clearHighlight() {
-    if (!highlighted) return;
-    // Always dispose the cloned highlight material to avoid GPU resource leak,
-    // even if the underlying mesh has been disposed.
-    if (highlightMaterial) {
-      highlightMaterial.dispose();
-    }
-    // Only restore original material if the mesh is still alive.
-    if (originalMaterial && !highlighted.isDisposed) {
-      highlighted.material = originalMaterial;
-    }
-    highlighted = null;
-    originalMaterial = null;
-    highlightMaterial = null;
+    highlightLayer.removeAllMeshes();
   }
 
   function applyHighlight(mesh: AbstractMesh) {
-    const mat = mesh.material;
-    if (!mat) return;
-
-    originalMaterial = mat;
-    highlightMaterial = mat.clone(mat.name + "_highlight")!;
-    (highlightMaterial as any).emissiveColor = new Color3(0.3, 0.5, 1.0);
-    mesh.material = highlightMaterial;
+    if (mesh.isDisposed()) return;
+    highlightLayer.addMesh(mesh as any, highlightColor);
   }
 
   const observer = scene.onPointerObservable.add((pointerInfo) => {
@@ -52,9 +33,8 @@ export function setupPicking(
     clearHighlight();
     const pickInfo = pointerInfo.pickInfo;
     if (pickInfo?.hit && pickInfo.pickedMesh) {
-      highlighted = pickInfo.pickedMesh;
-      applyHighlight(highlighted);
-      onPick(highlighted);
+      applyHighlight(pickInfo.pickedMesh);
+      onPick(pickInfo.pickedMesh);
     } else {
       onPick(null);
     }
@@ -62,6 +42,7 @@ export function setupPicking(
 
   return () => {
     clearHighlight();
+    highlightLayer.dispose();
     scene.onPointerObservable.remove(observer);
   };
 }

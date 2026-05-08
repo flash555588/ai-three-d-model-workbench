@@ -60,6 +60,10 @@ export class BabylonModelPreview {
   private currentQuality: "low" | "medium" | "high" = "high";
   private animPlaying = false;
   private initialCamera = { alpha: Math.PI / 4, beta: Math.PI / 3, radius: 5, target: Vector3.Zero() };
+  private readonly preventCanvasWheelScroll = (event: WheelEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
 
   constructor(canvas: HTMLCanvasElement) {
     this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true });
@@ -77,6 +81,7 @@ export class BabylonModelPreview {
     this.camera.attachControl(canvas, true);
     this.camera.lowerRadiusLimit = 0.1;
     this.camera.wheelPrecision = 30;
+    canvas.addEventListener("wheel", this.preventCanvasWheelScroll, { passive: false });
 
     this.scene.ambientColor = new Color3(0.3, 0.3, 0.3);
     const hemi = new HemisphericLight("default-light", new Vector3(0, 1, 0.5), this.scene);
@@ -769,6 +774,8 @@ export class BabylonModelPreview {
     this.bboxMesh?.dispose();
     this.bboxMesh = null;
     this.camera.detachControl();
+    const canvas = this.engine.getRenderingCanvas();
+    canvas?.removeEventListener("wheel", this.preventCanvasWheelScroll);
     this.resizeObs.disconnect();
     if (this.autoRotateBehavior) {
       this.camera.removeBehavior(this.autoRotateBehavior);
