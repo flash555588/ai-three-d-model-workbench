@@ -40,6 +40,8 @@ export interface PluginSettings {
   preferFbx2gltfForFbx: boolean;
   // Logging
   logLevel: "debug" | "info" | "warn" | "error";
+  // i18n
+  locale: "en" | "zh-CN";
 }
 
 export interface ConvertedAssetRecord {

@@ -6,6 +6,7 @@ import {
   inspectAllConverterCommands,
   type ConverterCommandStatus,
 } from "./io/conversion/command-discovery";
+import { t, setLocale, type Locale } from "./i18n";
 
 export class AI3DSettingTab extends PluginSettingTab {
   private plugin: AI3DModelWorkbench;
@@ -19,17 +20,34 @@ export class AI3DSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+    setLocale(this.plugin.getSettings().locale);
     let refreshCommandDiagnostics: (() => Promise<void>) | undefined;
 
-    containerEl.createEl("h2", { text: "AI 3D Model Workbench" });
+    containerEl.createEl("h2", { text: t("settings.title") });
+
+    // ── Language ─────────────────────────────────────────────────
+
+    new Setting(containerEl)
+      .setName(t("settings.language"))
+      .setDesc(t("settings.language.desc"))
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("en", "English")
+          .addOption("zh-CN", "简体中文")
+          .setValue(this.plugin.getSettings().locale)
+          .onChange(async (val: string) => {
+            this.plugin.updateSettings({ locale: val as Locale });
+            this.display();
+          }),
+      );
 
     // ── Folders ──────────────────────────────────────────────────
 
-    containerEl.createEl("h3", { text: "Folders" });
+    containerEl.createEl("h3", { text: t("settings.folders") });
 
     new Setting(containerEl)
-      .setName("Source model folder")
-      .setDesc("Vault folder where source 3D models are stored.")
+      .setName(t("settings.sourceModelFolder"))
+      .setDesc(t("settings.sourceModelFolder.desc"))
       .addText((text) =>
         text
           .setPlaceholder(DEFAULT_SETTINGS.sourceModelFolder)
@@ -40,8 +58,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Report folder")
-      .setDesc("Vault folder where generated knowledge notes are saved.")
+      .setName(t("settings.reportFolder"))
+      .setDesc(t("settings.reportFolder.desc"))
       .addText((text) =>
         text
           .setPlaceholder(DEFAULT_SETTINGS.reportFolder)
@@ -52,8 +70,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Snapshot folder")
-      .setDesc("Vault folder where exported snapshots are saved.")
+      .setName(t("settings.snapshotFolder"))
+      .setDesc(t("settings.snapshotFolder.desc"))
       .addText((text) =>
         text
           .setPlaceholder(DEFAULT_SETTINGS.snapshotFolder)
@@ -65,11 +83,11 @@ export class AI3DSettingTab extends PluginSettingTab {
 
     // ── Behavior ─────────────────────────────────────────────────
 
-    containerEl.createEl("h3", { text: "Behavior" });
+    containerEl.createEl("h3", { text: t("settings.behavior") });
 
     new Setting(containerEl)
-      .setName("Auto-generate knowledge notes")
-      .setDesc("Automatically create a knowledge note when saving a model profile.")
+      .setName(t("settings.autoGenerateKnowledgeNotes"))
+      .setDesc(t("settings.autoGenerateKnowledgeNotes.desc"))
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.getSettings().autoGenerateKnowledgeNotes)
@@ -79,8 +97,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Auto-rotate by default")
-      .setDesc("Start 3D previews with auto-rotation enabled.")
+      .setName(t("settings.autoRotateDefault"))
+      .setDesc(t("settings.autoRotateDefault.desc"))
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.getSettings().autoRotateDefault)
@@ -90,12 +108,12 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Snapshot naming")
-      .setDesc("How exported snapshot files are named.")
+      .setName(t("settings.snapshotNaming"))
+      .setDesc(t("settings.snapshotNaming.desc"))
       .addDropdown((dropdown) =>
         dropdown
-          .addOption("model-name", "Model name + timestamp")
-          .addOption("timestamp", "Timestamp only")
+          .addOption("model-name", t("settings.snapshotNaming.modelName"))
+          .addOption("timestamp", t("settings.snapshotNaming.timestamp"))
           .setValue(this.plugin.getSettings().snapshotNaming)
           .onChange(async (val: string) => {
             this.plugin.updateSettings({ snapshotNaming: val as "timestamp" | "model-name" });
@@ -103,8 +121,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Log level")
-      .setDesc("Controls plugin runtime log verbosity in the developer console.")
+      .setName(t("settings.logLevel"))
+      .setDesc(t("settings.logLevel.desc"))
       .addDropdown((dropdown) =>
         dropdown
           .addOption("debug", "Debug")
@@ -117,9 +135,13 @@ export class AI3DSettingTab extends PluginSettingTab {
           }),
       );
 
+    // ── Converters ───────────────────────────────────────────────
+
+    containerEl.createEl("h3", { text: t("settings.converters") });
+
     new Setting(containerEl)
-      .setName("Enable CAD converter (STEP/IGES/BREP)")
-      .setDesc("Enable CAD conversion route for STEP/IGES/BREP formats via Python CadQuery (OpenCASCADE). Requires: pip install cadquery trimesh")
+      .setName(t("settings.enableCad"))
+      .setDesc(t("settings.enableCad.desc"))
       .addToggle((toggle) => {
         const enabled = this.plugin.getSettings().enabledConverterIds.includes("freecad");
         return toggle.setValue(enabled).onChange(async (val) => {
@@ -132,8 +154,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("Enable obj2gltf converter (experimental)")
-      .setDesc("Keep OBJ direct loading as default. Enable this only if you want an optional local normalization route through obj2gltf.")
+      .setName(t("settings.enableObj2gltf"))
+      .setDesc(t("settings.enableObj2gltf.desc"))
       .addToggle((toggle) => {
         const enabled = this.plugin.getSettings().enabledConverterIds.includes("obj2gltf");
         return toggle.setValue(enabled).onChange(async (val) => {
@@ -146,8 +168,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("Prefer obj2gltf for OBJ")
-      .setDesc("Recommended default is off. Turn this on only when you want normalized GLB outputs or direct OBJ loading is not good enough.")
+      .setName(t("settings.preferObj2gltf"))
+      .setDesc(t("settings.preferObj2gltf.desc"))
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.getSettings().preferObj2gltfForObj)
@@ -157,8 +179,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Enable FBX2glTF converter")
-      .setDesc("Enable conversion route for FBX files via FBX2glTF. Requires the FBX2glTF binary installed locally.")
+      .setName(t("settings.enableFbx2gltf"))
+      .setDesc(t("settings.enableFbx2gltf.desc"))
       .addToggle((toggle) => {
         const enabled = this.plugin.getSettings().enabledConverterIds.includes("fbx2gltf");
         return toggle.setValue(enabled).onChange(async (val) => {
@@ -171,8 +193,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("Enable mesh converter (3MF/DAE)")
-      .setDesc("Enable conversion route for 3MF and DAE (Collada) formats via Python trimesh. Requires Python with trimesh installed (pip install trimesh numpy networkx pycollada).")
+      .setName(t("settings.enableMesh"))
+      .setDesc(t("settings.enableMesh.desc"))
       .addToggle((toggle) => {
         const enabled = this.plugin.getSettings().enabledConverterIds.includes("assimp");
         return toggle.setValue(enabled).onChange(async (val) => {
@@ -185,8 +207,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("Enable SLDPRT converter (SolidWorks)")
-      .setDesc("Enable conversion route for SolidWorks .sldprt files via FreeCAD. Requires FreeCAD installed (https://www.freecad.org/downloads.php).")
+      .setName(t("settings.enableSldprt"))
+      .setDesc(t("settings.enableSldprt.desc"))
       .addToggle((toggle) => {
         const enabled = this.plugin.getSettings().enabledConverterIds.includes("sldprt");
         return toggle.setValue(enabled).onChange(async (val) => {
@@ -198,9 +220,13 @@ export class AI3DSettingTab extends PluginSettingTab {
         });
       });
 
+    // ── Converter Paths ──────────────────────────────────────────
+
+    containerEl.createEl("h3", { text: t("settings.paths") });
+
     new Setting(containerEl)
-      .setName("Python command path (for CAD)")
-      .setDesc("Optional path to Python executable for CAD conversion. Overrides auto-discovery and AI3D_FREECAD_CMD when set.")
+      .setName(t("settings.pythonCmd"))
+      .setDesc(t("settings.pythonCmd.desc"))
       .addText((text) =>
         text
           .setPlaceholder("py")
@@ -212,8 +238,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("FreeCADCmd path (for SLDPRT)")
-      .setDesc("Optional path to FreeCADCmd.exe for SolidWorks file conversion. Overrides auto-discovery and AI3D_FREECMDCMD when set.")
+      .setName(t("settings.freecadCmd"))
+      .setDesc(t("settings.freecadCmd.desc"))
       .addText((text) =>
         text
           .setPlaceholder("FreeCADCmd.exe")
@@ -225,8 +251,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("obj2gltf command path")
-      .setDesc("Optional path to obj2gltf CLI. Overrides auto-discovery and AI3D_OBJ2GLTF_CMD when set.")
+      .setName(t("settings.obj2gltfCmd"))
+      .setDesc(t("settings.obj2gltfCmd.desc"))
       .addText((text) =>
         text
           .setPlaceholder("obj2gltf.cmd")
@@ -238,8 +264,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("FBX2glTF command path")
-      .setDesc("Optional path to FBX2glTF CLI. Overrides auto-discovery and AI3D_FBX2GLTF_CMD when set.")
+      .setName(t("settings.fbx2gltfCmd"))
+      .setDesc(t("settings.fbx2gltfCmd.desc"))
       .addText((text) =>
         text
           .setPlaceholder("FBX2glTF.exe")
@@ -251,8 +277,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Python command path (for 3MF/DAE)")
-      .setDesc("Optional path to Python executable. Overrides auto-discovery and AI3D_ASSIMP_CMD when set.")
+      .setName(t("settings.assimpCmd"))
+      .setDesc(t("settings.assimpCmd.desc"))
       .addText((text) =>
         text
           .setPlaceholder("py")
@@ -263,20 +289,22 @@ export class AI3DSettingTab extends PluginSettingTab {
           }),
       );
 
+    // ── Diagnostics ──────────────────────────────────────────────
+
     const diagnosticsSetting = new Setting(containerEl)
-      .setName("Converter command diagnostics")
-      .setDesc("Shows the exact executable path the plugin would use right now. This is the same discovery chain used by runtime conversion and cache identity.");
+      .setName(t("settings.diagnostics"))
+      .setDesc(t("settings.diagnostics.desc"));
 
     diagnosticsSetting.addButton((button) =>
       button
-        .setButtonText("Check now")
+        .setButtonText(t("settings.diagnostics.checkNow"))
         .onClick(async () => {
           button.setDisabled(true);
-          button.setButtonText("Checking...");
+          button.setButtonText(t("settings.diagnostics.checking"));
           await refreshCommandDiagnostics?.();
-          button.setButtonText("Check now");
+          button.setButtonText(t("settings.diagnostics.checkNow"));
           button.setDisabled(false);
-          new Notice("AI 3D converter command diagnostics refreshed.");
+          new Notice(t("settings.diagnostics.refreshed"));
         }),
     );
 
@@ -287,11 +315,11 @@ export class AI3DSettingTab extends PluginSettingTab {
 
     // ── Performance ──────────────────────────────────────────────
 
-    containerEl.createEl("h3", { text: "Performance & Display" });
+    containerEl.createEl("h3", { text: t("settings.performance") });
 
     new Setting(containerEl)
-      .setName("Default canvas height")
-      .setDesc("Default height (px) for inline 3D previews. Range: 200–800.")
+      .setName(t("settings.canvasHeight"))
+      .setDesc(t("settings.canvasHeight.desc"))
       .addSlider((slider) =>
         slider
           .setLimits(200, 800, 25)
@@ -303,8 +331,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Auto-rotate speed")
-      .setDesc("Rotation speed when auto-rotate is enabled. Range: 0.1–2.0.")
+      .setName(t("settings.autoRotateSpeed"))
+      .setDesc(t("settings.autoRotateSpeed.desc"))
       .addSlider((slider) =>
         slider
           .setLimits(0.1, 2.0, 0.1)
@@ -316,8 +344,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Render quality")
-      .setDesc("Higher quality uses more GPU resources. Affects anti-aliasing and resolution.")
+      .setName(t("settings.renderQuality"))
+      .setDesc(t("settings.renderQuality.desc"))
       .addDropdown((dropdown) =>
         dropdown
           .addOption("low", "Low")
@@ -330,8 +358,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Resolution scale")
-      .setDesc("Render resolution multiplier. 1.0 = native, 0.5 = half, 2.0 = double (supersampling). Range: 0.25–2.0.")
+      .setName(t("settings.renderScale"))
+      .setDesc(t("settings.renderScale.desc"))
       .addSlider((slider) =>
         slider
           .setLimits(0.25, 2.0, 0.25)
@@ -346,7 +374,7 @@ export class AI3DSettingTab extends PluginSettingTab {
   private async renderCommandDiagnostics(containerEl: HTMLElement): Promise<void> {
     const runId = ++this.diagnosticsRunId;
     containerEl.empty();
-    containerEl.createEl("p", { text: "Checking converter command availability..." });
+    containerEl.createEl("p", { text: t("settings.diagnostics.checkingAvailability") });
 
     const statuses = await inspectAllConverterCommands(this.plugin.getSettings());
     if (runId !== this.diagnosticsRunId) {

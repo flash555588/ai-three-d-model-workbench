@@ -9,6 +9,7 @@ import { ModelFileSuggestModal } from "./view/model-file-suggest-modal";
 import { AI3DSettingTab } from "./settings";
 import { inspectAllConverterCommands } from "./io/conversion/command-discovery";
 import { setLogLevel } from "./utils/log";
+import { setLocale, type Locale } from "./i18n";
 
 export default class AI3DModelWorkbench extends Plugin {
   private ps!: PluginStore;
@@ -23,6 +24,7 @@ export default class AI3DModelWorkbench extends Plugin {
     const next = { ...current, ...partial };
     this.ps.store.setState({ settings: next });
     setLogLevel(next.logLevel);
+    setLocale(next.locale);
   }
 
   async onload() {
@@ -33,6 +35,13 @@ export default class AI3DModelWorkbench extends Plugin {
       (records) => this.ps.store.setState({ convertedAssetRecords: records }),
     );
     setLogLevel(this.getSettings().logLevel);
+    // Auto-detect locale on first run (old data has no locale field)
+    if (!this.ps.localeLoadedFromSaved) {
+      const sysLang = navigator.language ?? "en";
+      const detected: Locale = sysLang.startsWith("zh") ? "zh-CN" : "en";
+      this.updateSettings({ locale: detected });
+    }
+    setLocale(this.getSettings().locale);
 
     this.registerView(VIEW_TYPE, (leaf) => new AnalysisView(leaf, this.ps, this.convertedAssetCache));
 

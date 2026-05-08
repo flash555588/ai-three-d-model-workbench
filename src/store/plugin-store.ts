@@ -8,6 +8,8 @@ export interface PluginStore {
   load: () => Promise<void>;
   save: () => Promise<void>;
   dispose: () => void;
+  /** True if the loaded data had an explicit locale field (not from DEFAULT_SETTINGS). */
+  localeLoadedFromSaved: boolean;
 }
 
 const INITIAL_STATE: PluginState = {
@@ -48,12 +50,16 @@ export function createPluginStore(plugin: Plugin): PluginStore {
   // Auto-save on every state change
   store.subscribe(() => scheduleSave());
 
+  let localeLoadedFromSaved = false;
+
   return {
     store,
+    get localeLoadedFromSaved() { return localeLoadedFromSaved; },
 
     async load() {
       const saved: PersistedPluginState | null = await plugin.loadData();
       if (!saved) return;
+      localeLoadedFromSaved = !!(saved.settings as any)?.locale;
       store.setState({
         settings: { ...DEFAULT_SETTINGS, ...(saved.settings ?? {}) },
         convertedAssetRecords: saved.convertedAssetRecords ?? [],

@@ -39,6 +39,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   preferFbx2gltfForFbx: false,
   // Logging
   logLevel: "warn",
+  // i18n
+  locale: "en",
 };
 
 export const DEFAULT_CAMERA_CONFIG: CameraConfig = {
