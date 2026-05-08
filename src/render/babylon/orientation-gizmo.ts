@@ -112,6 +112,7 @@ export class OrientationGizmo {
 
     const sz = GIZMO_SIZE;
     this.viewport = new Viewport(0.01, 0.01, sz, sz);
+    this.camera.viewport = this.viewport;
     this.syncWith(mainCamera);
   }
 
@@ -120,10 +121,8 @@ export class OrientationGizmo {
     this.camera.beta = mainCamera.beta;
   }
 
-  render(engine: Engine): void {
-    engine.setViewport(this.viewport);
+  render(): void {
     this.scene.render();
-    engine.setViewport(new Viewport(0, 0, 1, 1));
   }
 
   dispose(): void {

@@ -135,7 +135,7 @@
 /* --- Preview Host --- */
 
 .ai3d-preview-host {
-  min-height: clamp(280px, 40vh, 560px);
+  min-height: clamp(200px, 30vh, 400px);
   border-radius: var(--ai3d-radius) var(--ai3d-radius) 0 0;
   border: 1px solid var(--background-modifier-border);
   overflow: hidden;
@@ -670,6 +670,7 @@
   overflow: hidden;
   background: var(--background-secondary);
   position: relative;
+  max-height: clamp(250px, 40vh, 450px);
 }
 
 .ai3d-grid-host canvas {

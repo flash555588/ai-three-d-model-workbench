@@ -164,8 +164,9 @@ export function registerCodeBlockProcessor(
       // Create preview host with custom dimensions
       const settings = getSettings();
       const host = el.createDiv({ cls: "ai3d-preview-host" });
-      const effectiveHeight = config.height ?? settings.defaultCanvasHeight;
-      host.style.minHeight = typeof effectiveHeight === "number" ? `${effectiveHeight}px` : effectiveHeight;
+      if (config.height) {
+        host.style.minHeight = typeof config.height === "number" ? `${config.height}px` : config.height;
+      }
       if (config.width) {
         host.style.maxWidth = typeof config.width === "number" ? `${config.width}px` : config.width;
       }
@@ -405,15 +406,10 @@ export function registerGridCodeBlockProcessor(
       });
       gridHost.appendChild(canvas);
 
-      const rowHeight = config.rowHeight ?? 300;
-      const minHeight = typeof rowHeight === "number" ? rowHeight : 300;
-      if (config.preset === "compose") {
-        // Compose: use rowHeight directly (sections are side-by-side or stacked)
-        gridHost.style.minHeight = `${minHeight}px`;
-      } else {
-        const cols = config.columns ?? Math.min(resolved.length, 3);
-        const rows = Math.ceil(resolved.length / cols);
-        gridHost.style.minHeight = `${minHeight * rows}px`;
+      // Height controlled by CSS max-height only; rowHeight sets inline height (capped by CSS max-height)
+      if (typeof config.rowHeight === "number") {
+        const rows = config.preset === "compose" ? 1 : Math.ceil(resolved.length / (config.columns ?? Math.min(resolved.length, 3)));
+        gridHost.style.height = `${config.rowHeight * rows}px`;
       }
 
       let renderer: GridRenderer | null = null;

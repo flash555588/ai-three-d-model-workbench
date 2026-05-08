@@ -558,8 +558,8 @@ export class BabylonModelPreview {
   setWireframe(enabled: boolean): void {
     if (!this.rootMesh) return;
     this.wireframeEnabled = enabled;
-    const children = this.rootMesh.getChildMeshes(true);
-    for (const m of children) {
+    const allMeshes = [this.rootMesh, ...this.rootMesh.getChildMeshes(true)];
+    for (const m of allMeshes) {
       if (m.material) {
         (m.material as StandardMaterial).wireframe = enabled;
       }
@@ -802,7 +802,7 @@ export class BabylonModelPreview {
       this.scene.render();
       if (this.gizmo && this.gizmoEnabled) {
         this.gizmo.syncWith(this.camera);
-        this.gizmo.render(this.engine);
+        this.gizmo.render();
       }
     });
   }

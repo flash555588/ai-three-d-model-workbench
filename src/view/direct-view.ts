@@ -61,8 +61,6 @@ export class DirectModelView extends FileView {
     this.preview = null;
 
     const host = this.contentEl.createDiv({ cls: "ai3d-preview-host" });
-    host.style.height = "100%";
-    host.style.minHeight = "300px";
 
     const canvas = document.createElement("canvas");
     canvas.style.width = "100%";
