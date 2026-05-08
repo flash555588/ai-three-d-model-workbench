@@ -56,6 +56,7 @@ export class BabylonModelPreview {
   private gizmoEnabled = false;
   private bboxMesh: Mesh | null = null;
   private bboxEnabled = false;
+  private currentQuality: "low" | "medium" | "high" = "high";
   private animPlaying = false;
   private initialCamera = { alpha: Math.PI / 4, beta: Math.PI / 3, radius: 5, target: Vector3.Zero() };
 
@@ -127,6 +128,9 @@ export class BabylonModelPreview {
       try {
         const { OBJFileLoader } = await import("@babylonjs/loaders/OBJ/objFileLoader.js");
         const proto = OBJFileLoader.prototype as any;
+        if (typeof proto._loadMTL !== "function") {
+          console.warn("[AI3D] OBJFileLoader._loadMTL not found — MTL vault resolution disabled");
+        }
         const originalLoadMTL = proto._loadMTL;
 
         // Pre-load MTL content from vault (if exists)
@@ -137,7 +141,8 @@ export class BabylonModelPreview {
         let texMissing = 0;
         if (mtlMatch && readFile && modelPath) {
           const mtlFilename = mtlMatch[1].trim().split(/\s+/)[0];
-          const modelDir = modelPath.includes("/") ? modelPath.slice(0, modelPath.lastIndexOf("/")) : "";
+          const sepIdx = Math.max(modelPath.lastIndexOf("/"), modelPath.lastIndexOf("\\"));
+          const modelDir = sepIdx > 0 ? modelPath.slice(0, sepIdx) : "";
           const mtlPath = modelDir ? `${modelDir}/${mtlFilename}` : mtlFilename;
           try {
             const mtlData = await readFile(mtlPath);
@@ -235,6 +240,7 @@ export class BabylonModelPreview {
         proto._loadMTL = originalLoadMTL;
       } catch (e) {
         console.error("[AI3D] OBJ load error:", e);
+        throw e;
       } finally {
         resolveLock();
         objMtlLock = null;
@@ -249,6 +255,14 @@ export class BabylonModelPreview {
 
     if (!this.rootMesh) {
       throw new Error("No mesh found in model file");
+    }
+
+    // Disable backface culling on all materials to prevent invisible faces
+    // (CAD-converted models often have inconsistent face normals)
+    for (const m of this.rootMesh.getChildMeshes(false)) {
+      if (m.material) {
+        m.material.backFaceCulling = false;
+      }
     }
 
     this.rootMesh.computeWorldMatrix(true);
@@ -593,8 +607,9 @@ export class BabylonModelPreview {
    */
   setRenderScale(scale: number): number {
     const clamped = Math.max(0.25, Math.min(scale, 2.0));
+    const qualityScale = { low: 2, medium: 1.33, high: 1 }[this.currentQuality];
     const mobileBoost = isMobile() ? 1.5 : 1;
-    this.engine.setHardwareScalingLevel(mobileBoost / clamped);
+    this.engine.setHardwareScalingLevel(qualityScale * mobileBoost / clamped);
     return clamped;
   }
 
@@ -651,7 +666,7 @@ export class BabylonModelPreview {
     const isSplat = this.rootMesh instanceof GaussianSplattingMesh;
     const ext = this.loadedExt.toUpperCase();
 
-    const name = modelPath?.split("/").pop() ?? summary.rootName;
+    const name = modelPath?.split(/[\\/]/).pop() ?? summary.rootName;
     const countLabel = isSplat ? "Splats" : "Triangles";
 
     const lines: string[] = [];
@@ -721,6 +736,7 @@ export class BabylonModelPreview {
    *   Lower values = less pixels = better performance.
    */
   setRenderQuality(quality: "low" | "medium" | "high", renderScale = 1.0): void {
+    this.currentQuality = quality;
     const scaleMap = { low: 2, medium: 1.33, high: 1 };
     const mobileBoost = isMobile() ? 1.5 : 1;
     // hardwareScalingLevel: higher = fewer pixels. renderScale < 1 = fewer pixels.

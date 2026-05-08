@@ -6,6 +6,7 @@ const log = createLogger("conversion-manager");
 
 export class ConversionManager {
   private readonly converters = new Map<string, ModelConverter>();
+  private readonly pending = new Map<string, Promise<ConversionResult>>();
 
   private getConverter(ext: string): ModelConverter | undefined {
     return this.converters.get(normalizeModelExt(ext));
@@ -44,7 +45,22 @@ export class ConversionManager {
       log.error("converter missing", { ext, targetExt: req.targetExt });
       throw new Error(`No converter registered for .${ext}`);
     }
+
+    // Deduplicate concurrent conversions for the same source + target
+    const key = `${req.sourcePath}::${ext}::${req.targetExt}`;
+    const existing = this.pending.get(key);
+    if (existing) {
+      log.info("joining in-flight conversion", { key });
+      return existing;
+    }
+
     log.info("dispatch conversion", { converterId: converter.id, ext, targetExt: req.targetExt });
-    return converter.convert({ ...req, sourceExt: ext });
+    const promise = converter.convert({ ...req, sourceExt: ext });
+    this.pending.set(key, promise);
+    try {
+      return await promise;
+    } finally {
+      this.pending.delete(key);
+    }
   }
 }

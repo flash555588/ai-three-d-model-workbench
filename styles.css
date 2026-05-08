@@ -783,3 +783,68 @@
   text-align: center;
   padding: 8px;
 }
+
+/* --- Loading Overlay --- */
+
+.ai3d-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: color-mix(in srgb, var(--background-primary) 85%, transparent);
+  z-index: 10;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.ai3d-loading-overlay.is-hiding {
+  opacity: 0;
+}
+
+.ai3d-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--background-modifier-border);
+  border-top-color: var(--interactive-accent);
+  border-radius: 50%;
+  animation: ai3d-spin 0.8s linear infinite;
+}
+
+@keyframes ai3d-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ai3d-loading-text {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  text-align: center;
+}
+
+.ai3d-loading-bar-track {
+  width: 160px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--background-modifier-border);
+  overflow: hidden;
+}
+
+.ai3d-loading-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--interactive-accent);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.ai3d-loading-bar-fill.is-indeterminate {
+  width: 40%;
+  animation: ai3d-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes ai3d-indeterminate {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}

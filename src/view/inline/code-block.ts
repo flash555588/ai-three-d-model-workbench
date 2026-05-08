@@ -12,6 +12,7 @@ import type { ConvertedAssetCache } from "../../io/cache/converted-asset-cache";
 import { prepareModelInput } from "../../io/model-pipeline";
 import { toPreviewSource } from "../../io/preview/preview-source";
 import { listPreferredConversionExts } from "../../io/formats/route-preferences";
+import { createLoadingOverlay } from "./loading-overlay";
 
 interface PreparedInlineModel {
   sourcePath: string;
@@ -187,11 +188,13 @@ export function registerCodeBlockProcessor(
       // Add helper buttons
       let preview: BabylonModelPreview | null = null;
       let destroyed = false;
+      let loaded = false;
 
       const toolbar: HelperToolbar = createHelperButtons(host, app, () => preview, () => modelPath, () => {
         if (destroyed) return;
         destroyed = true;
         observer.disconnect();
+        io.disconnect();
         preview?.destroy();
         preview = null;
         host.remove();
@@ -203,58 +206,81 @@ export function registerCodeBlockProcessor(
         if (!el.contains(host)) {
           destroyed = true;
           observer.disconnect();
+          io.disconnect();
           preview?.destroy();
           preview = null;
         }
       });
       observer.observe(el, { childList: true, subtree: true });
 
-      try {
-        const absolutePath = resolveVaultAbsolutePath(app, modelPath) ?? undefined;
-        const conversionManager = createConversionManager(settings);
-        const prepared = await prepareModelInput({
-          path: modelPath,
-          absolutePath,
-          preferConversionExts: listPreferredConversionExts(settings),
-          conversionManager,
-          convertedAssetCache,
-        });
-        const source = toPreviewSource(prepared);
-        preview = new BabylonModelPreview(canvas);
-        const data = await readBinaryPath(app, source.path);
-        const readFile = async (p: string) => readBinaryPath(app, p);
+      async function loadPreview() {
+        if (loaded || destroyed || !modelPath) return;
+        loaded = true;
 
-        if (destroyed) return;
-        await preview.loadModel(data, source.ext, readFile, source.path);
+        const loading = createLoadingOverlay(host);
 
-        if (destroyed) return;
-        // Apply auto-rotate default from settings if not specified in config
-        if (config.scene?.autoRotate === undefined && settings.autoRotateDefault) {
-          config.scene = { ...config.scene, autoRotate: true, autoRotateSpeed: settings.autoRotateSpeed };
+        try {
+          const absolutePath = resolveVaultAbsolutePath(app, modelPath) ?? undefined;
+          const conversionManager = createConversionManager(settings);
+          loading.setPhase("Preparing model...");
+          const prepared = await prepareModelInput({
+            path: modelPath,
+            absolutePath,
+            preferConversionExts: listPreferredConversionExts(settings),
+            conversionManager,
+            convertedAssetCache,
+          });
+          const source = toPreviewSource(prepared);
+          preview = new BabylonModelPreview(canvas);
+          loading.setPhase("Loading model...");
+          const data = await readBinaryPath(app, source.path);
+          const readFile = async (p: string) => readBinaryPath(app, p);
+
+          if (destroyed) { loading.hide(); return; }
+          await preview.loadModel(data, source.ext, readFile, source.path);
+          loading.setProgress(100);
+
+          if (destroyed) { loading.hide(); return; }
+          if (config.scene?.autoRotate === undefined && settings.autoRotateDefault) {
+            config.scene = { ...config.scene, autoRotate: true, autoRotateSpeed: settings.autoRotateSpeed };
+          }
+          preview.applyConfig(config);
+          preview.setRenderQuality(settings.renderQuality, settings.renderScale);
+
+          if (ext === "stl" && modelCfg.color) {
+            preview.setSTLColor(modelCfg.color);
+          }
+          if (ext === "stl" && modelCfg.wireframe !== undefined) {
+            preview.setWireframe(modelCfg.wireframe);
+          }
+
+          if (preview.hasAnimations()) {
+            toolbar.showAnimButton();
+          }
+
+          loading.hide();
+        } catch (err) {
+          destroyed = true;
+          observer.disconnect();
+          io.disconnect();
+          loading.hide();
+          preview?.destroy();
+          preview = null;
+          console.error("[AI3D] Inline preview failed:", err);
+          host.createDiv({ cls: "ai3d-inline-empty", text: `Failed to load: ${String(err)}` });
         }
-        preview.applyConfig(config);
-
-        // Apply render quality from settings
-        preview.setRenderQuality(settings.renderQuality, settings.renderScale);
-
-        // Apply STL-specific config from model entry
-        if (ext === "stl" && modelCfg.color) {
-          preview.setSTLColor(modelCfg.color);
-        }
-        if (ext === "stl" && modelCfg.wireframe !== undefined) {
-          preview.setWireframe(modelCfg.wireframe);
-        }
-
-        // Show animation button if model has animations
-        if (preview.hasAnimations()) {
-          toolbar.showAnimButton();
-        }
-      } catch (err) {
-        preview?.destroy();
-        preview = null;
-        console.error("[AI3D] Inline preview failed:", err);
-        host.createDiv({ cls: "ai3d-inline-empty", text: `Failed to load: ${String(err)}` });
       }
+
+      // Lazy-load: only create Engine when scrolled into view
+      const io = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            io.disconnect();
+            void loadPreview();
+          }
+        }
+      }, { rootMargin: "200px" });
+      io.observe(host);
     },
   };
 }
@@ -349,12 +375,14 @@ export function registerGridCodeBlockProcessor(
       }
 
       const settings = getSettings();
+      const gridLoading = createLoadingOverlay(el);
       const preparedModels: PreparedInlineModel[] = [];
       for (const entry of config.models ?? []) {
         try {
           const prepared = await prepareInlineModel(app, entry, settings, convertedAssetCache);
           preparedModels.push(prepared);
         } catch (err) {
+          gridLoading.hide();
           el.createDiv({
             cls: "ai3d-inline-empty",
             text: err instanceof Error ? err.message : String(err),
@@ -390,11 +418,13 @@ export function registerGridCodeBlockProcessor(
 
       let renderer: GridRenderer | null = null;
       let destroyed = false;
+      let loaded = false;
 
       createHelperButtons(gridHost, app, () => renderer, () => helperSourcePath, () => {
         if (destroyed) return;
         destroyed = true;
         observer.disconnect();
+        gridIo.disconnect();
         renderer?.destroy();
         renderer = null;
         gridHost.remove();
@@ -405,96 +435,124 @@ export function registerGridCodeBlockProcessor(
         if (!el.contains(gridHost)) {
           destroyed = true;
           observer.disconnect();
+          gridIo.disconnect();
           renderer?.destroy();
           renderer = null;
         }
       });
       observer.observe(el, { childList: true, subtree: true });
 
-      try {
-        renderer = new GridRenderer(canvas);
-        const readFile = async (path: string) => readBinaryPath(app, path);
+      async function loadGrid() {
+        if (loaded || destroyed) return;
+        loaded = true;
+        gridLoading.setPhase("Rendering grid...");
+        gridLoading.setProgress(-1);
 
-        if (config.preset === "compose") {
-          // Compose: each section has its own preset + models
-          if (!config.sections || config.sections.length === 0) {
-            gridHost.createDiv({ cls: "ai3d-inline-empty", text: '"compose" preset requires "sections" array.' });
-            renderer.destroy();
-            renderer = null;
-            return;
-          }
-          const preparedSections: ComposeSection[] = [];
-          for (const section of config.sections) {
-            try {
-              if (!helperSourcePath) {
-                const firstEntry = section.models[0];
-                if (firstEntry) {
-                  const rawPath = typeof firstEntry === "string" ? firstEntry : firstEntry.path;
-                  helperSourcePath = resolveVaultPath(app, rawPath) ?? rawPath;
+        try {
+          renderer = new GridRenderer(canvas);
+          const readFile = async (path: string) => readBinaryPath(app, path);
+
+          if (config.preset === "compose") {
+            if (!config.sections || config.sections.length === 0) {
+              gridLoading.hide();
+              gridHost.createDiv({ cls: "ai3d-inline-empty", text: '"compose" preset requires "sections" array.' });
+              renderer.destroy();
+              renderer = null;
+              return;
+            }
+            const preparedSections: ComposeSection[] = [];
+            for (const section of config.sections) {
+              try {
+                if (!helperSourcePath) {
+                  const firstEntry = section.models[0];
+                  if (firstEntry) {
+                    const rawPath = typeof firstEntry === "string" ? firstEntry : firstEntry.path;
+                    helperSourcePath = resolveVaultPath(app, rawPath) ?? rawPath;
+                  }
                 }
+                const preparedSection = await prepareInlineSection(app, section, settings, convertedAssetCache);
+                preparedSections.push(preparedSection);
+              } catch (err) {
+                gridLoading.hide();
+                gridHost.createDiv({
+                  cls: "ai3d-inline-empty",
+                  text: err instanceof Error ? err.message : String(err),
+                });
+                renderer.destroy();
+                renderer = null;
+                return;
               }
-              const preparedSection = await prepareInlineSection(app, section, settings, convertedAssetCache);
-              preparedSections.push(preparedSection);
-            } catch (err) {
+            }
+            const result = composeSections(
+              preparedSections,
+              config.direction ?? "horizontal",
+              Number(config.params?.gap) || 0.02,
+              (entry) => {
+                if (typeof entry === "string") return null;
+                return entry;
+              },
+              getPreset,
+            );
+            if (!result) {
+              gridLoading.hide();
+              gridHost.createDiv({ cls: "ai3d-inline-empty", text: "Compose: no valid sections." });
+              renderer.destroy();
+              renderer = null;
+              return;
+            }
+            await renderer.loadWithPreset(result, readFile);
+          } else if (config.preset) {
+            const preset = getPreset(config.preset);
+            if (!preset) {
+              gridLoading.hide();
               gridHost.createDiv({
                 cls: "ai3d-inline-empty",
-                text: err instanceof Error ? err.message : String(err),
+                text: `Unknown preset: "${config.preset}". Available: compare, showcase, explode, timeline, compose`,
               });
               renderer.destroy();
               renderer = null;
               return;
             }
+            const result = preset.compute(resolved, config.params ?? {});
+            if (!result) {
+              gridLoading.hide();
+              gridHost.createDiv({
+                cls: "ai3d-inline-empty",
+                text: `Preset "${config.preset}" requires ${preset.minModels}-${preset.maxModels} models, got ${resolved.length}.`,
+              });
+              renderer.destroy();
+              renderer = null;
+              return;
+            }
+            await renderer.loadWithPreset(result, readFile);
+          } else {
+            await renderer.loadModels(resolved, config, readFile);
           }
-          const result = composeSections(
-            preparedSections,
-            config.direction ?? "horizontal",
-            Number(config.params?.gap) || 0.02,
-            (entry) => {
-              if (typeof entry === "string") return null;
-              return entry;
-            },
-            getPreset,
-          );
-          if (!result) {
-            gridHost.createDiv({ cls: "ai3d-inline-empty", text: "Compose: no valid sections." });
-            renderer.destroy();
-            renderer = null;
-            return;
-          }
-          await renderer.loadWithPreset(result, readFile);
-        } else if (config.preset) {
-          const preset = getPreset(config.preset);
-          if (!preset) {
-            gridHost.createDiv({
-              cls: "ai3d-inline-empty",
-              text: `Unknown preset: "${config.preset}". Available: compare, showcase, explode, timeline, compose`,
-            });
-            renderer.destroy();
-            renderer = null;
-            return;
-          }
-          const result = preset.compute(resolved, config.params ?? {});
-          if (!result) {
-            gridHost.createDiv({
-              cls: "ai3d-inline-empty",
-              text: `Preset "${config.preset}" requires ${preset.minModels}-${preset.maxModels} models, got ${resolved.length}.`,
-            });
-            renderer.destroy();
-            renderer = null;
-            return;
-          }
-          await renderer.loadWithPreset(result, readFile);
-        } else {
-          await renderer.loadModels(resolved, config, readFile);
-        }
 
-        if (destroyed) return;
-      } catch (err) {
-        renderer?.destroy();
-        renderer = null;
-        console.error("[AI3D Grid] Failed:", err);
-        gridHost.createDiv({ cls: "ai3d-inline-empty", text: `Grid failed: ${String(err)}` });
+          if (destroyed) { gridLoading.hide(); return; }
+          gridLoading.hide();
+        } catch (err) {
+          destroyed = true;
+          observer.disconnect();
+          gridIo.disconnect();
+          gridLoading.hide();
+          renderer?.destroy();
+          renderer = null;
+          console.error("[AI3D Grid] Failed:", err);
+          gridHost.createDiv({ cls: "ai3d-inline-empty", text: `Grid failed: ${String(err)}` });
+        }
       }
+
+      // Lazy-load: only create Engine when scrolled into view
+      const gridIo = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            gridIo.disconnect();
+            void loadGrid();
+          }
+        }
+      }, { rootMargin: "200px" });
+      gridIo.observe(gridHost);
     },
   };
 }

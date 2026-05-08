@@ -3,8 +3,8 @@ import { access } from "node:fs/promises";
 import { delimiter, extname, isAbsolute, join } from "node:path";
 import type { PluginSettings } from "../../domain/models";
 
-export type ConverterCommandId = "freecad" | "obj2gltf" | "fbx2gltf";
-export type ConverterCommandSettingKey = "freecadCommand" | "obj2gltfCommand" | "fbx2gltfCommand";
+export type ConverterCommandId = "freecad" | "obj2gltf" | "fbx2gltf" | "assimp" | "freecadcmd";
+export type ConverterCommandSettingKey = "freecadCommand" | "obj2gltfCommand" | "fbx2gltfCommand" | "assimpCommand" | "freecadcmdCommand";
 export type ConverterCommandSource = "settings" | "env" | "candidate" | "path";
 
 type ConverterCommandSettings = Pick<PluginSettings, ConverterCommandSettingKey>;
@@ -34,24 +34,55 @@ export interface ConverterCommandStatus {
 
 const WINDOWS_PATHEXT_FALLBACK = [".exe", ".cmd", ".bat", ".com"];
 
+/**
+ * Resolve FreeCADCmd.exe candidates dynamically using environment variables.
+ * Skips user-specific hardcoded paths — only uses platform-standard locations.
+ */
+function resolveFreeCadCandidates(): readonly string[] {
+  if (process.platform !== "win32") {
+    return [
+      "/usr/bin/freecadcmd",
+      "/usr/local/bin/freecadcmd",
+      "/opt/homebrew/bin/freecadcmd",
+      "/snap/freecad/current/usr/bin/freecadcmd",
+    ];
+  }
+
+  const candidates: string[] = [];
+  const localAppData = process.env.LOCALAPPDATA;
+  const programFiles = process.env.ProgramFiles;
+  const programFilesX86 = process.env["ProgramFiles(x86)"];
+
+  // User-level install: %LOCALAPPDATA%\Programs\FreeCAD*\bin\FreeCADCmd.exe
+  if (localAppData) {
+    for (const ver of ["1.1", "1.0", "0.21", "0.20"]) {
+      candidates.push(`${localAppData}/Programs/FreeCAD ${ver}/bin/FreeCADCmd.exe`);
+    }
+  }
+  // System-level install: %ProgramFiles%\FreeCAD*\bin\FreeCADCmd.exe
+  if (programFiles) {
+    for (const ver of ["1.1", "1.0", "0.21", "0.20"]) {
+      candidates.push(`${programFiles}/FreeCAD ${ver}/bin/FreeCADCmd.exe`);
+    }
+  }
+  if (programFilesX86) {
+    candidates.push(`${programFilesX86}/FreeCAD/bin/FreeCADCmd.exe`);
+  }
+  return candidates;
+}
+
 const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
   {
     id: "freecad",
-    label: "FreeCADCmd",
+    label: "Python (CadQuery/OCCT)",
     settingsKey: "freecadCommand",
     envVar: "AI3D_FREECAD_CMD",
-    fallbackCommand: process.platform === "win32" ? "FreeCADCmd.exe" : "freecadcmd",
+    fallbackCommand: process.platform === "win32" ? "py" : "python3",
+    // Python is discoverable via `py` launcher (Windows) or `python3` (Linux/macOS).
+    // No user-specific paths — use settings/env if Python is not on PATH.
     knownCandidates: process.platform === "win32"
-      ? [
-        "C:/Program Files/FreeCAD 0.22/bin/FreeCADCmd.exe",
-        "C:/Program Files/FreeCAD 0.21/bin/FreeCADCmd.exe",
-        "C:/Program Files/FreeCAD/bin/FreeCADCmd.exe",
-      ]
-      : [
-        "/usr/bin/freecadcmd",
-        "/usr/local/bin/freecadcmd",
-        "/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd",
-      ],
+      ? ["py"]
+      : ["/usr/bin/python3", "/usr/local/bin/python3", "/opt/homebrew/bin/python3", "python3"],
   },
   {
     id: "obj2gltf",
@@ -75,6 +106,24 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
         "C:/Program Files/FBX2glTF/FBX2glTF.exe",
       ]
       : [],
+  },
+  {
+    id: "assimp",
+    label: "Python (trimesh)",
+    settingsKey: "assimpCommand",
+    envVar: "AI3D_ASSIMP_CMD",
+    fallbackCommand: process.platform === "win32" ? "py" : "python3",
+    knownCandidates: process.platform === "win32"
+      ? ["py"]
+      : ["/usr/bin/python3", "/usr/local/bin/python3", "/opt/homebrew/bin/python3", "python3"],
+  },
+  {
+    id: "freecadcmd",
+    label: "FreeCAD (SLDPRT)",
+    settingsKey: "freecadcmdCommand",
+    envVar: "AI3D_FREECMDCMD",
+    fallbackCommand: process.platform === "win32" ? "FreeCADCmd.exe" : "freecadcmd",
+    knownCandidates: resolveFreeCadCandidates(),
   },
 ];
 

@@ -25,6 +25,7 @@ export function mountWorkbench(
 
   let preview: BabylonModelPreview | null = null;
   let loading = false;
+  let pendingPath: string | null = null;
 
   // ── Stable preview host (never removed from DOM) ──
   const previewHost = document.createElement("div");
@@ -255,7 +256,7 @@ export function mountWorkbench(
   const unsubModel = ps.store.subscribe(async () => {
     const state = ps.store.getState();
     const path = state.currentModelPath;
-    if (!path || loading) return;
+    if (!path || loading) { pendingPath = path ?? pendingPath; return; }
 
     const file = app.vault.getAbstractFileByPath(path);
     if (!(file instanceof TFile)) return;
@@ -316,6 +317,11 @@ export function mountWorkbench(
       errDiv.textContent = `Failed to load: ${String(err)}`;
     } finally {
       loading = false;
+      if (pendingPath) {
+        pendingPath = null;
+        // Re-fire subscription to pick up the skipped path change
+        ps.store.setState({});
+      }
     }
   });
 
@@ -351,7 +357,7 @@ export async function generateKnowledgeNote(app: App, state: PluginState) {
 
     const profile = state.modelAssetProfiles[path];
     const preview = state.modelPreview;
-    const fileName = path.split("/").pop() ?? "model";
+    const fileName = path.split(/[\\/]/).pop() ?? "model";
     const baseName = fileName.replace(/\.[^.]+$/, "");
     const reportFolder = state.settings.reportFolder;
     const notePath = `${reportFolder}/${baseName} Report.md`;

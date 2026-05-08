@@ -193,7 +193,7 @@ export function createHelperButtons(
       const dataUrl = preview.captureSnapshot();
       if (!dataUrl) return;
       const modelPath = getModelPath();
-      const baseName = modelPath.split("/").pop()?.replace(/\.[^.]+$/, "") ?? "model";
+      const baseName = modelPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") ?? "model";
       const settings = getSettings?.();
       const folder = settings?.snapshotFolder ?? "Media/3D Previews";
       const naming = settings?.snapshotNaming ?? "model-name";
@@ -232,7 +232,7 @@ export function createHelperButtons(
       const dataUrl = preview.captureSnapshot();
       if (!dataUrl) return;
       const modelPath = getModelPath();
-      const baseName = modelPath.split("/").pop()?.replace(/\.[^.]+$/, "") ?? "model";
+      const baseName = modelPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") ?? "model";
       const fileName = `${baseName}_snapshot_${Date.now()}.png`;
 
       const a = document.createElement("a");

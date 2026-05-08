@@ -80,6 +80,17 @@ function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): Mesh {
     throw new Error(`STL buffer too small: ${buffer.byteLength} bytes (need 84+)`);
   }
 
+  // Detect ASCII STL (starts with "solid" followed by "facet" or "endsolid")
+  if (buffer.byteLength >= 6) {
+    const header = new TextDecoder().decode(new Uint8Array(buffer, 0, 6));
+    if (header === "solid " || header === "solid\n") {
+      const preview = new TextDecoder().decode(new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 800)));
+      if (preview.includes("facet") || preview.includes("endsolid")) {
+        throw new Error("ASCII STL detected — only binary STL is supported. Convert to binary STL first.");
+      }
+    }
+  }
+
   const view = new DataView(buffer);
   const triangleCount = view.getUint32(80, true);
   console.log(`[AI3D STL] Parsing ${buffer.byteLength} bytes, ${triangleCount} triangles`);
@@ -93,11 +104,25 @@ function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): Mesh {
     throw new Error(`STL buffer truncated: expected ${expectedSize} bytes, got ${buffer.byteLength}`);
   }
 
+  // Pre-scan: detect if the file contains per-face colors (VisCAM/SolidView 15-bit RGB).
+  // Color is encoded in the 2-byte attribute field after each triangle:
+  //   bit 15: flag (1 = has color), bits 10-14: blue, 5-9: green, 0-4: red
+  let hasFaceColors = false;
+  for (let i = 0; i < triangleCount; i++) {
+    const attrOffset = 84 + i * 50 + 48; // attribute bytes at end of each 50-byte record
+    const attr = view.getUint16(attrOffset, true);
+    if (attr & 0x8000) { hasFaceColors = true; break; }
+  }
+
+  // When faces have colors, each face needs its own 3 unshared vertices (for per-vertex color).
+  // When no colors, we can share vertices across faces (compact indices).
   const positions = new Float32Array(triangleCount * 9);
   const normals = new Float32Array(triangleCount * 9);
+  const colors = hasFaceColors ? new Float32Array(triangleCount * 12) : undefined; // RGBA per vertex
   const indices = new Uint32Array(triangleCount * 3);
 
   let zeroNormalCount = 0;
+  let colorFaceCount = 0;
   let offset = 84;
   for (let i = 0; i < triangleCount; i++) {
     const base = i * 9;
@@ -118,7 +143,21 @@ function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): Mesh {
     positions[base + 7] = view.getFloat32(offset, true); offset += 4;
     positions[base + 8] = view.getFloat32(offset, true); offset += 4;
 
+    // Parse 2-byte attribute (VisCAM/SolidView per-face color)
+    const attr = view.getUint16(offset, true);
     offset += 2;
+
+    if (colors && (attr & 0x8000)) {
+      const r = ((attr >> 0) & 0x1F) / 31;
+      const g = ((attr >> 5) & 0x1F) / 31;
+      const b = ((attr >> 10) & 0x1F) / 31;
+      const cBase = i * 12;
+      // Same color for all 3 vertices of this face
+      colors[cBase + 0] = r; colors[cBase + 1] = g; colors[cBase + 2] = b; colors[cBase + 3] = 1;
+      colors[cBase + 4] = r; colors[cBase + 5] = g; colors[cBase + 6] = b; colors[cBase + 7] = 1;
+      colors[cBase + 8] = r; colors[cBase + 9] = g; colors[cBase + 10] = b; colors[cBase + 11] = 1;
+      colorFaceCount++;
+    }
 
     // Recompute face normal from triangle vertices (cross product of two edges)
     const ax = positions[base + 3] - positions[base + 0];
@@ -142,6 +181,7 @@ function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): Mesh {
     normals[base + 3] = nx; normals[base + 4] = ny; normals[base + 5] = nz;
     normals[base + 6] = nx; normals[base + 7] = ny; normals[base + 8] = nz;
 
+    // Each face has its own set of 3 vertices (index = vertex offset / 3)
     indices[iBase + 0] = base / 3 + 0;
     indices[iBase + 1] = base / 3 + 1;
     indices[iBase + 2] = base / 3 + 2;
@@ -150,21 +190,33 @@ function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): Mesh {
   if (zeroNormalCount > 0) {
     console.warn(`[AI3D STL] ${zeroNormalCount} degenerate triangles with zero-area normals`);
   }
+  if (hasFaceColors) {
+    console.log(`[AI3D STL] Detected per-face colors: ${colorFaceCount}/${triangleCount} faces colored`);
+  }
 
   const vertexData = new VertexData();
   vertexData.positions = positions;
   vertexData.normals = normals;
   vertexData.indices = indices;
+  if (colors) vertexData.colors = colors;
 
   const mesh = new BabylonMesh("stl-model", scene);
   vertexData.applyToMesh(mesh);
 
   const mat = new StandardMaterial("stl-mat", scene);
-  mat.diffuseColor = new Color3(0.85, 0.85, 0.85);
+  mat.backFaceCulling = false;
   mat.specularColor = new Color3(0.3, 0.3, 0.3);
   mat.specularPower = 32;
-  mat.emissiveColor = new Color3(0.1, 0.1, 0.1);
-  mat.backFaceCulling = false;
+
+  if (colors) {
+    // Vertex colors present — set white diffuse so colors are not tinted
+    mat.diffuseColor = new Color3(1, 1, 1);
+    mat.emissiveColor = new Color3(0.05, 0.05, 0.05);
+    (mat as any).vertexColorEnabled = true;
+  } else {
+    mat.diffuseColor = new Color3(0.85, 0.85, 0.85);
+    mat.emissiveColor = new Color3(0.1, 0.1, 0.1);
+  }
   mesh.material = mat;
 
   return mesh;

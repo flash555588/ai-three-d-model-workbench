@@ -143,11 +143,10 @@
 |---|---|---|---|---|
 | glb/gltf | 直读 | 支持 | 支持 | 主格式 |
 | stl/obj/ply/splat | 直读 | 支持 | 支持（限大小） | 现有能力 |
-| 3mf/dae | 直读（第二批） | 支持 | 视性能而定 | 需验证 loader 与包体 |
-| step/stp | 转换到 glb | 支持 | 默认不支持 | 依赖外部转换器 |
-| iges/igs/brep | 转换到 glb | 支持 | 默认不支持 | 同上 |
+| 3mf/dae | 转换到 glb | 支持 | 默认不支持 | 依赖 Python/trimesh（Babylon.js 不支持直读） |
+| step/stp | 转换到 glb | 支持 | 默认不支持 | 依赖 Python/CadQuery(OCCT) |
+| iges/igs/brep | 转换到 glb | 支持 | 默认不支持 | 依赖 Python/CadQuery(OCCT) |
 | fbx | 转换到 glb | 支持 | 默认不支持 | 可选 FBX2glTF |
-| x_t/x_b/catpart | 转换到 glb（后续） | 支持（可选） | 不支持 | 取决于转换器能力 |
 
 ---
 
@@ -207,9 +206,11 @@
 - 支持 step/stp/iges/igs 到 glb。
 - 上线转换缓存与失败可观测日志。
 
-### Phase 3（轻格式扩展）
-- 评估并接入 3mf/dae。
-- 做包体与性能回归验证。
+### Phase 3（轻格式扩展 — 修订）
+- **修订**: Babylon.js 9.6 不支持 3MF 导入和 DAE/Collada，无法直读。
+- 改走转换通道：实现 assimp CLI 适配器（BSD-3-Clause），将 3MF/DAE 转为 GLB。
+- 注册 assimp 到转换器工厂、命令发现、格式注册表。
+- 添加 `assimpCommand` 设置项和设置页 UI。
 
 ### Phase 4（优化与治理）
 - 引入 glTF-Transform 做转换后优化（prune/dedup/压缩）。
@@ -255,10 +256,11 @@
   - `src/io/conversion/manager.ts`
   - `src/io/conversion/factory.ts`
   - `src/io/conversion/command-discovery.ts`
-- 已落地 FreeCAD / obj2gltf / fbx2gltf 的真实 CLI bridge：
-  - `src/io/conversion/adapters/freecad-converter.ts`
-  - `src/io/conversion/adapters/obj2gltf-converter.ts`
-  - `src/io/conversion/adapters/fbx2gltf-converter.ts`
+- 已落地 CAD/mesh 转换器（基于 Python/CadQuery/trimesh）：
+  - `src/io/conversion/adapters/freecad-converter.ts` — STEP/IGES/BREP → GLB (CadQuery + trimesh)
+  - `src/io/conversion/adapters/assimp-converter.ts` — 3MF/DAE → GLB (trimesh)
+  - `src/io/conversion/adapters/obj2gltf-converter.ts` — OBJ → GLB
+  - `src/io/conversion/adapters/fbx2gltf-converter.ts` — FBX → GLB
 - 已落地转换缓存与预览输入适配：
   - `src/io/cache/converted-asset-cache.ts`
   - `src/io/preview/preview-source.ts`
@@ -270,6 +272,7 @@
   - `settings.freecadCommand`
   - `settings.obj2gltfCommand`
   - `settings.fbx2gltfCommand`
+  - `settings.assimpCommand`
 - 已增加 OBJ / FBX 的 direct-first 偏好配置：
   - `settings.preferObj2gltfForObj`
   - `settings.preferFbx2gltfForFbx`
@@ -288,20 +291,31 @@
 - 已通过本机 harness 验证转换缓存行为：
   - 同一 converter identity 下二次请求命中缓存。
   - 命令路径或 converter identity 变化时触发重新转换。
-- 已通过共享命令探测验证当前机器的外部 CLI 可用性：
-  - FreeCADCmd：unavailable
+- 已验证 Python 环境可用性：
+  - Python 3.13 + trimesh 4.12.2 + numpy 2.4.4 + networkx + pycollada + cadquery 2.7.0 + cadquery-ocp 7.8.1.1
+- 已完成端到端转换验证：
+  - 3MF → GLB：trimesh 直接转换，8 顶点 12 三角面 ✓
+  - DAE → GLB：trimesh 直接转换，8 顶点 12 三角面 ✓
+  - STEP → GLB：CadQuery 读取 → STL → trimesh → GLB ✓
+- 外部 CLI 状态：
   - obj2gltf：unavailable
   - FBX2glTF：unavailable
-- 结论：当前机器已验证“路由、缓存、身份失效、可观测性”链路成立，但尚未完成“真实已安装 converter 的端到端转换执行”验证。
 
-### 12.4 仍待推进（后续实现）
-- 在已安装 FreeCAD / obj2gltf / FBX2glTF 的机器上完成端到端 CLI 转换联调。
+### 12.4 已完成（Phase 3 — assimp 转换通道）
+- 已实现 assimp CLI 转换适配器：`src/io/conversion/adapters/assimp-converter.ts`
+- 已注册 assimp 到转换器工厂：`src/io/conversion/factory.ts`
+- 已添加 assimp 命令发现（4 层解析）：`src/io/conversion/command-discovery.ts`
+- 已更新格式注册表：3MF/DAE 走 convert 通道（`src/io/formats/registry.ts`）
+- 已添加 `settings.assimpCommand` 设置项与设置页 UI
+- **关键修订**: Babylon.js 9.6 不支持 3MF 导入和 DAE/Collada，Phase 3 从"直读"改为"转换通道"
+
+### 12.5 仍待推进（后续实现）
+- 在已安装 FreeCAD / obj2gltf / FBX2glTF / assimp 的机器上完成端到端 CLI 转换联调。
 - 在 Obsidian 桌面 UI 中手动 smoke test 设置页 diagnostics 呈现与交互。
 - 转换任务状态机（开始/进度/取消/失败恢复）与 UI 呈现。
-- 3mf / dae 第二批直读格式验证与接入。
 - 转换后 glTF-Transform 优化链（prune / dedup / 压缩）。
 
-### 12.5 验证状态
+### 12.6 验证状态
 - 当前工程已通过 TypeScript 编译校验：`node .\\node_modules\\typescript\\lib\\tsc.js --noEmit --skipLibCheck`。
 - 编辑器错误扫描结果为 0。
 - 现有直读行为与入口兼容保持不变。

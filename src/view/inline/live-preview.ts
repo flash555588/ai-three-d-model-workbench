@@ -14,6 +14,7 @@ import { createConversionManager } from "../../io/conversion/factory";
 import type { ConvertedAssetCache } from "../../io/cache/converted-asset-cache";
 import { prepareModelInput } from "../../io/model-pipeline";
 import { listPreferredConversionExts } from "../../io/formats/route-preferences";
+import { createLoadingOverlay, type LoadingOverlay } from "./loading-overlay";
 
 // ── Widget ────────────────────────────────────────────────────────
 
@@ -32,6 +33,7 @@ class ModelEmbedWidget extends WidgetType {
     private freecadCommand: string,
     private obj2gltfCommand: string,
     private fbx2gltfCommand: string,
+    private freecadcmdCommand: string,
     private preferObj2gltfForObj: boolean,
     private preferFbx2gltfForFbx: boolean,
     private convertedAssetCache: ConvertedAssetCache,
@@ -49,6 +51,7 @@ class ModelEmbedWidget extends WidgetType {
       this.freecadCommand === other.freecadCommand &&
       this.obj2gltfCommand === other.obj2gltfCommand &&
       this.fbx2gltfCommand === other.fbx2gltfCommand &&
+      this.freecadcmdCommand === other.freecadcmdCommand &&
       this.preferObj2gltfForObj === other.preferObj2gltfForObj &&
       this.preferFbx2gltfForFbx === other.preferFbx2gltfForFbx &&
       this.convertedAssetCache === other.convertedAssetCache
@@ -64,10 +67,7 @@ class ModelEmbedWidget extends WidgetType {
     canvas.style.height = `${this.height}px`;
     host.appendChild(canvas);
 
-    const loading = document.createElement("div");
-    loading.className = "ai3d-embed-loading";
-    loading.textContent = "Loading 3D...";
-    host.appendChild(loading);
+    const loading = createLoadingOverlay(host);
 
     const error = document.createElement("div");
     error.className = "ai3d-embed-error";
@@ -93,7 +93,7 @@ class ModelEmbedWidget extends WidgetType {
 
   private async initPreview(
     canvas: HTMLCanvasElement,
-    loading: HTMLDivElement,
+    loading: LoadingOverlay,
     error: HTMLDivElement,
   ): Promise<void> {
     try {
@@ -105,7 +105,9 @@ class ModelEmbedWidget extends WidgetType {
         freecadCommand: this.freecadCommand,
         obj2gltfCommand: this.obj2gltfCommand,
         fbx2gltfCommand: this.fbx2gltfCommand,
+        freecadcmdCommand: this.freecadcmdCommand,
       });
+      loading.setPhase("Preparing model...");
       const prepared = await prepareModelInput({
         path: this.modelPath,
         absolutePath,
@@ -116,6 +118,7 @@ class ModelEmbedWidget extends WidgetType {
         conversionManager,
         convertedAssetCache: this.convertedAssetCache,
       });
+      loading.setPhase("Loading model...");
       const data = await readBinaryPath(this.app, prepared.effectivePath);
       await this.preview.loadModel(
         data,
@@ -131,9 +134,12 @@ class ModelEmbedWidget extends WidgetType {
         });
       }
 
-      loading.style.display = "none";
+      loading.setProgress(100);
+      loading.hide();
     } catch (err) {
-      loading.style.display = "none";
+      this.preview?.destroy();
+      this.preview = null;
+      loading.hide();
       error.style.display = "";
       error.textContent = `[AI3D] ${err instanceof Error ? err.message : String(err)}`;
     }
@@ -164,6 +170,7 @@ function findEmbeds(
   freecadCommand: string,
   obj2gltfCommand: string,
   fbx2gltfCommand: string,
+  freecadcmdCommand: string,
   preferObj2gltfForObj: boolean,
   preferFbx2gltfForFbx: boolean,
   convertedAssetCache: ConvertedAssetCache,
@@ -234,6 +241,7 @@ function findEmbeds(
             freecadCommand,
             obj2gltfCommand,
             fbx2gltfCommand,
+            freecadcmdCommand,
             preferObj2gltfForObj,
             preferFbx2gltfForFbx,
             convertedAssetCache,
@@ -274,6 +282,7 @@ export function registerLivePreviewExtension(
         s.freecadCommand,
         s.obj2gltfCommand,
         s.fbx2gltfCommand,
+        s.freecadcmdCommand,
         s.preferObj2gltfForObj,
         s.preferFbx2gltfForFbx,
         convertedAssetCache,
@@ -291,6 +300,7 @@ export function registerLivePreviewExtension(
           s.freecadCommand,
           s.obj2gltfCommand,
           s.fbx2gltfCommand,
+          s.freecadcmdCommand,
           s.preferObj2gltfForObj,
           s.preferFbx2gltfForFbx,
           convertedAssetCache,

@@ -42,10 +42,7 @@ function isCachedRecordCompatible(
 }
 
 async function isCachedOutputAvailable(outputPath: string): Promise<boolean> {
-  if (!isAbsolute(outputPath)) {
-    return true;
-  }
-
+  if (!outputPath) return false;
   try {
     await access(outputPath, fsConstants.F_OK);
     return true;

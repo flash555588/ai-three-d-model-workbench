@@ -17,9 +17,10 @@ export const FORMAT_CAPABILITIES: readonly FormatCapability[] = [
   { ext: "iges", family: "cad", strategy: "convert", converterId: "freecad", outputFormat: "glb", enabled: true },
   { ext: "igs", family: "cad", strategy: "convert", converterId: "freecad", outputFormat: "glb", enabled: true },
   { ext: "brep", family: "cad", strategy: "convert", converterId: "freecad", outputFormat: "glb", enabled: true },
-  { ext: "x_t", family: "cad", strategy: "convert", converterId: "freecad", outputFormat: "glb", enabled: true },
-  { ext: "x_b", family: "cad", strategy: "convert", converterId: "freecad", outputFormat: "glb", enabled: true },
-  { ext: "catpart", family: "cad", strategy: "convert", converterId: "freecad", outputFormat: "glb", enabled: true },
+  { ext: "sldprt", family: "cad", strategy: "convert", converterId: "sldprt", outputFormat: "glb", enabled: true },
+
+  { ext: "3mf", family: "mesh", strategy: "convert", converterId: "assimp", outputFormat: "glb", enabled: true },
+  { ext: "dae", family: "mesh", strategy: "convert", converterId: "assimp", outputFormat: "glb", enabled: true },
 ];
 
 const CAPABILITIES_BY_EXT = new Map(FORMAT_CAPABILITIES.map((c) => [c.ext, c]));

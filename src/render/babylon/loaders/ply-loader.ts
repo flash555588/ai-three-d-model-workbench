@@ -206,9 +206,9 @@ function parseASCIIPly(text: string, header: PLYHeader) {
   if (faceEl) {
     for (let i = 0; i < faceEl.count && lineIdx < lines.length; i++) {
       const parts = lines[lineIdx++].trim().split(/\s+/).map(Number);
-      const count = parts[0];
+      const count = Math.round(parts[0]);
       for (let j = 1; j < count - 1; j++) {
-        indices.push(parts[1], parts[j + 1], parts[j + 2]);
+        indices.push(Math.round(parts[1]), Math.round(parts[j + 1]), Math.round(parts[j + 2]));
       }
     }
   }
@@ -247,8 +247,11 @@ function parsePLY(scene: Scene, data: ArrayBuffer): Mesh {
     // Compute normals from faces
     const normals = new Float32Array(positions.length);
     const idx = parsed.indices;
+    const maxIdx = positions.length - 3;
     for (let i = 0; i < idx.length; i += 3) {
       const ia = idx[i] * 3, ib = idx[i + 1] * 3, ic = idx[i + 2] * 3;
+      // Skip faces with out-of-range or negative vertex indices
+      if (ia < 0 || ib < 0 || ic < 0 || ia > maxIdx || ib > maxIdx || ic > maxIdx) continue;
       const ax = positions[ia], ay = positions[ia + 1], az = positions[ia + 2];
       const bx = positions[ib] - ax, by = positions[ib + 1] - ay, bz = positions[ib + 2] - az;
       const cx = positions[ic] - ax, cy = positions[ic + 1] - ay, cz = positions[ic + 2] - az;
@@ -282,10 +285,12 @@ function parsePLY(scene: Scene, data: ArrayBuffer): Mesh {
   const mat = new StandardMaterial("ply-mat", scene);
   mat.backFaceCulling = false;
 
-  // Apply per-vertex color if present (Babylon applies automatically when mesh has vertex colors)
+  // Apply per-vertex color if present
   if (parsed.colors.length > 0) {
     vertexData.colors = new Float32Array(parsed.colors);
     vertexData.applyToMesh(mesh);
+    mat.diffuseColor = new Color3(1, 1, 1);
+    (mat as any).vertexColorEnabled = true;
   } else {
     mat.diffuseColor = new Color3(0.7, 0.7, 0.7);
   }

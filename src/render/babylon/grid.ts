@@ -152,22 +152,10 @@ export class GridRenderer {
           }
         }
       } else {
-        // Multi-cell: collect placements referenced by cells sharing this viewport
-        const seen = new Set<number>();
-        cellMeshes = [];
-        for (const otherCell of result.cells) {
-          if (
-            otherCell.viewport.x === cellDef.viewport.x &&
-            otherCell.viewport.y === cellDef.viewport.y &&
-            !seen.has(otherCell.modelIndex)
-          ) {
-            seen.add(otherCell.modelIndex);
-            const m = loadedMeshes[otherCell.modelIndex];
-            if (m) cellMeshes.push(...m);
-          }
-        }
-        combinedMask = 0;
-        for (const idx of seen) combinedMask |= 1 << idx;
+        // Multi-cell: each cell gets its own placement only.
+        // Camera and meshes share the same single-bit mask.
+        cellMeshes = primaryMeshes ? [...primaryMeshes] : [];
+        combinedMask = 1 << cellDef.modelIndex;
       }
 
       // Override mesh layerMasks

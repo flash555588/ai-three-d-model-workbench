@@ -2,6 +2,8 @@ import { ConversionManager } from "./manager";
 import { FreecadConverter } from "./adapters/freecad-converter";
 import { Obj2GltfConverter } from "./adapters/obj2gltf-converter";
 import { Fbx2GltfConverter } from "./adapters/fbx2gltf-converter";
+import { AssimpConverter } from "./adapters/assimp-converter";
+import { SldprtConverter } from "./adapters/sldprt-converter";
 import { createLogger } from "../../utils/log";
 
 const log = createLogger("conversion-factory");
@@ -11,6 +13,8 @@ export interface ConversionFactoryOptions {
   freecadCommand?: string;
   obj2gltfCommand?: string;
   fbx2gltfCommand?: string;
+  assimpCommand?: string;
+  freecadcmdCommand?: string;
 }
 
 export function createConversionManager(options?: ConversionFactoryOptions): ConversionManager {
@@ -23,6 +27,8 @@ export function createConversionManager(options?: ConversionFactoryOptions): Con
     new FreecadConverter(options?.freecadCommand),
     new Obj2GltfConverter(options?.obj2gltfCommand),
     new Fbx2GltfConverter(options?.fbx2gltfCommand),
+    new AssimpConverter(options?.assimpCommand),
+    new SldprtConverter(options?.freecadcmdCommand),
   ];
 
   for (const converter of builtins) {

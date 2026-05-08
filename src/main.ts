@@ -91,6 +91,7 @@ export default class AI3DModelWorkbench extends Plugin {
   }
 
   async onunload() {
+    this.ps.dispose();
     // Views are cleaned up by Obsidian calling onClose()
   }
 

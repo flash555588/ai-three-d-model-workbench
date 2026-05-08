@@ -34,6 +34,8 @@ export interface PluginSettings {
   freecadCommand: string;
   obj2gltfCommand: string;
   fbx2gltfCommand: string;
+  assimpCommand: string;
+  freecadcmdCommand: string;
   preferObj2gltfForObj: boolean;
   preferFbx2gltfForFbx: boolean;
   // Logging

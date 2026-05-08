@@ -1,8 +1,9 @@
 import type { Mesh } from "@babylonjs/core/Meshes/mesh.js";
-import type { Vector3 } from "@babylonjs/core/Maths/math.vector.js";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector.js";
 
 interface ExplodeMeta {
   _originalPos: { x: number; y: number; z: number };
+  _originalCenter: { x: number; y: number; z: number };
 }
 
 export function setExplode(
@@ -17,19 +18,27 @@ export function setExplode(
     if (!child.metadata) child.metadata = {};
     const meta = child.metadata as ExplodeMeta;
 
-    // Cache original position on first call (world space)
+    // Cache original position on first call (local space, relative to parent)
     if (!meta._originalPos) {
-      const abs = child.getAbsolutePosition();
-      meta._originalPos = { x: abs.x, y: abs.y, z: abs.z };
+      const local = child.position;
+      meta._originalPos = { x: local.x, y: local.y, z: local.z };
     }
 
-    const childCenter = child.getBoundingInfo().boundingBox.centerWorld;
-    const delta = (childCenter[axis] - rootCenter[axis]) * factor;
+    // Cache original bounding center on first call
+    if (!meta._originalCenter) {
+      const childCenter = child.getBoundingInfo().boundingBox.centerWorld;
+      meta._originalCenter = { x: childCenter.x, y: childCenter.y, z: childCenter.z };
+    }
+
+    // Always compute delta from original center, never from current (moved) center
+    const delta = (meta._originalCenter[axis] - rootCenter[axis]) * factor;
 
     const orig = meta._originalPos;
-    const pos = child.getAbsolutePosition().clone();
-    pos[axis] = orig[axis] + delta;
-    child.setAbsolutePosition(pos);
+    child.position = new Vector3(
+      axis === "x" ? orig.x + delta : orig.x,
+      axis === "y" ? orig.y + delta : orig.y,
+      axis === "z" ? orig.z + delta : orig.z,
+    );
   }
 }
 
@@ -38,15 +47,7 @@ export function resetExplode(rootMesh: Mesh): void {
   for (const child of children) {
     const meta = child.metadata as ExplodeMeta | undefined;
     if (meta?._originalPos) {
-      child.setAbsolutePosition(
-        child.getAbsolutePosition().clone() // reset via setAbsolutePosition
-      );
-      // Restore to original world position
-      const pos = child.getAbsolutePosition();
-      pos.x = meta._originalPos.x;
-      pos.y = meta._originalPos.y;
-      pos.z = meta._originalPos.z;
-      child.setAbsolutePosition(pos);
+      child.position = new Vector3(meta._originalPos.x, meta._originalPos.y, meta._originalPos.z);
     }
   }
 }

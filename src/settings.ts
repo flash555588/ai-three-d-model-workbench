@@ -118,8 +118,8 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Enable FreeCAD converter (experimental)")
-      .setDesc("Enable CAD conversion route for STEP/IGES/BREP family formats. Disabled by default.")
+      .setName("Enable CAD converter (STEP/IGES/BREP)")
+      .setDesc("Enable CAD conversion route for STEP/IGES/BREP formats via Python CadQuery (OpenCASCADE). Requires: pip install cadquery trimesh")
       .addToggle((toggle) => {
         const enabled = this.plugin.getSettings().enabledConverterIds.includes("freecad");
         return toggle.setValue(enabled).onChange(async (val) => {
@@ -182,14 +182,55 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("FreeCAD command path")
-      .setDesc("Optional path to FreeCADCmd. Overrides auto-discovery and AI3D_FREECAD_CMD when set.")
+      .setName("Enable mesh converter (3MF/DAE)")
+      .setDesc("Enable conversion route for 3MF and DAE (Collada) formats via Python trimesh. Requires Python with trimesh installed (pip install trimesh numpy networkx pycollada).")
+      .addToggle((toggle) => {
+        const enabled = this.plugin.getSettings().enabledConverterIds.includes("assimp");
+        return toggle.setValue(enabled).onChange(async (val) => {
+          const current = this.plugin.getSettings().enabledConverterIds;
+          const next = val
+            ? Array.from(new Set([...current, "assimp"]))
+            : current.filter((id) => id !== "assimp");
+          this.plugin.updateSettings({ enabledConverterIds: next });
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("Enable SLDPRT converter (SolidWorks)")
+      .setDesc("Enable conversion route for SolidWorks .sldprt files via FreeCAD. Requires FreeCAD installed (https://www.freecad.org/downloads.php).")
+      .addToggle((toggle) => {
+        const enabled = this.plugin.getSettings().enabledConverterIds.includes("sldprt");
+        return toggle.setValue(enabled).onChange(async (val) => {
+          const current = this.plugin.getSettings().enabledConverterIds;
+          const next = val
+            ? Array.from(new Set([...current, "sldprt"]))
+            : current.filter((id) => id !== "sldprt");
+          this.plugin.updateSettings({ enabledConverterIds: next });
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("Python command path (for CAD)")
+      .setDesc("Optional path to Python executable for CAD conversion. Overrides auto-discovery and AI3D_FREECAD_CMD when set.")
       .addText((text) =>
         text
-          .setPlaceholder("C:/Program Files/FreeCAD 0.22/bin/FreeCADCmd.exe")
+          .setPlaceholder("py")
           .setValue(this.plugin.getSettings().freecadCommand)
           .onChange(async (val) => {
             this.plugin.updateSettings({ freecadCommand: val.trim() });
+            void refreshCommandDiagnostics?.();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("FreeCADCmd path (for SLDPRT)")
+      .setDesc("Optional path to FreeCADCmd.exe for SolidWorks file conversion. Overrides auto-discovery and AI3D_FREECMDCMD when set.")
+      .addText((text) =>
+        text
+          .setPlaceholder("FreeCADCmd.exe")
+          .setValue(this.plugin.getSettings().freecadcmdCommand)
+          .onChange(async (val) => {
+            this.plugin.updateSettings({ freecadcmdCommand: val.trim() });
             void refreshCommandDiagnostics?.();
           }),
       );
@@ -216,6 +257,19 @@ export class AI3DSettingTab extends PluginSettingTab {
           .setValue(this.plugin.getSettings().fbx2gltfCommand)
           .onChange(async (val) => {
             this.plugin.updateSettings({ fbx2gltfCommand: val.trim() });
+            void refreshCommandDiagnostics?.();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Python command path (for 3MF/DAE)")
+      .setDesc("Optional path to Python executable. Overrides auto-discovery and AI3D_ASSIMP_CMD when set.")
+      .addText((text) =>
+        text
+          .setPlaceholder("py")
+          .setValue(this.plugin.getSettings().assimpCommand)
+          .onChange(async (val) => {
+            this.plugin.updateSettings({ assimpCommand: val.trim() });
             void refreshCommandDiagnostics?.();
           }),
       );

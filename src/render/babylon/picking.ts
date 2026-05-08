@@ -22,9 +22,14 @@ export function setupPicking(
 
   function clearHighlight() {
     if (!highlighted) return;
-    if (originalMaterial && highlightMaterial) {
-      highlighted.material = originalMaterial;
+    // Always dispose the cloned highlight material to avoid GPU resource leak,
+    // even if the underlying mesh has been disposed.
+    if (highlightMaterial) {
       highlightMaterial.dispose();
+    }
+    // Only restore original material if the mesh is still alive.
+    if (originalMaterial && !highlighted.isDisposed) {
+      highlighted.material = originalMaterial;
     }
     highlighted = null;
     originalMaterial = null;

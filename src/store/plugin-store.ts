@@ -7,6 +7,7 @@ export interface PluginStore {
   store: Store<PluginState>;
   load: () => Promise<void>;
   save: () => Promise<void>;
+  dispose: () => void;
 }
 
 const INITIAL_STATE: PluginState = {
@@ -28,7 +29,7 @@ export function createPluginStore(plugin: Plugin): PluginStore {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       saveTimer = null;
-      persist();
+      persist().catch(err => console.error("[AI3D] Auto-save failed:", err));
     }, 500);
   }
 
@@ -68,6 +69,13 @@ export function createPluginStore(plugin: Plugin): PluginStore {
         saveTimer = null;
       }
       await persist();
+    },
+
+    dispose() {
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+      }
     },
   };
 }

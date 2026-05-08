@@ -20,7 +20,7 @@ async function fileExists(path: string): Promise<boolean> {
 
 function execFileAsync(command: string, args: string[], timeoutMs: number): Promise<void> {
   return new Promise((resolve, reject) => {
-    execFile(command, args, { timeout: timeoutMs, windowsHide: true }, (error, stdout, stderr) => {
+    execFile(command, args, { timeout: timeoutMs, windowsHide: true, maxBuffer: 50 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (!error) {
         resolve();
         return;
