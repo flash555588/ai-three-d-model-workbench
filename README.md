@@ -376,6 +376,366 @@ src/
   utils/                           Path resolution, formatting, device detection
 ```
 
+## Model Import Pipeline
+
+### Overview
+
+The plugin implements a multi-stage pipeline to load 3D models from Obsidian's vault into Babylon.js for rendering. The pipeline handles format detection, routing, data loading, and rendering with format-specific optimizations.
+
+### Architecture Principles
+
+**1. Format Registry Pattern**
+
+All supported formats are registered in a central registry (`src/io/formats/registry.ts`) with metadata:
+
+```typescript
+interface FormatCapability {
+  ext: string;              // File extension (e.g., "stl")
+  family: "mesh" | "point-cloud" | "cad";  // Format family
+  strategy: "direct" | "convert";           // Loading strategy
+  directLoader?: string;    // Babylon loader identifier
+  converterId?: string;     // External converter identifier
+  outputFormat?: string;    // Conversion target format
+  enabled: boolean;         // Runtime enable/disable
+}
+```
+
+This allows the pipeline to make routing decisions without hardcoded conditionals.
+
+**2. Two-Tier Loading Strategy**
+
+The plugin uses a two-tier strategy to balance performance and compatibility:
+
+- **Direct formats**: Loaded directly into Babylon.js via built-in or custom loaders. No external tools required.
+- **Conversion formats**: Converted to GLB via external tools before rendering. Requires Python/CLI tools.
+
+**3. Data URL vs Direct Buffer**
+
+Babylon.js SceneLoader accepts data URLs for loading models. However, custom SceneLoader plugins (STL, PLY) have a known issue in Babylon v9 where data URLs are not properly converted to ArrayBuffer before being passed to the plugin's `importMeshAsync` method.
+
+**Solution**: For custom loaders (STL, PLY), the plugin bypasses SceneLoader entirely and calls the parser directly with the raw ArrayBuffer.
+
+```
+SceneLoader.ImportMeshAsync() flow:
+┌─────────────────────────────────────────────────────────────┐
+│  data:application/octet-stream;base64,...                    │
+│       │                                                      │
+│       ▼                                                      │
+│  Babylon SceneLoader                                         │
+│       │                                                      │
+│       ├─ Built-in loaders (GLTF, OBJ, SPLAT):               │
+│       │   └─ Correctly decodes data URL → ArrayBuffer        │
+│       │                                                      │
+│       └─ Custom plugins (STL, PLY):                          │
+│           └─ May receive data URL string instead of buffer   │
+│              (Babylon v9 bug)                                 │
+└─────────────────────────────────────────────────────────────┘
+
+Direct buffer loading (workaround):
+┌─────────────────────────────────────────────────────────────┐
+│  readBinaryPath() → ArrayBuffer                              │
+│       │                                                      │
+│       ▼                                                      │
+│  loadSTLBuffer(scene, data)  or  loadPLYBuffer(scene, data)  │
+│       │                                                      │
+│       ▼                                                      │
+│  Direct binary parsing → Babylon Mesh                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**4. Obsidian Vault Integration**
+
+The plugin integrates with Obsidian's vault system for file access:
+
+- **readBinaryPath()**: Reads files as ArrayBuffer via Obsidian's `vault.adapter.readBinary()`
+- **resolveVaultPath()**: Resolves wiki-link style paths (`[[model.glb]]`) to vault-relative paths
+- **resolveVaultAbsolutePath()**: Converts vault-relative paths to filesystem absolute paths (required for conversion)
+
+**5. State Management**
+
+The plugin uses a custom store primitive (`src/store/create-store.ts`) with:
+
+- **getState()**: Read current state
+- **setState()**: Update state (triggers subscribers)
+- **subscribe()**: React to state changes
+- **Obsidian bridge**: Persists state via `loadData()`/`saveData()` with 500ms debounce
+
+### Loading Strategy
+
+The plugin uses a two-tier loading strategy to handle different format families:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Model Import Pipeline                       │
+├─────────────────────────────────────────────────────────────────┤
+│  1. Format Detection                                            │
+│     └─ normalizeModelExt() → getFormatCapability()              │
+│                                                                 │
+│  2. Route Decision                                              │
+│     ├─ Direct formats → prepareDirectLoad()                     │
+│     └─ Conversion formats → convertForPreview()                 │
+│                                                                 │
+│  3. Data Loading                                                │
+│     ├─ readBinaryPath() → ArrayBuffer                           │
+│     └─ Conversion: run converter → read converted GLB           │
+│                                                                 │
+│  4. Babylon Rendering                                           │
+│     ├─ GLB/GLTF/OBJ/SPLAT → SceneLoader.ImportMeshAsync()      │
+│     ├─ STL → loadSTLBuffer() (direct parse)                     │
+│     └─ PLY → loadPLYBuffer() (direct parse)                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Direct Formats
+
+Direct formats are loaded directly into Babylon.js without external tools:
+
+| Format | Loader | Notes |
+|--------|--------|-------|
+| GLB / GLTF | Babylon built-in `GLTFFileLoader` | Full material, animation, PBR support |
+| STL | Custom `stl-loader.ts` | Binary-only, per-face color (VisCAM/SolidView) |
+| OBJ | Babylon built-in `OBJFileLoader` | MTL support, vault-relative texture resolution |
+| PLY | Custom `ply-loader.ts` | ASCII/binary, vertex colors, point cloud |
+| SPLAT | Babylon built-in `SPLATFileLoader` | Gaussian Splatting point clouds |
+| FBX | Community `babylonjs-fbx-loader` | Via SceneLoader plugin |
+
+### Conversion Formats
+
+Conversion formats require external tools and are converted to GLB before rendering:
+
+| Format | Converter | Intermediate | Output |
+|--------|-----------|--------------|--------|
+| STEP / STP | CadQuery + OCCT | Direct triangulation | GLB |
+| IGES / IGS | CadQuery + OCCT | Direct triangulation | GLB |
+| BREP | CadQuery + OCCT | Direct triangulation | GLB |
+| SLDPRT | FreeCAD | STEP → GLB | GLB |
+| 3MF | trimesh + Assimp | Direct mesh | GLB |
+| DAE | trimesh + Assimp | Direct mesh | GLB |
+
+### Format Parsing Details
+
+#### STL (Stereolithography)
+
+**Binary STL Structure**:
+```
+Offset  Size    Description
+0       80      Header (ignored)
+80      4       Triangle count (uint32 LE)
+84      50*N    Triangle records:
+                - 12 bytes: Normal vector (3x float32)
+                - 36 bytes: 3 vertices (3x 3x float32)
+                - 2 bytes: Attribute byte count
+```
+
+**Parsing Steps**:
+1. Validate buffer size (≥84 bytes)
+2. Detect ASCII STL (starts with "solid") and reject
+3. Read triangle count from offset 80
+4. Validate buffer size (≥84 + count×50 bytes)
+5. Pre-scan for per-face colors (VisCAM/SolidView 15-bit RGB in attribute bytes)
+6. Extract positions, recompute normals (cross product), extract colors
+7. Create Babylon `VertexData` and apply to mesh
+
+**Color Encoding** (VisCAM/SolidView):
+- Bit 15: Color flag (1 = has color)
+- Bits 10-14: Blue (5-bit)
+- Bits 5-9: Green (5-bit)
+- Bits 0-4: Red (5-bit)
+
+#### PLY (Stanford Triangle Format)
+
+**Header Format**:
+```
+ply
+format ascii|binary_little_endian|binary_big_endian 1.0
+element vertex <count>
+property float x
+property float y
+property float z
+property uchar red
+property uchar green
+property uchar blue
+element face <count>
+property list uchar int vertex_indices
+end_header
+```
+
+**Parsing Steps**:
+1. Decode header as ASCII text
+2. Parse format, elements, and properties
+3. Detect binary vs ASCII format
+4. For binary: read vertices and faces using `DataView` with correct endianness
+5. For ASCII: parse line-by-line
+6. Triangulate faces (fan method for polygons)
+7. Compute normals from face geometry
+8. Apply vertex colors if present
+
+**Supported Property Types**: uchar, char, ushort, short, uint, int, float, double
+
+#### OBJ (Wavefront OBJ)
+
+**Loading Flow**:
+1. Parse OBJ text to find `mtllib` reference
+2. Load MTL file from vault (relative to OBJ location)
+3. Resolve texture paths:
+   - Full relative path
+   - Same-directory filename
+   - OBJ-name with image extensions
+   - Original texture basename with different extensions
+4. Override Babylon's `_loadMTL` to use vault content
+5. Call `SceneLoader.ImportMeshAsync()` with MTL content
+
+**Texture Resolution Priority**:
+1. Full relative path from MTL
+2. Same-directory exact filename
+3. OBJ basename + common image extensions (jpg, png, bmp, tga, webp)
+4. Texture basename + alternative extensions
+
+#### GLB/GLTF (GL Transmission Format)
+
+**Features Supported**:
+- PBR materials (metallic-roughness workflow)
+- Animations (skeletal, morph targets)
+- Multiple meshes and materials
+- Texture embedding (GLB) or external references (GLTF)
+- Scene hierarchy and transforms
+
+**Loading**: Uses Babylon's built-in `GLTFFileLoader` with full feature support.
+
+#### SPLAT (Gaussian Splatting)
+
+**Format**: Binary point cloud with per-point properties:
+- Position (xyz)
+- Color (rgb)
+- Opacity
+- Covariance (scale + rotation)
+
+**Loading**: Uses Babylon's built-in `SPLATFileLoader` for Gaussian Splatting rendering.
+
+#### FBX (Autodesk FBX)
+
+**Loading**: Uses community `babylonjs-fbx-loader` package.
+
+**Limitations**:
+- Subject to Babylon v9 SceneLoader data-URL issue
+- Complex FBX features (constraints, deformers) may not be fully supported
+- Large FBX files may cause memory issues
+
+**Workaround**: Enable FBX2glTF converter in settings for better compatibility.
+
+### Complete Format Support Matrix
+
+| Format | Extension | Family | Strategy | Loader | Materials | Colors | Animation | Point Cloud | External Tool |
+|--------|-----------|--------|----------|--------|-----------|--------|-----------|-------------|---------------|
+| GLB | .glb | mesh | direct | Babylon GLTF | PBR | Vertex | Yes | No | No |
+| GLTF | .gltf | mesh | direct | Babylon GLTF | PBR | Vertex | Yes | No | No |
+| STL | .stl | mesh | direct | Custom | Basic | Per-face | No | No | No |
+| OBJ | .obj | mesh | direct | Babylon OBJ | MTL | No | No | No | No |
+| PLY | .ply | mesh | direct | Custom | Basic | Vertex | No | Yes | No |
+| SPLAT | .splat | point-cloud | direct | Babylon SPLAT | No | Per-point | No | Yes | No |
+| FBX | .fbx | mesh | direct | Community | Basic | No | Yes | No | No |
+| STEP | .step | cad | convert | CadQuery | No | Per-face | No | No | Python + CadQuery |
+| STP | .stp | cad | convert | CadQuery | No | Per-face | No | No | Python + CadQuery |
+| IGES | .iges | cad | convert | CadQuery | No | No | No | No | Python + CadQuery |
+| IGS | .igs | cad | convert | CadQuery | No | No | No | No | Python + CadQuery |
+| BREP | .brep | cad | convert | CadQuery | No | No | No | No | Python + CadQuery |
+| SLDPRT | .sldprt | cad | convert | FreeCAD | No | No | No | No | FreeCAD |
+| 3MF | .3mf | mesh | convert | trimesh | Basic | No | No | No | Python + trimesh |
+| DAE | .dae | mesh | convert | trimesh | Basic | No | No | No | Python + trimesh |
+
+**Legend**:
+- **PBR**: Physically-Based Rendering materials (metallic-roughness workflow)
+- **Basic**: Standard diffuse material
+- **Vertex**: Per-vertex color support
+- **Per-face**: Per-face/triangle color support
+- **Per-point**: Per-point color and opacity
+
+### Format Feature Details
+
+| Feature | GLB/GLTF | STL | OBJ | PLY | SPLAT | FBX | CAD (STEP etc.) |
+|---------|----------|-----|-----|-----|-------|-----|-----------------|
+| Mesh rendering | Yes | Yes | Yes | Yes | No | Yes | Yes (converted) |
+| Point cloud | No | No | No | Yes | Yes | No | No |
+| Materials | Full PBR | Basic | MTL | Basic | No | Basic | No |
+| Textures | Embedded | No | External | No | No | No | No |
+| Vertex colors | Yes | No | No | Yes | No | No | No |
+| Face colors | No | Yes | No | No | No | No | Yes (STEP) |
+| Animations | Yes | No | No | No | No | Yes | No |
+| Scene hierarchy | Yes | No | No | No | No | Yes | No |
+| Binary format | GLB | Yes | No | Yes | Yes | Yes | N/A |
+| ASCII format | GLTF | Yes | Yes | Yes | No | No | N/A |
+
+### Path Resolution
+
+Model paths are resolved in this order:
+
+1. **Link-style paths**: `metadataCache.getFirstLinkpathDest()` for Obsidian wiki-link syntax
+2. **Vault-relative paths**: Direct path resolution from vault root
+3. **Absolute paths**: Used for conversion output files
+
+### Data Flow
+
+```
+User Input (```3d model.glb``` or ![[model.glb]])
+    │
+    ├─ resolveVaultPath() → vault-relative path
+    │
+    ├─ getFormatCapability() → format metadata
+    │
+    ├─ [Conversion formats only]
+    │   ├─ resolveVaultAbsolutePath() → filesystem path
+    │   ├─ convertForPreview() → run converter
+    │   └─ read converted .ai3d-converted.glb
+    │
+    ├─ readBinaryPath() → ArrayBuffer
+    │
+    └─ BabylonModelPreview.loadModel(data, ext)
+        ├─ STL/PLY: direct buffer parsing
+        └─ Others: SceneLoader.ImportMeshAsync()
+```
+
+### Caching
+
+Conversion results are cached to avoid redundant processing:
+
+- **Cache location**: Same directory as source file, named `{filename}.ai3d-converted.glb`
+- **Cache validation**: Checks converter identity, cache key, and file existence
+- **Cache invalidation**: Automatic when converter settings change
+- **Manual clear**: Command palette > "Clear Conversion Cache"
+
+## Known Limitations
+
+### Babylon.js v9 SceneLoader Data-URL Issue
+
+Custom Babylon.js SceneLoader plugins (STL, PLY) do not receive raw `ArrayBuffer` data when loaded through `SceneLoader.ImportMeshAsync` with data URLs. The plugin works around this by using direct buffer parsing for these formats:
+
+| Format | Loading Strategy | Status |
+|--------|-----------------|--------|
+| GLB / GLTF | Babylon built-in SceneLoader | Works correctly |
+| STL | Direct `ArrayBuffer` parsing (bypasses SceneLoader) | Works correctly |
+| PLY | Direct `ArrayBuffer` parsing (bypasses SceneLoader) | Works correctly |
+| OBJ | Babylon built-in SceneLoader + MTL override | Works correctly |
+| SPLAT | Babylon built-in SceneLoader | Works correctly |
+| FBX | Community `babylonjs-fbx-loader` SceneLoader plugin | Subject to data-URL limitation |
+
+**FBX workaround**: If FBX files fail to render, enable the FBX2glTF converter in settings (Settings > Enable FBX2glTF converter) to convert FBX to GLB before rendering.
+
+### STL Format
+
+- Only binary STL is supported. ASCII STL files are detected and rejected with an error message.
+- Per-face colors use the VisCAM/SolidView 15-bit RGB encoding in the 2-byte attribute field.
+
+### OBJ Format
+
+- MTL texture paths are resolved relative to the OBJ file location within the vault.
+- If textures are not found, the corresponding material lines are stripped to prevent red-black checkerboard placeholders.
+
+### CAD Conversion
+
+- STEP/IGES/BREP/SLDPRT formats require external tools (Python + CadQuery, or FreeCAD).
+- Conversion results are cached in the source directory as `.ai3d-converted.glb` files.
+- SLDPRT conversion has a 10-minute timeout for complex assemblies.
+
 ## Supported Platforms
 
 - **Desktop**: Windows, macOS, Linux

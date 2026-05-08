@@ -27,6 +27,7 @@ import type {
 import "./loaders/register";
 import { ensureLoadersRegistered } from "./loaders/register";
 import { loadSTLBuffer } from "./loaders/stl-loader";
+import { loadPLYBuffer } from "./loaders/ply-loader";
 import { setExplode, resetExplode } from "./explode";
 import { setupPicking } from "./picking";
 import { arrayBufferToBase64 } from "../../utils/base64";
@@ -248,6 +249,9 @@ export class BabylonModelPreview {
     } else if (extLower === "stl") {
       // Direct parse — Babylon v9 SceneLoader mishandles data URLs for custom plugins
       this.rootMesh = loadSTLBuffer(scene, data);
+    } else if (extLower === "ply") {
+      // Direct parse — same Babylon v9 data-URL issue as STL
+      this.rootMesh = loadPLYBuffer(scene, data);
     } else {
       const result = await SceneLoader.ImportMeshAsync("", "", dataUrl, scene, undefined, fileExt);
       if (result.meshes.length > 0) this.rootMesh = result.meshes[0] as Mesh;
