@@ -34,10 +34,15 @@ export class GridRenderer {
   private wireframeEnabled = false;
   private rendering = false;
   private resizeObs: ResizeObserver;
+  private readonly preventCanvasWheelScroll = (event: WheelEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
 
   constructor(canvas: HTMLCanvasElement) {
     canvas.style.width = "100%";
     canvas.style.height = "100%";
+    canvas.addEventListener("wheel", this.preventCanvasWheelScroll, { passive: false });
     this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true });
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.12, 0.12, 0.14, 1);
@@ -467,6 +472,8 @@ export class GridRenderer {
   destroy(): void {
     this.engine.stopRenderLoop();
     for (const cell of this.cells) cell.camera.detachControl();
+    const canvas = this.engine.getRenderingCanvas();
+    canvas?.removeEventListener("wheel", this.preventCanvasWheelScroll);
     this.resizeObs.disconnect();
     this.scene.dispose();
     this.engine.dispose();
