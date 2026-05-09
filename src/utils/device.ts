@@ -1,10 +1,8 @@
+import { Platform } from "obsidian";
+
 /** Detect mobile/touch devices for performance tuning. */
 export function isMobile(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return (
-    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
-    (navigator.maxTouchPoints ?? 0) > 1
-  );
+  return Platform.isMobile;
 }
 
 /**

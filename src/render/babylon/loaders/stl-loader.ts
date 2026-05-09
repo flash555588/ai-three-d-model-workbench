@@ -1,7 +1,10 @@
 import type { Scene } from "@babylonjs/core/scene.js";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
-import type { Mesh } from "@babylonjs/core/Meshes/mesh.js";
-import type { AssetContainer } from "@babylonjs/core/assetContainer.js";
+import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh.js";
+import { AssetContainer } from "@babylonjs/core/assetContainer.js";
+import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData.js";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js";
+import { Color3 } from "@babylonjs/core/Maths/math.color.js";
 
 interface STLAsyncResult {
   meshes: AbstractMesh[];
@@ -56,7 +59,6 @@ const stlPlugin: STLAsyncPlugin = {
   },
 
   loadAssetContainerAsync(scene, data) {
-    const { AssetContainer } = require("@babylonjs/core/assetContainer.js") as typeof import("@babylonjs/core/assetContainer.js");
     return Promise.resolve().then(() => {
       const mesh = parseBinarySTL(scene, data as ArrayBuffer);
       const container = new AssetContainer(scene);
@@ -70,12 +72,7 @@ const stlPlugin: STLAsyncPlugin = {
   rewriteRootURL(rootUrl) { return rootUrl; },
 };
 
-function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): Mesh {
-  const { VertexData } = require("@babylonjs/core/Meshes/mesh.vertexData.js") as typeof import("@babylonjs/core/Meshes/mesh.vertexData.js");
-  const { Mesh: BabylonMesh } = require("@babylonjs/core/Meshes/mesh.js") as typeof import("@babylonjs/core/Meshes/mesh.js");
-  const { StandardMaterial } = require("@babylonjs/core/Materials/standardMaterial.js") as typeof import("@babylonjs/core/Materials/standardMaterial.js");
-  const { Color3 } = require("@babylonjs/core/Maths/math.color.js") as typeof import("@babylonjs/core/Maths/math.color.js");
-
+function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): BabylonMesh {
   if (buffer.byteLength < 84) {
     throw new Error(`STL buffer too small: ${buffer.byteLength} bytes (need 84+)`);
   }
@@ -93,7 +90,7 @@ function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): Mesh {
 
   const view = new DataView(buffer);
   const triangleCount = view.getUint32(80, true);
-  console.log(`[AI3D STL] Parsing ${buffer.byteLength} bytes, ${triangleCount} triangles`);
+  console.debug(`[AI3D STL] Parsing ${buffer.byteLength} bytes, ${triangleCount} triangles`);
 
   if (triangleCount === 0) {
     throw new Error("STL file contains 0 triangles");
@@ -191,7 +188,7 @@ function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): Mesh {
     console.warn(`[AI3D STL] ${zeroNormalCount} degenerate triangles with zero-area normals`);
   }
   if (hasFaceColors) {
-    console.log(`[AI3D STL] Detected per-face colors: ${colorFaceCount}/${triangleCount} faces colored`);
+    console.debug(`[AI3D STL] Detected per-face colors: ${colorFaceCount}/${triangleCount} faces colored`);
   }
 
   const vertexData = new VertexData();
@@ -226,7 +223,7 @@ function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): Mesh {
  * Parse a binary STL ArrayBuffer and add the resulting mesh to a Scene.
  * Bypasses SceneLoader — works around Babylon v9 data-URL handling issues.
  */
-export function loadSTLBuffer(scene: Scene, buffer: ArrayBuffer): Mesh {
+export function loadSTLBuffer(scene: Scene, buffer: ArrayBuffer): BabylonMesh {
   return parseBinarySTL(scene, buffer);
 }
 

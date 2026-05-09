@@ -28,12 +28,14 @@ export class AnalysisView extends FileView {
     return "box";
   }
 
-  async onOpen(): Promise<void> {
+  onOpen(): Promise<void> {
     this.unmount = mountWorkbench(this.contentEl, this.app, this.store, this.convertedAssetCache);
+    return Promise.resolve();
   }
 
-  async onClose(): Promise<void> {
+  onClose(): Promise<void> {
     this.unmount?.();
     this.unmount = null;
+    return Promise.resolve();
   }
 }

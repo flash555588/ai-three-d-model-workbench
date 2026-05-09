@@ -1,8 +1,7 @@
 import type { ConversionRequest, ConversionResult, ModelConverter } from "../types";
-import { access, readFile } from "node:fs/promises";
-import { constants as fsConstants } from "node:fs";
-import { dirname, basename, extname, join, isAbsolute } from "node:path";
-import { execFile } from "node:child_process";
+import { F_OK, access, readFile } from "../../../utils/node-shim";
+import { pathDirname as dirname, pathBasename as basename, pathExtname as extname, pathJoin as join, pathIsAbsolute as isAbsolute } from "../../../utils/node-shim";
+import { execFile } from "../../../utils/node-shim";
 import { createLogger } from "../../../utils/log";
 import { resolveConverterCommand } from "../command-discovery";
 
@@ -11,7 +10,7 @@ const DEFAULT_TIMEOUT_MS = 3 * 60 * 1000;
 
 async function fileExists(path: string): Promise<boolean> {
   try {
-    await access(path, fsConstants.F_OK);
+    await access(path, F_OK);
     return true;
   } catch {
     return false;

@@ -1,4 +1,5 @@
-import type { App, TFile } from "obsidian";
+import type { App } from "obsidian";
+import { TFile } from "obsidian";
 
 /**
  * Normalize heading text by stripping common markdown formatting.
@@ -66,8 +67,8 @@ export async function readHeadingSection(
 ): Promise<string | null> {
   try {
     const file = app.vault.getAbstractFileByPath(notePath);
-    if (!file) return null;
-    const content = await app.vault.cachedRead(file as TFile);
+    if (!(file instanceof TFile)) return null;
+    const content = await app.vault.cachedRead(file);
     const lines = content.split("\n");
 
     // Find the heading line (normalize for fuzzy match against formatted headings)

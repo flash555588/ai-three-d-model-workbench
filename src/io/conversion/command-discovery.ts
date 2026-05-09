@@ -1,6 +1,5 @@
-import { constants as fsConstants } from "node:fs";
-import { access } from "node:fs/promises";
-import { delimiter, extname, isAbsolute, join } from "node:path";
+import { F_OK, X_OK, access } from "../../utils/node-shim";
+import { pathDelimiter as delimiter, pathExtname as extname, pathIsAbsolute as isAbsolute, pathJoin as join } from "../../utils/node-shim";
 import type { PluginSettings } from "../../domain/models";
 
 export type ConverterCommandId = "freecad" | "obj2gltf" | "fbx2gltf" | "assimp" | "freecadcmd";
@@ -129,7 +128,7 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
 
 async function fileExists(path: string): Promise<boolean> {
   try {
-    await access(path, fsConstants.F_OK);
+    await access(path, F_OK);
     return true;
   } catch {
     return false;
@@ -138,7 +137,7 @@ async function fileExists(path: string): Promise<boolean> {
 
 async function isExecutable(path: string): Promise<boolean> {
   try {
-    await access(path, process.platform === "win32" ? fsConstants.F_OK : fsConstants.X_OK);
+    await access(path, process.platform === "win32" ? F_OK : X_OK);
     return true;
   } catch {
     return false;

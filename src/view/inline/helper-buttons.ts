@@ -1,6 +1,16 @@
 import type { App } from "obsidian";
 import type { PluginSettings } from "../../domain/models";
 
+/** Convert a data URL to a Blob without using fetch(). */
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, data] = dataUrl.split(",");
+  const mime = header.match(/:(.*?);/)?.[1] ?? "image/png";
+  const binary = atob(data);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
 /** Any preview that supports snapshot capture. */
 export interface SnapshotProvider {
   captureSnapshot(): string | null;
@@ -60,14 +70,15 @@ export function createHelperButtons(
   infoBtn.className = "ai3d-inline-btn";
   infoBtn.setAttribute("aria-label", "Copy model info as Markdown");
   infoBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
-  infoBtn.addEventListener("click", async () => {
+  infoBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.exportModelInfo) return;
     try {
       const md = preview.exportModelInfo(getModelPath());
       if (!md) return;
-      await navigator.clipboard.writeText(md);
-      showTooltip(infoBtn, "Copied!");
+      void navigator.clipboard.writeText(md).then(() => {
+        showTooltip(infoBtn, "Copied!");
+      });
     } catch (err) {
       console.error("[AI3D] Export model info failed:", err);
       showTooltip(infoBtn, "Failed");
@@ -84,7 +95,7 @@ export function createHelperButtons(
     const preview = getPreview();
     if (!preview?.toggleWireframe) return;
     const on = preview.toggleWireframe();
-    wireBtn.style.color = on ? "var(--interactive-accent)" : "";
+    wireBtn.classList.toggle("ai3d-btn-active", on);
     showTooltip(wireBtn, on ? "Wireframe" : "Solid");
   });
   toolbar.appendChild(wireBtn);
@@ -98,7 +109,7 @@ export function createHelperButtons(
     const preview = getPreview();
     if (!preview?.toggleOrientationGizmo) return;
     const on = preview.toggleOrientationGizmo();
-    gizmoBtn.style.color = on ? "var(--interactive-accent)" : "";
+    gizmoBtn.classList.toggle("ai3d-btn-active", on);
     showTooltip(gizmoBtn, on ? "Axes On" : "Axes Off");
   });
   toolbar.appendChild(gizmoBtn);
@@ -112,7 +123,7 @@ export function createHelperButtons(
     const preview = getPreview();
     if (!preview?.toggleBoundingBox) return;
     const on = preview.toggleBoundingBox();
-    bboxBtn.style.color = on ? "var(--interactive-accent)" : "";
+    bboxBtn.classList.toggle("ai3d-btn-active", on);
     showTooltip(bboxBtn, on ? "BBox On" : "BBox Off");
   });
   toolbar.appendChild(bboxBtn);
@@ -126,7 +137,7 @@ export function createHelperButtons(
     const preview = getPreview();
     if (!preview?.toggleDisassembly) return;
     const on = preview.toggleDisassembly();
-    disassembleBtn.style.color = on ? "var(--interactive-accent)" : "";
+    disassembleBtn.classList.toggle("ai3d-btn-active", on);
     showTooltip(disassembleBtn, on ? "Disassemble On" : "Disassemble Off");
   });
   toolbar.appendChild(disassembleBtn);
@@ -151,9 +162,6 @@ export function createHelperButtons(
   resBtn.className = "ai3d-inline-btn ai3d-res-btn";
   resBtn.setAttribute("aria-label", "Change resolution (click to cycle)");
   resBtn.textContent = "1.0x";
-  resBtn.style.fontSize = "10px";
-  resBtn.style.fontWeight = "600";
-  resBtn.style.minWidth = "32px";
   resBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.setRenderScale) return;
@@ -166,9 +174,8 @@ export function createHelperButtons(
 
   // Animation play/pause button (play triangle — hidden until animations detected)
   const animBtn = document.createElement("button");
-  animBtn.className = "ai3d-inline-btn";
+  animBtn.className = "ai3d-inline-btn is-hidden";
   animBtn.setAttribute("aria-label", "Play/Pause animation");
-  animBtn.style.display = "none";
   animBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
   animBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -194,18 +201,18 @@ export function createHelperButtons(
   copyBtn.className = "ai3d-inline-btn";
   copyBtn.setAttribute("aria-label", "Copy snapshot");
   copyBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`;
-  copyBtn.addEventListener("click", async () => {
+  copyBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview) return;
     try {
       const dataUrl = preview.captureSnapshot();
       if (!dataUrl) return;
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      await navigator.clipboard.write([
+      const blob = dataUrlToBlob(dataUrl);
+      void navigator.clipboard.write([
         new ClipboardItem({ "image/png": blob }),
-      ]);
-      showTooltip(copyBtn, "Copied!");
+      ]).then(() => {
+        showTooltip(copyBtn, "Copied!");
+      });
     } catch (err) {
       console.error("[AI3D] Copy snapshot failed:", err);
       showTooltip(copyBtn, "Failed");
@@ -218,7 +225,7 @@ export function createHelperButtons(
   saveBtn.className = "ai3d-inline-btn";
   saveBtn.setAttribute("aria-label", "Save snapshot to vault");
   saveBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
-  saveBtn.addEventListener("click", async () => {
+  saveBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview) return;
     try {
@@ -234,17 +241,23 @@ export function createHelperButtons(
         ? `snapshot_${ts}.png`
         : `${baseName}_snapshot_${ts}.png`;
 
-      const res = await fetch(dataUrl);
-      const buffer = await res.arrayBuffer();
-
-      const folderExists = await app.vault.adapter.exists(folder);
-      if (!folderExists) {
-        await app.vault.createFolder(folder).catch(() => {});
-      }
-
-      const filePath = `${folder}/${fileName}`;
-      await app.vault.createBinary(filePath, buffer);
-      showTooltip(saveBtn, "Saved!");
+      const blob = dataUrlToBlob(dataUrl);
+      const reader = new FileReader();
+      reader.onload = () => {
+        const buffer = reader.result as ArrayBuffer;
+        void app.vault.adapter.exists(folder).then((exists) => {
+          const create = exists ? Promise.resolve() : app.vault.createFolder(folder).catch(() => {});
+          return create;
+        }).then(() => {
+          return app.vault.createBinary(`${folder}/${fileName}`, buffer);
+        }).then(() => {
+          showTooltip(saveBtn, "Saved!");
+        }).catch((err: unknown) => {
+          console.error("[AI3D] Save snapshot failed:", err);
+          showTooltip(saveBtn, "Failed");
+        });
+      };
+      reader.readAsArrayBuffer(blob);
     } catch (err) {
       console.error("[AI3D] Save snapshot failed:", err);
       showTooltip(saveBtn, "Failed");
@@ -283,19 +296,16 @@ export function createHelperButtons(
 
   // Annotation toggle button (tag/label icon — hidden until explicitly shown)
   const annotBtn = document.createElement("button");
-  annotBtn.className = "ai3d-inline-btn";
+  annotBtn.className = "ai3d-inline-btn is-hidden ai3d-annot-btn";
   annotBtn.setAttribute("aria-label", "Toggle annotation mode");
-  annotBtn.style.display = "none";
-  annotBtn.style.position = "relative";
   annotBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`;
   const annotBadge = document.createElement("span");
-  annotBadge.className = "ai3d-pin-badge";
-  annotBadge.style.display = "none";
+  annotBadge.className = "ai3d-pin-badge is-hidden";
   annotBtn.appendChild(annotBadge);
   annotBtn.addEventListener("click", () => {
     if (!onToggleAnnotate) return;
     const active = onToggleAnnotate();
-    annotBtn.style.color = active ? "var(--interactive-accent)" : "";
+    annotBtn.classList.toggle("ai3d-btn-active", active);
     showTooltip(annotBtn, active ? "Annotate On · ESC to exit" : "Annotate Off");
   });
   toolbar.appendChild(annotBtn);
@@ -304,14 +314,14 @@ export function createHelperButtons(
   previewHost.parentElement?.insertBefore(toolbar, previewHost.nextSibling);
 
   return {
-    showAnimButton() { animBtn.style.display = ""; },
-    showAnnotateButton() { annotBtn.style.display = ""; },
+    showAnimButton() { animBtn.classList.remove("is-hidden"); },
+    showAnnotateButton() { annotBtn.classList.remove("is-hidden"); },
     updateAnnotationBadge(count: number) {
       if (count > 0) {
         annotBadge.textContent = String(count);
-        annotBadge.style.display = "";
+        annotBadge.classList.remove("is-hidden");
       } else {
-        annotBadge.style.display = "none";
+        annotBadge.classList.add("is-hidden");
       }
     },
   };

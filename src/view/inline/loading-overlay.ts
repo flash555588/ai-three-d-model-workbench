@@ -52,10 +52,10 @@ export function createLoadingOverlay(host: HTMLElement): LoadingOverlay {
       if (hidden) return;
       if (pct < 0) {
         fill.className = "ai3d-loading-bar-fill is-indeterminate";
-        fill.style.width = "";
+        fill.style.removeProperty("--bar-width");
       } else {
         fill.className = "ai3d-loading-bar-fill";
-        fill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+        fill.style.setProperty("--bar-width", `${Math.min(100, Math.max(0, pct))}%`);
       }
     },
 

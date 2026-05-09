@@ -269,11 +269,11 @@ export class BabylonModelPreview {
     } else if (extLower === "stl") {
       // Direct parse — Babylon v9 SceneLoader mishandles data URLs for custom plugins
       this.rootMesh = loadSTLBuffer(scene, data);
-      this.loadedMeshes = [this.rootMesh];
+      if (this.rootMesh) this.loadedMeshes = [this.rootMesh];
     } else if (extLower === "ply") {
       // Direct parse — same Babylon v9 data-URL issue as STL
       this.rootMesh = loadPLYBuffer(scene, data);
-      this.loadedMeshes = [this.rootMesh];
+      if (this.rootMesh) this.loadedMeshes = [this.rootMesh];
     } else {
       const result = await SceneLoader.ImportMeshAsync("", "", dataUrl, scene, undefined, fileExt);
       this.loadedMeshes = result.meshes;

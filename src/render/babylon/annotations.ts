@@ -61,7 +61,6 @@ export class AnnotationManager {
     // Create overlay container
     this.overlay = document.createElement("div");
     this.overlay.className = "ai3d-annotation-overlay";
-    this.overlay.style.pointerEvents = "none"; // JS backup in case CSS fails to load
     this.hostEl.appendChild(this.overlay);
 
     // Set initial annotations
@@ -130,7 +129,7 @@ export class AnnotationManager {
       const labelEl = entry.el.querySelector(".ai3d-pin-label") as HTMLSpanElement | null;
       if (labelEl && partial.label !== undefined) labelEl.textContent = partial.label;
       const dotEl = entry.el.querySelector(".ai3d-pin-dot") as HTMLDivElement | null;
-      if (dotEl && partial.color !== undefined) dotEl.style.background = partial.color;
+      if (dotEl && partial.color !== undefined) dotEl.style.setProperty("--pin-color", partial.color);
     }
     this.updateProjections();
     this.onChange?.(this.annotations);
@@ -186,16 +185,15 @@ export class AnnotationManager {
 
     // Show existing binding indicator
     const bindingTag = document.createElement("span");
-    bindingTag.className = "ai3d-editor-binding-tag";
-    bindingTag.style.display = "none";
+    bindingTag.className = "ai3d-editor-binding-tag is-hidden";
     const clearBindingBtn = document.createElement("button");
     clearBindingBtn.className = "ai3d-editor-binding-clear";
     clearBindingBtn.textContent = "\u00d7";
     clearBindingBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       this._selectedHeading = null;
-      bindingTag.style.display = "none";
-      contentPreview.style.display = "none";
+      bindingTag.classList.add("is-hidden");
+      contentPreview.classList.add("is-hidden");
       contentPreview.textContent = "";
       input.value = "";
       input.focus();
@@ -207,13 +205,11 @@ export class AnnotationManager {
 
     // ── Content preview (shows heading section content after binding) ──
     const contentPreview = document.createElement("div");
-    contentPreview.className = "ai3d-editor-content-preview";
-    contentPreview.style.display = "none";
+    contentPreview.className = "ai3d-editor-content-preview is-hidden";
 
     // ── Heading autocomplete dropdown ──
     const dropdown = document.createElement("div");
-    dropdown.className = "ai3d-heading-dropdown";
-    dropdown.style.display = "none";
+    dropdown.className = "ai3d-heading-dropdown is-hidden";
     this._headingDropdown = dropdown;
 
     let dropdownIndex = -1;
@@ -239,7 +235,7 @@ export class AnnotationManager {
       textSpan.className = "ai3d-editor-binding-text";
       textSpan.textContent = `\ud83d\udcc4 ${shortPath}`;
       bindingTag.appendChild(textSpan);
-      bindingTag.style.display = "";
+      bindingTag.classList.remove("is-hidden");
       hideDropdown();
       input.focus();
       // Load and show content preview
@@ -247,7 +243,7 @@ export class AnnotationManager {
     };
 
     const hideDropdown = () => {
-      dropdown.style.display = "none";
+      dropdown.classList.add("is-hidden");
       dropdown.innerHTML = "";
       dropdownIndex = -1;
     };
@@ -257,7 +253,7 @@ export class AnnotationManager {
       dropdownIndex = -1;
       lastResults = results;
       if (results.length === 0) {
-        dropdown.style.display = "none";
+        dropdown.classList.add("is-hidden");
         return;
       }
       for (let i = 0; i < results.length; i++) {
@@ -283,7 +279,7 @@ export class AnnotationManager {
         item.addEventListener("mouseenter", () => setDropdownIndex(i));
         dropdown.appendChild(item);
       }
-      dropdown.style.display = "";
+      dropdown.classList.remove("is-hidden");
     };
 
     // ── Input event: heading search ──
@@ -303,7 +299,7 @@ export class AnnotationManager {
 
     // ── Keyboard navigation in dropdown ──
     input.addEventListener("keydown", (e) => {
-      if (dropdown.style.display === "none") {
+      if (dropdown.classList.contains("is-hidden")) {
         // No dropdown open — normal editor keys
         if (e.key === "Enter") {
           e.preventDefault();
@@ -347,7 +343,7 @@ export class AnnotationManager {
     for (const c of DEFAULT_COLORS) {
       const swatch = document.createElement("button");
       swatch.className = "ai3d-pin-color-swatch";
-      swatch.style.background = c;
+      swatch.style.setProperty("--swatch-color", c);
       if (c === selectedColor) swatch.classList.add("active");
       swatch.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -425,8 +421,8 @@ export class AnnotationManager {
     const rect = this.overlay.getBoundingClientRect();
     const x = screenX - rect.left;
     const y = screenY - rect.top;
-    editor.style.left = `${Math.max(0, Math.min(x, rect.width - 220))}px`;
-    editor.style.top = `${Math.max(0, Math.min(y - 10, rect.height - 160))}px`;
+    editor.style.setProperty("--editor-left", `${Math.max(0, Math.min(x, rect.width - 220))}px`);
+    editor.style.setProperty("--editor-top", `${Math.max(0, Math.min(y - 10, rect.height - 160))}px`);
 
     this.overlay.appendChild(editor);
     this.editorEl = editor;
@@ -438,7 +434,7 @@ export class AnnotationManager {
       textSpan.className = "ai3d-editor-binding-text";
       textSpan.textContent = `\ud83d\udcc4 ${shortPath}`;
       bindingTag.appendChild(textSpan);
-      bindingTag.style.display = "";
+      bindingTag.classList.remove("is-hidden");
       this._selectedHeading = { notePath: existingPin.notePath, heading: existingPin.headingRef, level: existingPin.headingLevel ?? 2 };
       this.loadContentPreview(contentPreview, existingPin.notePath, existingPin.headingRef);
     }
@@ -464,19 +460,19 @@ export class AnnotationManager {
   private async loadContentPreview(el: HTMLDivElement, notePath: string, heading: string): Promise<void> {
     if (!this.noteReader) return;
     el.textContent = "";
-    el.style.display = "none";
+    el.classList.add("is-hidden");
     const content = await this.noteReader(notePath, heading);
     if (!content) {
       el.textContent = "(empty section)";
       el.className = "ai3d-editor-content-preview ai3d-editor-content-preview--empty";
-      el.style.display = "";
+      el.classList.remove("is-hidden");
       return;
     }
     // Truncate long content
     const truncated = content.length > 300 ? content.slice(0, 300) + "..." : content;
     el.textContent = truncated;
     el.className = "ai3d-editor-content-preview";
-    el.style.display = "";
+    el.classList.remove("is-hidden");
   }
 
   private async showHoverPopover(pinEl: HTMLDivElement, pin: AnnotationPin): Promise<void> {
@@ -502,8 +498,8 @@ export class AnnotationManager {
 
     // Position relative to pin
     const rect = pinEl.getBoundingClientRect();
-    popover.style.left = `${rect.left + rect.width / 2}px`;
-    popover.style.top = `${rect.bottom + 4}px`;
+    popover.style.setProperty("--popover-left", `${rect.left + rect.width / 2}px`);
+    popover.style.setProperty("--popover-top", `${rect.bottom + 4}px`);
 
     document.body.appendChild(popover);
     this.hoverPopover = popover;
@@ -559,7 +555,7 @@ export class AnnotationManager {
 
     const dot = document.createElement("div");
     dot.className = "ai3d-pin-dot";
-    dot.style.background = pin.color;
+    dot.style.setProperty("--pin-color", pin.color);
 
     const label = document.createElement("span");
     label.className = "ai3d-pin-label";
@@ -588,7 +584,6 @@ export class AnnotationManager {
     }
 
     // Enable pointer events on pin (overlay has pointer-events: none)
-    el.style.pointerEvents = "auto";
     el.addEventListener("pointerdown", (e) => e.stopPropagation());
 
     // Hover popover for linked notes
@@ -679,8 +674,8 @@ export class AnnotationManager {
       if (projected.z > 1 || projected.z < 0) {
         this.hidePin(entry.el);
       } else {
-        entry.el.style.left = `${projected.x * scaleX}px`;
-        entry.el.style.top = `${projected.y * scaleY}px`;
+        entry.el.style.setProperty("--pin-left", `${projected.x * scaleX}px`);
+        entry.el.style.setProperty("--pin-top", `${projected.y * scaleY}px`);
 
         if (checkOcclusion && camPos) {
           const pinDist = Vector3.Distance(camPos, entry.worldPos);
@@ -715,15 +710,11 @@ export class AnnotationManager {
   }
 
   private hidePin(el: HTMLDivElement): void {
-    el.style.visibility = "hidden";
-    el.style.opacity = "0";
     el.classList.remove("ai3d-pin-occluded");
     el.classList.add("ai3d-pin-hidden");
   }
 
   private showPin(el: HTMLDivElement): void {
-    el.style.visibility = "visible";
-    el.style.opacity = "";
     el.classList.remove("ai3d-pin-hidden");
   }
 }

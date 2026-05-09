@@ -4,11 +4,14 @@
  * Used by htm via h.ts.
  */
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Props = Record<string, any> | null;
 type Child = Node | string | number | boolean | null | undefined;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ComponentFn = (props: Record<string, any>) => HTMLElement;
 
 export function createElement(
-  tag: string | Function,
+  tag: string | ComponentFn,
   props: Props,
   ...children: Child[]
 ): HTMLElement | Text {

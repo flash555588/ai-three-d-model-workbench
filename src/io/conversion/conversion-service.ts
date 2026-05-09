@@ -2,9 +2,8 @@ import type { FormatCapability } from "../formats/types";
 import type { ConversionManager } from "./manager";
 import { CONVERTED_ASSET_CACHE_VERSION, type ConvertedAssetCache } from "../cache/converted-asset-cache";
 import { createLogger } from "../../utils/log";
-import { access } from "node:fs/promises";
-import { constants as fsConstants } from "node:fs";
-import { isAbsolute } from "node:path";
+import { F_OK, access } from "../../utils/node-shim";
+import { pathIsAbsolute as isAbsolute } from "../../utils/node-shim";
 
 const log = createLogger("conversion-service");
 
@@ -44,7 +43,7 @@ function isCachedRecordCompatible(
 async function isCachedOutputAvailable(outputPath: string): Promise<boolean> {
   if (!outputPath) return false;
   try {
-    await access(outputPath, fsConstants.F_OK);
+    await access(outputPath, F_OK);
     return true;
   } catch {
     return false;

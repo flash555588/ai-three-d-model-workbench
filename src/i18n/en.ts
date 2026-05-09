@@ -5,7 +5,7 @@ export const en = {
   "settings.behavior": "Behavior",
   "settings.converters": "Converters",
   "settings.paths": "Converter Paths",
-  "settings.diagnostics": "Converter Command Diagnostics",
+  "settings.diagnostics": "Converter command diagnostics",
   "settings.performance": "Performance & Display",
 
   // Folders
@@ -31,8 +31,8 @@ export const en = {
   "settings.language.desc": "Display language for plugin settings. Takes effect immediately.",
 
   // Converters
-  "settings.enableCad": "Enable CAD converter (STEP/IGES/BREP)",
-  "settings.enableCad.desc": "Enable CAD conversion route for STEP/IGES/BREP formats via Python CadQuery (OpenCASCADE). Requires: pip install cadquery trimesh",
+  "settings.enableCad": "Enable CAD converter (STEP / IGES / BREP)",
+  "settings.enableCad.desc": "Enable CAD conversion route for STEP/IGES/BREP formats via Python CadQuery (OpenCASCADE). Requires: pip install cadquery trimesh.",
   "settings.enableObj2gltf": "Enable obj2gltf converter (experimental)",
   "settings.enableObj2gltf.desc": "Keep OBJ direct loading as default. Enable this only if you want an optional local normalization route through obj2gltf.",
   "settings.preferObj2gltf": "Prefer obj2gltf for OBJ",
@@ -45,15 +45,15 @@ export const en = {
   "settings.enableSldprt.desc": "Enable conversion route for SolidWorks .sldprt files via FreeCAD. Requires FreeCAD installed (https://www.freecad.org/downloads.php).",
 
   // Converter paths
-  "settings.pythonCmd": "Python command path (for CAD)",
+  "settings.pythonCmd": "Python command path (for CAD conversion)",
   "settings.pythonCmd.desc": "Optional path to Python executable for CAD conversion. Overrides auto-discovery and AI3D_FREECAD_CMD when set.",
-  "settings.freecadCmd": "FreeCADCmd path (for SLDPRT)",
+  "settings.freecadCmd": "FreeCADCmd path (for SLDPRT conversion)",
   "settings.freecadCmd.desc": "Optional path to FreeCADCmd.exe for SolidWorks file conversion. Overrides auto-discovery and AI3D_FREECMDCMD when set.",
   "settings.obj2gltfCmd": "obj2gltf command path",
   "settings.obj2gltfCmd.desc": "Optional path to obj2gltf CLI. Overrides auto-discovery and AI3D_OBJ2GLTF_CMD when set.",
   "settings.fbx2gltfCmd": "FBX2glTF command path",
   "settings.fbx2gltfCmd.desc": "Optional path to FBX2glTF CLI. Overrides auto-discovery and AI3D_FBX2GLTF_CMD when set.",
-  "settings.assimpCmd": "Python command path (for 3MF/DAE)",
+  "settings.assimpCmd": "Python command path (for 3MF/DAE conversion)",
   "settings.assimpCmd.desc": "Optional path to Python executable. Overrides auto-discovery and AI3D_ASSIMP_CMD when set.",
 
   // Diagnostics

@@ -68,14 +68,13 @@ class ModelEmbedWidget extends WidgetType {
 
     const canvas = document.createElement("canvas");
     canvas.className = "ai3d-embed-canvas";
-    canvas.style.height = `${this.height}px`;
+    canvas.style.setProperty("--ai3d-embed-height", `${this.height}px`);
     host.appendChild(canvas);
 
     const loading = createLoadingOverlay(host);
 
     const error = document.createElement("div");
-    error.className = "ai3d-embed-error";
-    error.style.display = "none";
+    error.className = "ai3d-embed-error is-hidden";
     host.appendChild(error);
 
     // Poll host.isConnected via rAF — avoids O(N*M) MutationObserver on document.body
@@ -163,7 +162,7 @@ class ModelEmbedWidget extends WidgetType {
       this.preview?.destroy();
       this.preview = null;
       loading.hide();
-      error.style.display = "";
+      error.classList.remove("is-hidden");
       error.textContent = `[AI3D] ${err instanceof Error ? err.message : String(err)}`;
     }
   }
@@ -188,7 +187,7 @@ class ModelEmbedWidget extends WidgetType {
 // ── Document scanner ──────────────────────────────────────────────
 
 function findEmbeds(
-  viewOrState: EditorView | import("@codemirror/state").EditorState,
+  viewOrState: { state: import("@codemirror/state").EditorState } | import("@codemirror/state").EditorState,
   app: App,
   autoRotate: boolean,
   enabledConverterIds: string[],

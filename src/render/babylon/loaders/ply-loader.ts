@@ -1,7 +1,10 @@
 import type { Scene } from "@babylonjs/core/scene.js";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
-import type { Mesh } from "@babylonjs/core/Meshes/mesh.js";
-import type { AssetContainer } from "@babylonjs/core/assetContainer.js";
+import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh.js";
+import { AssetContainer } from "@babylonjs/core/assetContainer.js";
+import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData.js";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js";
+import { Color3 } from "@babylonjs/core/Maths/math.color.js";
 
 interface PLYProperty {
   name: string;
@@ -218,12 +221,7 @@ function parseASCIIPly(text: string, header: PLYHeader) {
 
 // ── PLY → Babylon Mesh ────────────────────────────────────────────
 
-function parsePLY(scene: Scene, data: ArrayBuffer): Mesh {
-  const { VertexData } = require("@babylonjs/core/Meshes/mesh.vertexData.js") as typeof import("@babylonjs/core/Meshes/mesh.vertexData.js");
-  const { Mesh: BabylonMesh } = require("@babylonjs/core/Meshes/mesh.js") as typeof import("@babylonjs/core/Meshes/mesh.js");
-  const { StandardMaterial } = require("@babylonjs/core/Materials/standardMaterial.js") as typeof import("@babylonjs/core/Materials/standardMaterial.js");
-  const { Color3 } = require("@babylonjs/core/Maths/math.color.js") as typeof import("@babylonjs/core/Maths/math.color.js");
-
+function parsePLY(scene: Scene, data: ArrayBuffer): BabylonMesh {
   const text = new TextDecoder().decode(new Uint8Array(data));
   const header = parsePLYHeader(text);
   const headerEnd = text.indexOf("end_header") + "end_header".length + 1;
@@ -326,7 +324,6 @@ const plyPlugin = {
   },
 
   loadAssetContainerAsync(scene: Scene, data: unknown) {
-    const { AssetContainer } = require("@babylonjs/core/assetContainer.js") as typeof import("@babylonjs/core/assetContainer.js");
     return Promise.resolve().then(() => {
       const mesh = parsePLY(scene, data as ArrayBuffer);
       const container = new AssetContainer(scene);
@@ -345,7 +342,7 @@ const plyPlugin = {
  * Bypasses SceneLoader — works around Babylon v9 data-URL handling issues
  * for custom plugins (same pattern as loadSTLBuffer).
  */
-export function loadPLYBuffer(scene: Scene, buffer: ArrayBuffer): Mesh {
+export function loadPLYBuffer(scene: Scene, buffer: ArrayBuffer): BabylonMesh {
   return parsePLY(scene, buffer);
 }
 

@@ -100,7 +100,7 @@ export function registerCodeBlockProcessor(
 ) {
   return {
     id: "3d",
-    handler: async (
+    handler: (
       source: string,
       el: HTMLElement,
       _ctx: MarkdownPostProcessorContext,
@@ -168,15 +168,14 @@ export function registerCodeBlockProcessor(
       const settings = getSettings();
       const host = el.createDiv({ cls: "ai3d-preview-host" });
       if (config.height) {
-        host.style.minHeight = typeof config.height === "number" ? `${config.height}px` : config.height;
+        host.style.setProperty("--min-height", typeof config.height === "number" ? `${config.height}px` : config.height);
       }
       if (config.width) {
-        host.style.maxWidth = typeof config.width === "number" ? `${config.width}px` : config.width;
+        host.style.setProperty("--max-width", typeof config.width === "number" ? `${config.width}px` : config.width);
       }
 
       const canvas = document.createElement("canvas");
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
+      canvas.className = "ai3d-canvas-full";
       canvas.tabIndex = 0;
       canvas.addEventListener("keydown", (e) => {
         if (destroyed || !preview) return;
@@ -210,7 +209,7 @@ export function registerCodeBlockProcessor(
         annotationVisible = !annotationVisible;
         if (annotationMgr) {
           const overlay = host.querySelector(".ai3d-annotation-overlay") as HTMLElement | null;
-          if (overlay) overlay.style.display = annotationVisible ? "" : "none";
+          if (overlay) overlay.classList.toggle("is-hidden", !annotationVisible);
         }
         return annotationVisible;
       });
@@ -386,7 +385,7 @@ export function registerGridCodeBlockProcessor(
 ) {
   return {
     id: "3dgrid",
-    handler: async (
+    handler: (
       source: string,
       el: HTMLElement,
       _ctx: MarkdownPostProcessorContext,
@@ -413,6 +412,8 @@ export function registerGridCodeBlockProcessor(
 
       const settings = getSettings();
       const gridLoading = createLoadingOverlay(el);
+
+      void (async () => {
       const preparedModels: PreparedInlineModel[] = [];
       for (const entry of config.models ?? []) {
         try {
@@ -445,7 +446,7 @@ export function registerGridCodeBlockProcessor(
       // Height controlled by CSS max-height only; rowHeight sets inline height (capped by CSS max-height)
       if (typeof config.rowHeight === "number") {
         const rows = config.preset === "compose" ? 1 : Math.ceil(resolved.length / (config.columns ?? Math.min(resolved.length, 3)));
-        gridHost.style.height = `${config.rowHeight * rows}px`;
+        gridHost.style.setProperty("--grid-height", `${config.rowHeight * rows}px`);
       }
 
       let renderer: GridRenderer | null = null;
@@ -585,6 +586,7 @@ export function registerGridCodeBlockProcessor(
         }
       }, { rootMargin: "200px" });
       gridIo.observe(gridHost);
+      })(); // end async IIFE
     },
   };
 }

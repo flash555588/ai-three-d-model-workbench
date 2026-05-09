@@ -54,8 +54,7 @@ export class GridRenderer {
   };
 
   constructor(canvas: HTMLCanvasElement) {
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
+    canvas.className = "ai3d-canvas-full";
     canvas.addEventListener("wheel", this.preventCanvasWheelScroll, { passive: false });
     this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true });
     this.scene = new Scene(this.engine);

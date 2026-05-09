@@ -1,6 +1,9 @@
 import type { Scene } from "@babylonjs/core/scene.js";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
 import type { Vector3 as BVector3 } from "@babylonjs/core/Maths/math.vector.js";
+import { PointerEventTypes } from "@babylonjs/core/Events/pointerEvents.js";
+import { Color3 } from "@babylonjs/core/Maths/math.color.js";
+import { HighlightLayer } from "@babylonjs/core/Layers/highlightLayer.js";
 import "@babylonjs/core/Layers/effectLayerSceneComponent.js";
 
 export interface PickResult {
@@ -20,9 +23,6 @@ export function setupPicking(
   scene: Scene,
   onPick: (result: PickResult) => void,
 ): () => void {
-  const { PointerEventTypes } = require("@babylonjs/core/Events/pointerEvents.js") as typeof import("@babylonjs/core/Events/pointerEvents.js");
-  const { Color3 } = require("@babylonjs/core/Maths/math.color.js") as typeof import("@babylonjs/core/Maths/math.color.js");
-  const { HighlightLayer } = require("@babylonjs/core/Layers/highlightLayer.js") as typeof import("@babylonjs/core/Layers/highlightLayer.js");
 
   const highlightLayer = new HighlightLayer("ai3d-pick-highlight", scene);
   const highlightColor = new Color3(0.15, 0.45, 1.0);

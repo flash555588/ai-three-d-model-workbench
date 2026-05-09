@@ -1,7 +1,7 @@
 import type { App } from "obsidian";
 import { TFile } from "obsidian";
-import { readFile } from "node:fs/promises";
-import { isAbsolute, join, normalize } from "node:path";
+import { readFile } from "./node-shim";
+import { pathIsAbsolute as isAbsolute, pathJoin as join, pathNormalize as normalize } from "./node-shim";
 
 function toArrayBuffer(buf: Buffer): ArrayBuffer {
   return Uint8Array.from(buf).buffer;
