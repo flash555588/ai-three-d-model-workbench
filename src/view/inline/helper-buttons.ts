@@ -9,6 +9,8 @@ export interface SnapshotProvider {
   toggleWireframe?(): boolean;
   toggleOrientationGizmo?(): boolean;
   toggleBoundingBox?(): boolean;
+  toggleDisassembly?(): boolean;
+  resetDisassembly?(): void;
   hasAnimations?(): boolean;
   toggleAnimation?(): boolean;
   /** Set render resolution scale (1.0 = native). Returns the applied scale. */
@@ -114,6 +116,33 @@ export function createHelperButtons(
     showTooltip(bboxBtn, on ? "BBox On" : "BBox Off");
   });
   toolbar.appendChild(bboxBtn);
+
+  // Disassembly mode toggle button (separate parts by dragging)
+  const disassembleBtn = document.createElement("button");
+  disassembleBtn.className = "ai3d-inline-btn";
+  disassembleBtn.setAttribute("aria-label", "Toggle disassembly mode");
+  disassembleBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 17h6"/><path d="M17 14v6"/></svg>`;
+  disassembleBtn.addEventListener("click", () => {
+    const preview = getPreview();
+    if (!preview?.toggleDisassembly) return;
+    const on = preview.toggleDisassembly();
+    disassembleBtn.style.color = on ? "var(--interactive-accent)" : "";
+    showTooltip(disassembleBtn, on ? "Disassemble On" : "Disassemble Off");
+  });
+  toolbar.appendChild(disassembleBtn);
+
+  // Reset disassembled parts button
+  const resetPartsBtn = document.createElement("button");
+  resetPartsBtn.className = "ai3d-inline-btn";
+  resetPartsBtn.setAttribute("aria-label", "Reset disassembled parts");
+  resetPartsBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 109-9"/><path d="M3 4v8h8"/><rect x="14" y="14" width="5" height="5" rx="1"/></svg>`;
+  resetPartsBtn.addEventListener("click", () => {
+    const preview = getPreview();
+    if (!preview?.resetDisassembly) return;
+    preview.resetDisassembly();
+    showTooltip(resetPartsBtn, "Parts Reset");
+  });
+  toolbar.appendChild(resetPartsBtn);
 
   // Resolution scale cycle button (percentage display)
   const RES_PRESETS = [0.5, 0.75, 1.0, 1.5, 2.0];
