@@ -4,6 +4,7 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
 import type { Nullable } from "@babylonjs/core/types.js";
 import type { Node } from "@babylonjs/core/node.js";
 import { Matrix, Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector.js";
+import { Ray } from "@babylonjs/core/Culling/ray.core.js";
 import { Color3 } from "@babylonjs/core/Maths/math.color.js";
 import { Plane } from "@babylonjs/core/Maths/math.plane.js";
 import { PointerEventTypes } from "@babylonjs/core/Events/pointerEvents.js";
@@ -25,6 +26,7 @@ interface DragState {
   startPosition: Vector3;
   startRotation: Vector3;
   startRotationQuaternion: AbstractMesh["rotationQuaternion"];
+  pivot: Vector3; // bbox center for rotation
   pointerX: number;
   pointerY: number;
 }
@@ -35,6 +37,11 @@ export class DisassemblyController {
   private readonly meshes: AbstractMesh[];
   private readonly originals = new Map<number, PartTransform>();
   private observer: Nullable<ReturnType<Scene["onPointerObservable"]["add"]>> = null;
+  private renderObserver: Nullable<ReturnType<Scene["onAfterRenderCameraObservable"]["add"]>> = null;
+  private frameCount = 0;
+  private lastOccluded = false;
+  private static readonly BBOX_VISIBLE = new Color3(0.25, 0.7, 1);
+  private static readonly BBOX_OCCLUDED = new Color3(0.1, 0.25, 0.4);
   private active = false;
   private drag: DragState | null = null;
   private selected: AbstractMesh | null = null;
@@ -70,9 +77,18 @@ export class DisassemblyController {
           this.stopDrag();
         }
       });
-    } else if (this.observer) {
-      this.scene.onPointerObservable.remove(this.observer);
-      this.observer = null;
+      this.renderObserver = this.scene.onAfterRenderCameraObservable.add((cam) => {
+        if (cam === this.camera) this.updateBboxOcclusion();
+      });
+    } else {
+      if (this.observer) {
+        this.scene.onPointerObservable.remove(this.observer);
+        this.observer = null;
+      }
+      if (this.renderObserver) {
+        this.scene.onAfterRenderCameraObservable.remove(this.renderObserver);
+        this.renderObserver = null;
+      }
       this.camera.attachControl(this.scene.getEngine().getRenderingCanvas(), true);
     }
 
@@ -104,6 +120,31 @@ export class DisassemblyController {
     this.originals.clear();
   }
 
+  private updateBboxOcclusion(): void {
+    if (!this.selected || this.selected.isDisposed()) return;
+    this.frameCount++;
+    if (this.frameCount % 3 !== 0) return;
+
+    const center = this.selected.getBoundingInfo().boundingBox.centerWorld;
+    const camPos = this.camera.position;
+    const dist = Vector3.Distance(camPos, center);
+    const dir = center.subtract(camPos).normalize();
+    const ray = new Ray(camPos, dir, dist);
+    const hit = this.scene.pickWithRay(ray);
+    const eps = Math.max(dist * 0.01, 0.01);
+    const occluded = !!hit?.hit && hit.distance < dist - eps;
+
+    if (occluded !== this.lastOccluded) {
+      this.lastOccluded = occluded;
+      const color = occluded ? DisassemblyController.BBOX_OCCLUDED : DisassemblyController.BBOX_VISIBLE;
+      const renderer = this.scene.getBoundingBoxRenderer?.();
+      if (renderer) {
+        renderer.frontColor = color;
+        renderer.backColor = color;
+      }
+    }
+  }
+
   private startDrag(mesh: AbstractMesh | null, event: PointerEvent): void {
     if (event.button !== 0) return;
     const part = mesh ? this.findPart(mesh) : null;
@@ -131,6 +172,8 @@ export class DisassemblyController {
       part.rotation.set(0, 0, 0);
     }
 
+    const pivot = part.getBoundingInfo().boundingBox.centerWorld.clone();
+
     this.drag = {
       mesh: part,
       mode: event.shiftKey ? "rotate" : "move",
@@ -139,6 +182,7 @@ export class DisassemblyController {
       startPosition: part.position.clone(),
       startRotation: part.rotation.clone(),
       startRotationQuaternion: part.rotationQuaternion?.clone() ?? null,
+      pivot,
       pointerX: event.clientX,
       pointerY: event.clientY,
     };
@@ -171,6 +215,13 @@ export class DisassemblyController {
     const yaw = Quaternion.RotationAxis(this.camera.getDirection(Vector3.Up()).normalize(), dx * sensitivity);
     const pitch = Quaternion.RotationAxis(this.camera.getDirection(Vector3.Right()).normalize(), dy * sensitivity);
     const delta = yaw.multiply(pitch);
+
+    // Rotate around bbox center: new_pos = pivot + delta.rotate(start_pos - pivot)
+    const offset = this.drag.startPosition.subtract(this.drag.pivot);
+    const rotMatrix = new Matrix();
+    delta.toRotationMatrix(rotMatrix);
+    const rotatedOffset = Vector3.TransformCoordinates(offset, rotMatrix);
+    this.drag.mesh.position = this.drag.pivot.add(rotatedOffset);
 
     if (this.drag.startRotationQuaternion) {
       this.drag.mesh.rotationQuaternion = delta.multiply(this.drag.startRotationQuaternion);

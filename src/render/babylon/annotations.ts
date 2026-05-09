@@ -2,6 +2,7 @@ import type { Scene } from "@babylonjs/core/scene.js";
 import type { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera.js";
 import type { Engine } from "@babylonjs/core/Engines/engine.js";
 import { Vector3, Matrix } from "@babylonjs/core/Maths/math.vector.js";
+import { Ray } from "@babylonjs/core/Culling/ray.core.js";
 import type { AnnotationPin } from "../../domain/models";
 
 const DEFAULT_COLORS = ["#4a9eff", "#ff6b6b", "#51cf66", "#ffd43b"];
@@ -386,10 +387,13 @@ export class AnnotationManager {
 
         if (checkOcclusion && camPos) {
           const pinDist = Vector3.Distance(camPos, entry.worldPos);
-          const pickInfo = scene.pick(projected.x, projected.y);
+          // Raycast from camera toward pin's world position
+          const dir = entry.worldPos.subtract(camPos).normalize();
+          const ray = new Ray(camPos, dir, pinDist);
+          const pickInfo = scene.pickWithRay(ray);
           // Relative epsilon: 1% of pin distance, min 0.01
           const eps = Math.max(pinDist * 0.01, 0.01);
-          const occluded = pickInfo.hit && pickInfo.distance < pinDist - eps;
+          const occluded = !!pickInfo?.hit && pickInfo.distance < pinDist - eps;
 
           if (this.cameraIdle && occluded) {
             // Camera idle + occluded → completely hide
