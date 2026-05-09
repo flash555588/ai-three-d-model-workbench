@@ -33,6 +33,7 @@ import { setupPicking, type PickResult } from "./picking";
 import { arrayBufferToBase64 } from "../../utils/base64";
 import { isMobile } from "../../utils/device";
 import { OrientationGizmo } from "./orientation-gizmo";
+import { DisassemblyController } from "./disassembly";
 
 /** Guard against concurrent OBJ loads monkey-patching the same prototype. */
 let objMtlLock: Promise<void> | null = null;
@@ -60,6 +61,8 @@ export class BabylonModelPreview {
   private wireframeEnabled = false;
   private gizmo: OrientationGizmo | null = null;
   private gizmoEnabled = false;
+  private disassembly: DisassemblyController | null = null;
+  private disassemblyEnabled = false;
   private bboxMesh: Mesh | null = null;
   private bboxEnabled = false;
   private currentQuality: "low" | "medium" | "high" = "high";
@@ -113,6 +116,9 @@ export class BabylonModelPreview {
       this.rootMesh = null;
     }
     this.loadedMeshes = [];
+    this.disassembly?.dispose();
+    this.disassembly = null;
+    this.disassemblyEnabled = false;
 
     const extLower = ext.toLowerCase().replace(".", "");
     this.loadedExt = extLower;
@@ -311,9 +317,11 @@ export class BabylonModelPreview {
 
     this.cleanupPicking?.();
     this.cleanupPicking = setupPicking(this.scene, (result) => {
+      if (this.disassemblyEnabled) return;
       this._lastPickResult = result;
       this._onPickCallbacks.forEach(cb => cb(result));
     });
+    this.disassembly = new DisassemblyController(this.scene, this.camera, this.getRenderableMeshes(this.rootMesh));
 
     return this.computeSummary(this.rootMesh);
   }
@@ -660,6 +668,19 @@ export class BabylonModelPreview {
     return this.bboxEnabled;
   }
 
+  toggleDisassembly(): boolean {
+    if (!this.rootMesh) return false;
+    if (!this.disassembly) {
+      this.disassembly = new DisassemblyController(this.scene, this.camera, this.getRenderableMeshes(this.rootMesh));
+    }
+    this.disassemblyEnabled = this.disassembly.toggle();
+    return this.disassemblyEnabled;
+  }
+
+  resetDisassembly(): void {
+    this.disassembly?.reset();
+  }
+
   // ── Existing API ─────────────────────────────────────────────────
 
   setExplode(factor: number, axis: "x" | "y" | "z") {
@@ -672,6 +693,7 @@ export class BabylonModelPreview {
 
   resetView(): void {
     if (this.rootMesh) resetExplode(this.rootMesh);
+    this.resetDisassembly();
     this.camera.mode = 0; // perspective
     this.camera.alpha = this.initialCamera.alpha;
     this.camera.beta = this.initialCamera.beta;
@@ -802,6 +824,8 @@ export class BabylonModelPreview {
     this.cleanupPicking = null;
     this.gizmo?.dispose();
     this.gizmo = null;
+    this.disassembly?.dispose();
+    this.disassembly = null;
     this.bboxMesh?.dispose();
     this.bboxMesh = null;
     this.camera.detachControl();
