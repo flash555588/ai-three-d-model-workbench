@@ -148,6 +148,19 @@ Then run `npm run dev` for watch mode during development.
 
 ## Usage
 
+### Syntax Reference
+
+| Syntax | Example | Description |
+|--------|---------|-------------|
+| `![[file.ext]]` | `![[model.glb]]` | Inline embed in Live Preview |
+| `![[file.ext\|WxH]]` | `![[model.glb\|400x300]]` | Inline embed with custom size |
+| `` ```3d file.ext `` | `` ```3d model.glb `` | Code block with file path |
+| `` ```3d `` + JSON | See [Embedding Methods](#embedding-methods) | Code block with full config |
+| `` ```3dgrid `` + JSON | See [Grid Block](#grid-block-multi-model) | Multi-model grid layout |
+| Direct click | Click `.glb` in file explorer | Open in viewer tab |
+
+**Supported extensions**: `.glb` `.gltf` `.stl` `.obj` `.ply` `.splat` (direct) / `.step` `.stp` `.iges` `.igs` `.brep` `.sldprt` `.3mf` `.dae` `.fbx` (via conversion)
+
 ### Embedding Methods
 
 **1. Live Preview** (simplest):
