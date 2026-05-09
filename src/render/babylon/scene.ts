@@ -37,11 +37,16 @@ import { OrientationGizmo } from "./orientation-gizmo";
 /** Guard against concurrent OBJ loads monkey-patching the same prototype. */
 let objMtlLock: Promise<void> | null = null;
 
+function escapeTableCell(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+}
+
 export class BabylonModelPreview {
   private engine: Engine;
   private scene: Scene;
   private camera: ArcRotateCamera;
   private rootMesh: Mesh | null = null;
+  private loadedMeshes: AbstractMesh[] = [];
   private loadedExt: string = "";
   private rendering = false;
   private cleanupPicking: (() => void) | null = null;
@@ -107,6 +112,7 @@ export class BabylonModelPreview {
       this.rootMesh.dispose(true, true);
       this.rootMesh = null;
     }
+    this.loadedMeshes = [];
 
     const extLower = ext.toLowerCase().replace(".", "");
     this.loadedExt = extLower;
@@ -237,6 +243,7 @@ export class BabylonModelPreview {
         };
 
         const result = await SceneLoader.ImportMeshAsync("", "", dataUrl, scene, undefined, fileExt);
+        this.loadedMeshes = result.meshes;
         if (result.meshes.length > 0) this.rootMesh = result.meshes[0] as Mesh;
         // Log material state after OBJ load
         for (const m of result.meshes) {
@@ -256,11 +263,14 @@ export class BabylonModelPreview {
     } else if (extLower === "stl") {
       // Direct parse — Babylon v9 SceneLoader mishandles data URLs for custom plugins
       this.rootMesh = loadSTLBuffer(scene, data);
+      this.loadedMeshes = [this.rootMesh];
     } else if (extLower === "ply") {
       // Direct parse — same Babylon v9 data-URL issue as STL
       this.rootMesh = loadPLYBuffer(scene, data);
+      this.loadedMeshes = [this.rootMesh];
     } else {
       const result = await SceneLoader.ImportMeshAsync("", "", dataUrl, scene, undefined, fileExt);
+      this.loadedMeshes = result.meshes;
       if (result.meshes.length > 0) this.rootMesh = result.meshes[0] as Mesh;
     }
 
@@ -270,7 +280,7 @@ export class BabylonModelPreview {
 
     // Disable backface culling on all materials to prevent invisible faces
     // (CAD-converted models often have inconsistent face normals)
-    for (const m of this.rootMesh.getChildMeshes(false)) {
+    for (const m of this.getRenderableMeshes(this.rootMesh)) {
       if (m.material) {
         m.material.backFaceCulling = false;
       }
@@ -672,7 +682,7 @@ export class BabylonModelPreview {
   exportModelInfo(modelPath?: string): string {
     if (!this.rootMesh) return "";
     const summary = this.computeSummary(this.rootMesh);
-    const allMeshes = this.rootMesh.getChildMeshes(true);
+    const renderableMeshes = this.getRenderableMeshes(this.rootMesh);
     const isSplat = this.rootMesh instanceof GaussianSplattingMesh;
     const ext = this.loadedExt.toUpperCase();
 
@@ -693,24 +703,24 @@ export class BabylonModelPreview {
     lines.push("");
 
     // Per-mesh breakdown (skip if > 50 meshes to avoid noise)
-    if (allMeshes.length > 1 && allMeshes.length <= 50) {
+    if (renderableMeshes.length > 1 && renderableMeshes.length <= 50) {
       lines.push("### Mesh Breakdown");
       lines.push("");
       lines.push("| # | Name | Triangles | Vertices | Material |");
       lines.push("|---|------|-----------|----------|----------|");
-      for (let i = 0; i < allMeshes.length; i++) {
-        const m = allMeshes[i];
+      for (let i = 0; i < renderableMeshes.length; i++) {
+        const m = renderableMeshes[i];
         const tris = isSplat ? "—" : Math.floor(m.getTotalIndices() / 3).toLocaleString();
         const verts = m.getTotalVertices().toLocaleString();
         const mat = m.material?.name ?? "—";
-        lines.push(`| ${i + 1} | ${m.name} | ${tris} | ${verts} | ${mat} |`);
+        lines.push(`| ${i + 1} | ${escapeTableCell(m.name)} | ${tris} | ${verts} | ${escapeTableCell(mat)} |`);
       }
       lines.push("");
     }
 
     // Material list
     const matNames = new Set<string>();
-    for (const m of allMeshes) {
+    for (const m of renderableMeshes) {
       if (m.material) matNames.add(m.material.name);
     }
     if (matNames.size > 0) {
@@ -828,8 +838,18 @@ export class BabylonModelPreview {
     });
   }
 
+  private getRenderableMeshes(root: Mesh): AbstractMesh[] {
+    const candidates = [root, ...this.loadedMeshes, ...root.getChildMeshes(true)];
+    const seen = new Set<AbstractMesh>();
+    return candidates.filter((mesh) => {
+      if (!mesh || seen.has(mesh) || mesh.isDisposed()) return false;
+      seen.add(mesh);
+      return mesh.getTotalVertices() > 0 || mesh.getTotalIndices() > 0;
+    });
+  }
+
   private computeSummary(root: Mesh): ModelPreviewSummary {
-    const allMeshes = root.getChildMeshes(true);
+    const allMeshes = this.getRenderableMeshes(root);
     let triangleCount = 0;
     let vertexCount = 0;
     const materials = new Set<string>();

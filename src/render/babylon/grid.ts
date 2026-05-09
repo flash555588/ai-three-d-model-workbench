@@ -17,6 +17,20 @@ import { isMobile } from "../../utils/device";
 /** Babylon.js uses 32-bit layerMask — one bit per cell, so max 32 cells. */
 const MAX_CELLS = 32;
 
+function escapeTableCell(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+}
+
+function getRenderableMeshes(root: AbstractMesh, importedMeshes: AbstractMesh[] = []): AbstractMesh[] {
+  const candidates = [root, ...importedMeshes, ...root.getChildMeshes(true)];
+  const seen = new Set<AbstractMesh>();
+  return candidates.filter((mesh) => {
+    if (!mesh || seen.has(mesh) || mesh.isDisposed()) return false;
+    seen.add(mesh);
+    return mesh.getTotalVertices() > 0 || mesh.getTotalIndices() > 0;
+  });
+}
+
 interface GridCell {
   meshes: AbstractMesh[];
   camera: ArcRotateCamera;
@@ -209,9 +223,10 @@ export class GridRenderer {
     if (result.meshes.length === 0) throw new Error(`No mesh in ${path}`);
 
     const root = result.meshes[0];
-    const allMeshes = root.getChildMeshes(true);
+    const renderableMeshes = getRenderableMeshes(root, result.meshes);
+    const allMeshes = renderableMeshes.filter((mesh) => mesh !== root);
     const cellMask = 1 << index;
-    for (const m of allMeshes) m.layerMask = cellMask;
+    for (const m of renderableMeshes) m.layerMask = cellMask;
     if ((root as any).layerMask !== undefined) root.layerMask = cellMask;
 
     return { root, allMeshes };
@@ -462,17 +477,17 @@ export class GridRenderer {
       const cell = this.cells[i];
       const root = cell.meshes[0];
       if (!root) continue;
-      const allMeshes = root.getChildMeshes(true);
+      const renderableMeshes = getRenderableMeshes(root);
       let tris = 0;
       let verts = 0;
       const mats = new Set<string>();
-      for (const m of allMeshes.length > 0 ? allMeshes : [root]) {
+      for (const m of renderableMeshes) {
         tris += Math.floor(m.getTotalIndices() / 3);
         verts += m.getTotalVertices();
         if (m.material) mats.add(m.material.name);
       }
       const name = root.name || `Model ${i + 1}`;
-      lines.push(`| ${i + 1} | ${name} | ${allMeshes.length || 1} | ${tris.toLocaleString()} | ${verts.toLocaleString()} | ${mats.size} |`);
+      lines.push(`| ${i + 1} | ${escapeTableCell(name)} | ${renderableMeshes.length} | ${tris.toLocaleString()} | ${verts.toLocaleString()} | ${mats.size} |`);
     }
     lines.push("");
     return lines.join("\n");

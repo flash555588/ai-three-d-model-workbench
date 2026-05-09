@@ -6,22 +6,22 @@ import { Color3, Color4 } from "@babylonjs/core/Maths/math.color.js";
 import { Viewport } from "@babylonjs/core/Maths/math.viewport.js";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder.js";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js";
-import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture.js";
-import type { Mesh } from "@babylonjs/core/Meshes/mesh.js";
 import type { Engine } from "@babylonjs/core/Engines/engine.js";
 import type { ArcRotateCamera as MainCamera } from "@babylonjs/core/Cameras/arcRotateCamera.js";
 
-const GIZMO_SIZE = 0.12;
-const AXIS_LENGTH = 1.0;
-const SHAFT_DIAMETER = 0.06;
-const HEAD_LENGTH = 0.25;
-const HEAD_DIAMETER = 0.18;
-const LABEL_OFFSET = 0.15;
+const GIZMO_SIZE = 0.32;
+const AXIS_LENGTH = 1.05;
+const SHAFT_DIAMETER = 0.075;
+const HEAD_LENGTH = 0.28;
+const HEAD_DIAMETER = 0.22;
+const ORIGIN_DIAMETER = 0.16;
+const CAMERA_TARGET_OFFSET = (AXIS_LENGTH + HEAD_LENGTH) * 0.42;
+const CAMERA_TARGET = new Vector3(CAMERA_TARGET_OFFSET, CAMERA_TARGET_OFFSET, CAMERA_TARGET_OFFSET);
 
-const AXIS_DEFS: { name: string; color: string; rot: Vector3; labelPos: Vector3 }[] = [
-  { name: "x", color: "#e74c3c", rot: new Vector3(0, 0, -Math.PI / 2), labelPos: new Vector3(AXIS_LENGTH + LABEL_OFFSET, 0, 0) },
-  { name: "y", color: "#2ecc71", rot: new Vector3(0, 0, 0),            labelPos: new Vector3(0, AXIS_LENGTH + LABEL_OFFSET, 0) },
-  { name: "z", color: "#3498db", rot: new Vector3(Math.PI / 2, 0, 0),  labelPos: new Vector3(0, 0, AXIS_LENGTH + LABEL_OFFSET) },
+const AXIS_DEFS: { name: string; color: string; rot: Vector3; dir: Vector3 }[] = [
+  { name: "x", color: "#e74c3c", rot: new Vector3(0, 0, -Math.PI / 2), dir: new Vector3(1, 0, 0) },
+  { name: "y", color: "#2ecc71", rot: new Vector3(0, 0, 0), dir: new Vector3(0, 1, 0) },
+  { name: "z", color: "#3498db", rot: new Vector3(Math.PI / 2, 0, 0), dir: new Vector3(0, 0, 1) },
 ];
 
 function makeEmissiveMat(name: string, hex: string, scene: Scene): StandardMaterial {
@@ -34,32 +34,12 @@ function makeEmissiveMat(name: string, hex: string, scene: Scene): StandardMater
   return m;
 }
 
-function createLabelPlane(name: string, text: string, hex: string, scene: Scene): Mesh {
-  const size = 0.35;
-  const texSize = 64;
-  const plane = MeshBuilder.CreatePlane(name, { width: size, height: size, sideOrientation: 2 }, scene);
-
-  const tex = new DynamicTexture(`${name}-tex`, texSize, scene, false);
-  const ctx = tex.getContext() as unknown as CanvasRenderingContext2D;
-  ctx.clearRect(0, 0, texSize, texSize);
-  ctx.font = "bold 48px Arial";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = hex;
-  ctx.fillText(text, texSize / 2, texSize / 2);
-  tex.update();
-
-  const mat = new StandardMaterial(`${name}-mat`, scene);
-  mat.diffuseTexture = tex;
-  mat.emissiveColor = Color3.FromHexString(hex);
-  mat.diffuseColor = Color3.Black();
-  mat.specularColor = Color3.Black();
-  mat.useAlphaFromDiffuseTexture = true;
-  mat.backFaceCulling = false;
-  (mat as unknown as Record<string, boolean>).hasAlpha = true;
-  plane.material = mat;
-
-  return plane;
+function makeOriginMat(scene: Scene): StandardMaterial {
+  const m = new StandardMaterial("gizmo-origin-mat", scene);
+  m.emissiveColor = new Color3(0.72, 0.78, 0.86);
+  m.diffuseColor = Color3.Black();
+  m.specularColor = Color3.Black();
+  return m;
 }
 
 /**
@@ -67,23 +47,28 @@ function createLabelPlane(name: string, text: string, hex: string, scene: Scene)
  * Uses a separate Scene with its own camera that mirrors the main camera rotation.
  */
 export class OrientationGizmo {
+  private engine: Engine;
   private scene: Scene;
   private camera: ArcRotateCamera;
   private viewport: Viewport;
-  private labelPlanes: Mesh[] = [];
 
   constructor(engine: Engine, mainCamera: MainCamera) {
+    this.engine = engine;
     this.scene = new Scene(engine);
-    this.scene.clearColor = new Color4(0.1, 0.1, 0.12, 0.6);
+    this.scene.clearColor = new Color4(0, 0, 0, 0);
+    this.scene.autoClear = false;
 
-    this.camera = new ArcRotateCamera("gizmo-cam", 0, 0, 4, Vector3.Zero(), this.scene);
+    this.camera = new ArcRotateCamera("gizmo-cam", 0, 0, 4.1, CAMERA_TARGET, this.scene);
     this.camera.minZ = 0.01;
-    this.camera.fov = 0.6;
+    this.camera.fov = 0.56;
     this.camera.detachControl();
 
     new HemisphericLight("gizmo-light", new Vector3(0, 1, 0.5), this.scene);
 
-    for (const { name, color, rot, labelPos } of AXIS_DEFS) {
+    const origin = MeshBuilder.CreateSphere("gizmo-origin", { diameter: ORIGIN_DIAMETER, segments: 16 }, this.scene);
+    origin.material = makeOriginMat(this.scene);
+
+    for (const { name, color, rot, dir } of AXIS_DEFS) {
       const mat = makeEmissiveMat(`gizmo-${name}-mat`, color, this.scene);
 
       // Shaft
@@ -91,6 +76,7 @@ export class OrientationGizmo {
         height: AXIS_LENGTH, diameter: SHAFT_DIAMETER, tessellation: 8,
       }, this.scene);
       shaft.material = mat;
+      shaft.position = dir.scale(AXIS_LENGTH / 2);
       shaft.rotation = rot;
 
       // Arrow head
@@ -98,20 +84,14 @@ export class OrientationGizmo {
         height: HEAD_LENGTH, diameterTop: 0, diameterBottom: HEAD_DIAMETER, tessellation: 8,
       }, this.scene);
       head.material = mat;
-      // Position head at shaft end: (AXIS_LENGTH/2 + HEAD_LENGTH/2) in local Y, then rotate
-      const headOffset = AXIS_LENGTH / 2 + HEAD_LENGTH / 2;
-      head.position.y = headOffset;
+      // Babylon cylinders are Y-aligned; rotation changes orientation, position must use world axis direction.
+      const headOffset = AXIS_LENGTH + HEAD_LENGTH / 2;
+      head.position = dir.scale(headOffset);
       head.rotation = rot;
-
-      // Label (billboard toward camera)
-      const label = createLabelPlane(`gizmo-${name}-label`, name.toUpperCase(), color, this.scene);
-      label.position = labelPos;
-      label.billboardMode = 7; // BILLBOARDMODE_ALL — always face camera
-      this.labelPlanes.push(label);
     }
 
     const sz = GIZMO_SIZE;
-    this.viewport = new Viewport(0.01, 0.01, sz, sz);
+    this.viewport = new Viewport(0.02, 0.03, sz, sz);
     this.camera.viewport = this.viewport;
     this.syncWith(mainCamera);
   }
@@ -122,7 +102,17 @@ export class OrientationGizmo {
   }
 
   render(): void {
+    const renderWidth = this.engine.getRenderWidth();
+    const renderHeight = this.engine.getRenderHeight();
+    const x = this.viewport.x * renderWidth;
+    const y = this.viewport.y * renderHeight;
+    const width = this.viewport.width * renderWidth;
+    const height = this.viewport.height * renderHeight;
+
+    this.engine.enableScissor(x, y, width, height);
+    this.engine.clear(null, false, true, true);
     this.scene.render();
+    this.engine.disableScissor();
   }
 
   dispose(): void {
