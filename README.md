@@ -148,6 +148,24 @@ Then run `npm run dev` for watch mode during development.
 
 ## Usage
 
+### Syntax Registration
+
+The plugin registers the following syntaxes with Obsidian:
+
+| Syntax | Type | Description |
+|--------|------|-------------|
+| ` ```3d ` | Code block | Single-model 3D preview with optional JSON config |
+| ` ```3dgrid ` | Code block | Multi-model grid layout with presets |
+| `![[model.ext]]` | Live Preview embed | Inline 3D render for wikilink embeds |
+| `.glb` `.gltf` `.stl` | File extension | Direct file view via `registerExtensions` |
+| `.obj` `.ply` `.splat` | File extension | Direct file view via `registerExtensions` |
+
+**Code block processors** are registered via `registerMarkdownCodeBlockProcessor`. They parse the code fence content (either a bare path or JSON config) and mount a Babylon.js preview in the rendered view.
+
+**Live Preview embeds** are handled by a CM6 `StateField` + `WidgetType` that detects `![[model.ext]]` patterns in the editor and replaces them with inline 3D widgets.
+
+**Direct file views** are registered via `registerExtensions` and open a `DirectModelView` tab when the user clicks a supported file in the file explorer.
+
 ### Embedding Methods
 
 **1. Live Preview** (simplest):
