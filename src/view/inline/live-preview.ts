@@ -16,6 +16,7 @@ import type { ConvertedAssetCache } from "../../io/cache/converted-asset-cache";
 import { prepareModelInput } from "../../io/model-pipeline";
 import { listPreferredConversionExts } from "../../io/formats/route-preferences";
 import { createLoadingOverlay, type LoadingOverlay } from "./loading-overlay";
+import { createNoteReader } from "../../utils/note-reader";
 
 // ── Widget ────────────────────────────────────────────────────────
 
@@ -149,6 +150,8 @@ class ModelEmbedWidget extends WidgetType {
               host,
               "readonly",
               pins,
+              undefined,
+              createNoteReader(this.app),
             );
           }
         }

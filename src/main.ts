@@ -10,6 +10,7 @@ import { AI3DSettingTab } from "./settings";
 import { inspectAllConverterCommands } from "./io/conversion/command-discovery";
 import { setLogLevel } from "./utils/log";
 import { setLocale, type Locale } from "./i18n";
+import { normalizeHeadingText } from "./utils/note-reader";
 
 export default class AI3DModelWorkbench extends Plugin {
   private ps!: PluginStore;
@@ -99,11 +100,148 @@ export default class AI3DModelWorkbench extends Plugin {
     for (const e of exts) {
       this.registerEditorExtension(e);
     }
+
+    // Watch note headings for hover → highlight pin
+    this.setupHeadingPinObserver();
   }
 
   async onunload() {
     this.ps.dispose();
     // Views are cleaned up by Obsidian calling onClose()
+  }
+
+  private setupHeadingPinObserver(): void {
+    const headingSelector = [
+      ".markdown-preview-view h1", ".markdown-preview-view h2", ".markdown-preview-view h3",
+      ".markdown-preview-view h4", ".markdown-preview-view h5", ".markdown-preview-view h6",
+      ".cm-heading-1", ".cm-heading-2", ".cm-heading-3",
+      ".cm-heading-4", ".cm-heading-5", ".cm-heading-6",
+      ".cm-header-1", ".cm-header-2", ".cm-header-3",
+      ".cm-header-4", ".cm-header-5", ".cm-header-6",
+    ].join(", ");
+
+    // Track bound elements for cleanup
+    const boundEntries: { el: Element; handler: () => void }[] = [];
+
+    // Build headingRef → [{ pinId, modelPath }] map from stored annotations.
+    // Supports multiple pins/models per heading.
+    type PinEntry = { pinId: string; modelPath: string };
+    const buildHeadingMap = (): Map<string, PinEntry[]> => {
+      const map = new Map<string, PinEntry[]>();
+      const profiles = this.ps.store.getState().modelAssetProfiles;
+      for (const [modelPath, profile] of Object.entries(profiles)) {
+        for (const pin of profile.annotations) {
+          if (pin.headingRef && pin.id) {
+            let arr = map.get(pin.headingRef);
+            if (!arr) { arr = []; map.set(pin.headingRef, arr); }
+            arr.push({ pinId: pin.id, modelPath });
+          }
+        }
+      }
+      return map;
+    };
+
+    // Normalize all headingRef keys for robust matching
+    const normalizedMap = new Map<string, PinEntry[]>();
+    const buildNormalizedMap = (headingMap: Map<string, PinEntry[]>): void => {
+      normalizedMap.clear();
+      for (const [key, entries] of headingMap) {
+        normalizedMap.set(normalizeHeadingText(key), entries);
+      }
+    };
+
+    const bindHeading = (el: Element) => {
+      if ((el as HTMLElement).dataset.pinBound) return;
+
+      const text = el.textContent ?? "";
+      const headingText = normalizeHeadingText(text);
+      const entries = normalizedMap.get(headingText);
+
+      if (!entries || entries.length === 0) return;
+      (el as HTMLElement).dataset.pinBound = entries[0].pinId;
+
+      // Add pin badge: shows count if multiple, tooltip lists model sources
+      const badge = document.createElement("span");
+      badge.className = "ai3d-heading-pin-badge";
+      badge.textContent = entries.length > 1 ? `\ud83d\udccd\u00d7${entries.length}` : "\ud83d\udccd";
+      const uniqueModels = [...new Set(entries.map(e => e.modelPath.replace(/^.*\//, "").replace(/\.[^.]+$/, "")))];
+      badge.title = `Pin linked to: ${uniqueModels.join(", ")}`;
+      badge.addEventListener("click", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        for (const entry of entries!) {
+          document.dispatchEvent(new CustomEvent("ai3d-pin-highlight", { detail: { pinId: entry.pinId } }));
+        }
+      });
+      el.appendChild(badge);
+
+      // Hover on heading → pulse all linked pins
+      const handler = () => {
+        for (const entry of entries!) {
+          document.dispatchEvent(new CustomEvent("ai3d-pin-highlight", { detail: { pinId: entry.pinId } }));
+        }
+      };
+      el.addEventListener("mouseover", handler);
+      boundEntries.push({ el, handler });
+    };
+
+    const processHeadings = (container: Element) => {
+      const headingMap = buildHeadingMap();
+      if (headingMap.size === 0) return;
+      buildNormalizedMap(headingMap);
+      container.querySelectorAll(headingSelector).forEach((el) => bindHeading(el));
+    };
+
+    const scanAll = () => {
+      const containers = document.querySelectorAll(".markdown-preview-view, .markdown-source-view");
+      containers.forEach(processHeadings);
+    };
+
+    this.registerEvent(this.app.workspace.on("layout-change", () => {
+      setTimeout(scanAll, 200);
+    }));
+
+    // Debounced MutationObserver: coalesce rapid DOM changes into a single scan
+    let pendingNodes: HTMLElement[] = [];
+    let debounceTimer = 0;
+    const flushPending = () => {
+      const nodes = pendingNodes;
+      pendingNodes = [];
+      debounceTimer = 0;
+      const headingMap = buildHeadingMap();
+      if (headingMap.size === 0) return;
+      buildNormalizedMap(headingMap);
+      for (const node of nodes) {
+        if (node.matches?.(headingSelector)) bindHeading(node);
+        node.querySelectorAll?.(headingSelector)?.forEach((el: Element) => bindHeading(el));
+      }
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const node of Array.from(m.addedNodes)) {
+          if (node instanceof HTMLElement) pendingNodes.push(node);
+        }
+      }
+      if (pendingNodes.length > 0 && !debounceTimer) {
+        debounceTimer = window.setTimeout(flushPending, 100);
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Cleanup: disconnect observer, remove all heading listeners
+    this.register(() => {
+      observer.disconnect();
+      if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = 0; }
+      for (const { el, handler } of boundEntries) {
+        el.removeEventListener("mouseover", handler);
+        el.removeEventListener("click", handler);
+      }
+      boundEntries.length = 0;
+    });
+
+    // Initial scan
+    setTimeout(scanAll, 500);
   }
 
   private async activateView() {

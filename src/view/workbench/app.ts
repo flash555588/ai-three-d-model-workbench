@@ -16,6 +16,7 @@ import { toPreviewSource } from "../../io/preview/preview-source";
 import { createLogger } from "../../utils/log";
 import { readBinaryPath, resolveVaultAbsolutePath } from "../../utils/resolve-path";
 import { listPreferredConversionExts } from "../../io/formats/route-preferences";
+import { createNoteReader, createHeadingSearch } from "../../utils/note-reader";
 
 const log = createLogger("workbench");
 
@@ -426,6 +427,9 @@ export function mountWorkbench(
       const canvasEl = preview.getCanvas();
       if (canvasEl) {
         const profile = ps.store.getState().modelAssetProfiles[path];
+        const noteReader = createNoteReader(app);
+        const headingSearch = createHeadingSearch(app);
+
         annotationMgr = new AnnotationManager(
           { scene: preview.getScene(), camera: preview.getCamera(), engine: preview.getEngine(), canvas: canvasEl },
           previewHost,
@@ -440,6 +444,8 @@ export function mountWorkbench(
               modelAssetProfiles: { ...current, [p]: { ...existing, annotations: pins, updatedAt: new Date().toISOString() } },
             });
           },
+          noteReader,
+          headingSearch,
         );
         // Wire pick callback for annotation mode
         preview.onPick((result) => {
