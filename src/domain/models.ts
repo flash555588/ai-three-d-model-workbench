@@ -81,9 +81,19 @@ export interface PluginState {
 
 // ── Per-Model Asset Profile ──────────────────────────────────────
 
+export interface AnnotationPin {
+  id: string;
+  position: [number, number, number];
+  normal?: [number, number, number];
+  label: string;
+  color: string;
+  createdAt: string;
+}
+
 export interface ModelAssetProfile {
   tags: string[];
   notes: string;
+  annotations: AnnotationPin[];
   createdAt: string;
   updatedAt: string;
 }

@@ -7,8 +7,9 @@ import type { App } from "obsidian";
 import { EditorView, Decoration, WidgetType } from "@codemirror/view";
 import { StateField, StateEffect, RangeSet, Range } from "@codemirror/state";
 import { isSupportedModelExtension } from "../../io/formats/registry";
-import type { PluginSettings } from "../../domain/models";
+import type { PluginSettings, AnnotationPin } from "../../domain/models";
 import type { BabylonModelPreview } from "../../render/babylon/scene";
+import { AnnotationManager } from "../../render/babylon/annotations";
 import { readBinaryPath, resolveVaultAbsolutePath, resolveVaultPath } from "../../utils/resolve-path";
 import { createConversionManager } from "../../io/conversion/factory";
 import type { ConvertedAssetCache } from "../../io/cache/converted-asset-cache";
@@ -20,6 +21,7 @@ import { createLoadingOverlay, type LoadingOverlay } from "./loading-overlay";
 
 class ModelEmbedWidget extends WidgetType {
   private preview: BabylonModelPreview | null = null;
+  private annotationMgr: AnnotationManager | null = null;
   private mounted = false;
   private pollId = 0;
 
@@ -37,6 +39,7 @@ class ModelEmbedWidget extends WidgetType {
     private preferObj2gltfForObj: boolean,
     private preferFbx2gltfForFbx: boolean,
     private convertedAssetCache: ConvertedAssetCache,
+    private getAnnotations?: (modelPath: string) => AnnotationPin[],
   ) {
     super();
   }
@@ -80,7 +83,7 @@ class ModelEmbedWidget extends WidgetType {
       if (this.mounted) return;
       if (host.isConnected) {
         this.mounted = true;
-        this.initPreview(canvas, loading, error);
+        this.initPreview(host, canvas, loading, error);
         return;
       }
       if (++attempts > 120) return; // ~2s at 60fps, give up
@@ -92,6 +95,7 @@ class ModelEmbedWidget extends WidgetType {
   }
 
   private async initPreview(
+    host: HTMLElement,
     canvas: HTMLCanvasElement,
     loading: LoadingOverlay,
     error: HTMLDivElement,
@@ -134,6 +138,22 @@ class ModelEmbedWidget extends WidgetType {
         });
       }
 
+      // Readonly annotations
+      if (this.getAnnotations) {
+        const pins = this.getAnnotations(this.modelPath);
+        if (pins.length > 0) {
+          const canvasEl = this.preview.getCanvas();
+          if (canvasEl) {
+            this.annotationMgr = new AnnotationManager(
+              { scene: this.preview.getScene(), camera: this.preview.getCamera(), engine: this.preview.getEngine(), canvas: canvasEl },
+              host,
+              "readonly",
+              pins,
+            );
+          }
+        }
+      }
+
       loading.setProgress(100);
       loading.hide();
     } catch (err) {
@@ -148,6 +168,8 @@ class ModelEmbedWidget extends WidgetType {
   override destroy(): void {
     cancelAnimationFrame(this.pollId);
     this.pollId = 0;
+    this.annotationMgr?.destroy();
+    this.annotationMgr = null;
     if (this.preview) {
       this.preview.destroy();
       this.preview = null;
@@ -174,6 +196,7 @@ function findEmbeds(
   preferObj2gltfForObj: boolean,
   preferFbx2gltfForFbx: boolean,
   convertedAssetCache: ConvertedAssetCache,
+  getAnnotations?: (modelPath: string) => AnnotationPin[],
 ): Range<Decoration>[] {
   const doc = "state" in viewOrState ? viewOrState.state.doc : viewOrState.doc;
   const ranges: Range<Decoration>[] = [];
@@ -245,6 +268,7 @@ function findEmbeds(
             preferObj2gltfForObj,
             preferFbx2gltfForFbx,
             convertedAssetCache,
+            getAnnotations,
           ),
           block: true,
           side: 1,
@@ -270,6 +294,7 @@ export function registerLivePreviewExtension(
   app: App,
   getSettings: () => PluginSettings,
   convertedAssetCache: ConvertedAssetCache,
+  getAnnotations?: (modelPath: string) => AnnotationPin[],
 ) {
   const embedField = StateField.define<DecoSet>({
     create(state): DecoSet {
@@ -286,6 +311,7 @@ export function registerLivePreviewExtension(
         s.preferObj2gltfForObj,
         s.preferFbx2gltfForFbx,
         convertedAssetCache,
+        getAnnotations,
       );
       return ranges.length > 0 ? RangeSet.of(ranges, true) : RangeSet.empty;
     },
@@ -304,6 +330,7 @@ export function registerLivePreviewExtension(
           s.preferObj2gltfForObj,
           s.preferFbx2gltfForFbx,
           convertedAssetCache,
+          getAnnotations,
         );
         return ranges.length > 0 ? RangeSet.of(ranges, true) : RangeSet.empty;
       }
