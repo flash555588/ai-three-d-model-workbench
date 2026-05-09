@@ -148,63 +148,157 @@ ln -s /path/to/ai-3d-model-workbench \
 
 ## 使用方法
 
-### 语法速查
+### 语法指南
 
-| 语法 | 示例 | 说明 |
-|------|------|------|
-| `![[file.ext]]` | `![[model.glb]]` | 实时预览内联嵌入 |
-| `![[file.ext\|WxH]]` | `![[model.glb\|400x300]]` | 自定义尺寸内联嵌入 |
-| `` ```3d file.ext `` | `` ```3d model.glb `` | 文件路径代码块 |
-| `` ```3d `` + JSON | 见[嵌入方式](#嵌入方式) | 完整配置代码块 |
-| `` ```3dgrid `` + JSON | 见[网格块](#网格块多模型) | 多模型网格布局 |
-| 直接点击 | 在文件资源管理器中点击 `.glb` | 在查看器标签页中打开 |
+#### 1. 实时预览嵌入
 
-**支持的扩展名**：`.glb` `.gltf` `.stl` `.obj` `.ply` `.splat`（直接渲染）/ `.step` `.stp` `.iges` `.igs` `.brep` `.sldprt` `.3mf` `.dae` `.fbx`（需转换）
-
-### 嵌入方式
-
-**1. 实时预览**（最简单）：
+在任意位置编写 Wikilink 即可内联渲染 3D 模型。阅读模式和实时预览均支持。
 
 ```markdown
-![[model.glb]]
-![[model.glb|400x300]]
-![[bunny.stl]]
+![[model.glb]]              # 默认尺寸
+![[model.glb|400x300]]      # 自定义宽 x 高（像素）
+![[bunny.stl]]              # 任何支持的格式
 ```
 
-**2. 代码块**（自定义配置）：
+#### 2. 单模型代码块（`3d`）
+
+**简单路径** — 围栏后直接写文件名：
 
 ````markdown
 ```3d model.glb
 ```
 ````
 
+**JSON 配置** — 完整控制相机、灯光和场景：
+
 ````markdown
 ```3d
 {
-  "models": [{ "path": "model.glb" }],
-  "camera": { "fov": 30 },
-  "scene": { "autoRotate": true }
+  "models": [
+    { "path": "model.glb" },
+    { "path": "wireframe.stl", "color": "#ff0000", "wireframe": true }
+  ],
+  "camera": {
+    "position": [5, 5, 5],
+    "lookAt": [0, 0, 0],
+    "fov": 30,
+    "mode": "perspective"
+  },
+  "lights": [
+    { "type": "hemisphere", "color": "#ffffff", "intensity": 1, "groundColor": "#444444" },
+    { "type": "directional", "color": "#ffffff", "intensity": 0.8, "position": [10, 20, 10] }
+  ],
+  "scene": {
+    "background": "#1e1e22",
+    "autoRotate": true,
+    "autoRotateSpeed": 0.5,
+    "groundShadow": true,
+    "grid": true,
+    "axis": true
+  },
+  "stl": { "color": "#cccccc", "wireframe": false },
+  "width": "100%",
+  "height": 500
 }
 ```
 ````
 
-**3. 网格块**（多模型）：
+**`models` 数组**（必填）：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `path` | string | — | 模型文件的库相对路径 |
+| `color` | string | — | 覆盖材质颜色（十六进制） |
+| `wireframe` | boolean | `false` | 线框模式渲染 |
+
+**`camera` 对象**：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `position` | `[x, y, z]` | 自动 | 相机世界坐标 |
+| `lookAt` | `[x, y, z]` | 原点 | 相机目标点 |
+| `fov` | number | `45` | 视场角（度） |
+| `mode` | string | `"perspective"` | `"perspective"` 或 `"orthographic"` |
+| `zoom` | number | — | 正交缩放级别 |
+| `near` | number | — | 近裁剪面 |
+| `far` | number | — | 远裁剪面 |
+
+**`lights` 数组** — 每项：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `type` | string | — | `"directional"` `"ambient"` `"point"` `"spot"` `"hemisphere"` `"attachToCam"` |
+| `color` | string | `"#ffffff"` | 灯光颜色 |
+| `intensity` | number | `1` | 灯光强度 |
+| `position` | `[x, y, z]` | — | 灯光位置（directional/point/spot） |
+| `target` | `[x, y, z]` | — | 聚光灯目标 |
+| `castShadow` | boolean | `false` | 启用阴影投射 |
+| `angle` | number | — | 聚光灯锥角（弧度） |
+| `penumbra` | number | — | 聚光灯半影比 |
+| `decay` | number | — | 灯光衰减指数 |
+| `groundColor` | string | — | 地面颜色（hemisphere 灯光） |
+
+**`scene` 对象**：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `background` | string | `"#1e1e22"` | 背景颜色（十六进制） |
+| `transparent` | boolean | `false` | 透明背景 |
+| `autoRotate` | boolean | `false` | 启用旋转动画 |
+| `autoRotateSpeed` | number | `0.5` | 旋转速度（0.1–2.0） |
+| `groundShadow` | boolean | `false` | 显示地面阴影 |
+| `grid` | boolean | `false` | 显示地板网格 |
+| `axis` | boolean | `false` | 显示 XYZ 坐标轴 |
+
+**`stl` 对象** — STL 文件默认值：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `color` | string | `"#cccccc"` | 默认网格颜色 |
+| `wireframe` | boolean | `false` | 线框渲染 |
+
+**顶层字段**：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `width` | number/string | `"100%"` | 画布宽度（像素或 CSS） |
+| `height` | number/string | `"400"` | 画布高度（像素或 CSS） |
+
+#### 3. 网格代码块（`3dgrid`）
+
+在单个视口中使用预设布局渲染多个模型。
 
 ````markdown
 ```3dgrid
 {
   "models": [
     { "path": "v1.step" },
-    { "path": "v2.step" }
+    { "path": "v2.step" },
+    { "path": "v3.step" }
   ],
-  "preset": "compare"
+  "preset": "compare",
+  "camera": { "fov": 30 },
+  "scene": { "background": "#111" }
 }
 ```
 ````
 
-**4. 直接查看**：在文件资源管理器中点击任意 `.glb`/`.gltf`/`.stl` 文件。
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `models` | array | — | 模型列表（与 `3d` 块相同的 `ModelConfig`） |
+| `preset` | string | `"gallery"` | 布局预设名称（见下表） |
+| `params` | object | — | 预设参数（间距、相机距离等） |
+| `sections` | array | — | `"compose"` 预设的分区定义 |
+| `direction` | string | `"horizontal"` | Compose 布局方向：`"horizontal"` 或 `"vertical"` |
+| `columns` | number | 自动 | 网格列数 |
+| `rowHeight` | number/string | `"auto"` | 行高（像素） |
+| `gapX` | number | — | 单元格水平间距（像素） |
+| `gapY` | number | — | 单元格垂直间距（像素） |
+| `camera` | object | — | 共享相机配置（与 `3d` 块相同） |
+| `lights` | array | — | 共享灯光配置（与 `3d` 块相同） |
+| `scene` | object | — | 共享场景配置（与 `3d` 块相同） |
 
-### 网格预设
+**网格预设**：
 
 | 预设 | 说明 |
 |------|------|
@@ -212,8 +306,19 @@ ln -s /path/to/ai-3d-model-workbench \
 | `showcase` | 单模型多角度查看 |
 | `explode` | 环形排列，用于装配分解 |
 | `timeline` | 水平条带，用于版本历史 |
-| `gallery` | 所有模型在同一场景 |
-| `compose` | 自定义多段布局 |
+| `gallery` | 所有模型在同一场景（默认） |
+| `compose` | 使用 `sections` 的自定义多段布局 |
+
+#### 4. 直接文件查看
+
+在 Obsidian 文件资源管理器中点击任意支持的模型文件，即可在专用查看器标签页中打开。无需编写语法。
+
+#### 支持的扩展名
+
+| 类别 | 扩展名 |
+|------|--------|
+| 直接渲染 | `.glb` `.gltf` `.stl` `.obj` `.ply` `.splat` |
+| 需转换 | `.step` `.stp` `.iges` `.igs` `.brep` `.sldprt` `.3mf` `.dae` `.fbx` |
 
 ### 键盘快捷键（预览中）
 

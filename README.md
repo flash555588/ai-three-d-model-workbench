@@ -148,63 +148,157 @@ Then run `npm run dev` for watch mode during development.
 
 ## Usage
 
-### Syntax Reference
+### Syntax Guide
 
-| Syntax | Example | Description |
-|--------|---------|-------------|
-| `![[file.ext]]` | `![[model.glb]]` | Inline embed in Live Preview |
-| `![[file.ext\|WxH]]` | `![[model.glb\|400x300]]` | Inline embed with custom size |
-| `` ```3d file.ext `` | `` ```3d model.glb `` | Code block with file path |
-| `` ```3d `` + JSON | See [Embedding Methods](#embedding-methods) | Code block with full config |
-| `` ```3dgrid `` + JSON | See [Grid Block](#grid-block-multi-model) | Multi-model grid layout |
-| Direct click | Click `.glb` in file explorer | Open in viewer tab |
+#### 1. Live Preview Embed
 
-**Supported extensions**: `.glb` `.gltf` `.stl` `.obj` `.ply` `.splat` (direct) / `.step` `.stp` `.iges` `.igs` `.brep` `.sldprt` `.3mf` `.dae` `.fbx` (via conversion)
-
-### Embedding Methods
-
-**1. Live Preview** (simplest):
+Render 3D models inline wherever you write wikilinks. Works in both Reading and Live Preview modes.
 
 ```markdown
-![[model.glb]]
-![[model.glb|400x300]]
-![[bunny.stl]]
+![[model.glb]]              # default size
+![[model.glb|400x300]]      # custom width x height (pixels)
+![[bunny.stl]]              # any supported format
 ```
 
-**2. Code Block** (custom config):
+#### 2. Single Model Code Block (`3d`)
+
+**Simple path** — just the file name after the fence:
 
 ````markdown
 ```3d model.glb
 ```
 ````
 
+**JSON config** — full control over camera, lights, and scene:
+
 ````markdown
 ```3d
 {
-  "models": [{ "path": "model.glb" }],
-  "camera": { "fov": 30 },
-  "scene": { "autoRotate": true }
+  "models": [
+    { "path": "model.glb" },
+    { "path": "wireframe.stl", "color": "#ff0000", "wireframe": true }
+  ],
+  "camera": {
+    "position": [5, 5, 5],
+    "lookAt": [0, 0, 0],
+    "fov": 30,
+    "mode": "perspective"
+  },
+  "lights": [
+    { "type": "hemisphere", "color": "#ffffff", "intensity": 1, "groundColor": "#444444" },
+    { "type": "directional", "color": "#ffffff", "intensity": 0.8, "position": [10, 20, 10] }
+  ],
+  "scene": {
+    "background": "#1e1e22",
+    "autoRotate": true,
+    "autoRotateSpeed": 0.5,
+    "groundShadow": true,
+    "grid": true,
+    "axis": true
+  },
+  "stl": { "color": "#cccccc", "wireframe": false },
+  "width": "100%",
+  "height": 500
 }
 ```
 ````
 
-**3. Grid Block** (multi-model):
+**`models` array** (required):
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `path` | string | — | Vault-relative path to model file |
+| `color` | string | — | Override material color (hex) |
+| `wireframe` | boolean | `false` | Render as wireframe |
+
+**`camera` object**:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `position` | `[x, y, z]` | auto | Camera world position |
+| `lookAt` | `[x, y, z]` | origin | Camera target point |
+| `fov` | number | `45` | Field of view in degrees |
+| `mode` | string | `"perspective"` | `"perspective"` or `"orthographic"` |
+| `zoom` | number | — | Orthographic zoom level |
+| `near` | number | — | Near clipping plane |
+| `far` | number | — | Far clipping plane |
+
+**`lights` array** — each item:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `type` | string | — | `"directional"` `"ambient"` `"point"` `"spot"` `"hemisphere"` `"attachToCam"` |
+| `color` | string | `"#ffffff"` | Light color |
+| `intensity` | number | `1` | Light intensity |
+| `position` | `[x, y, z]` | — | Light position (directional/point/spot) |
+| `target` | `[x, y, z]` | — | Spotlight target |
+| `castShadow` | boolean | `false` | Enable shadow casting |
+| `angle` | number | — | Spot light cone angle (radians) |
+| `penumbra` | number | — | Spot light penumbra ratio |
+| `decay` | number | — | Light falloff exponent |
+| `groundColor` | string | — | Ground color (hemisphere light) |
+
+**`scene` object**:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `background` | string | `"#1e1e22"` | Background color (hex) |
+| `transparent` | boolean | `false` | Transparent background |
+| `autoRotate` | boolean | `false` | Enable turntable rotation |
+| `autoRotateSpeed` | number | `0.5` | Rotation speed (0.1–2.0) |
+| `groundShadow` | boolean | `false` | Show ground shadow plane |
+| `grid` | boolean | `false` | Show floor grid |
+| `axis` | boolean | `false` | Show XYZ axis indicator |
+
+**`stl` object** — defaults for STL files:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `color` | string | `"#cccccc"` | Default mesh color |
+| `wireframe` | boolean | `false` | Wireframe rendering |
+
+**Top-level**:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `width` | number/string | `"100%"` | Canvas width (px or CSS) |
+| `height` | number/string | `"400"` | Canvas height (px or CSS) |
+
+#### 3. Grid Code Block (`3dgrid`)
+
+Render multiple models in a single viewport with preset layouts.
 
 ````markdown
 ```3dgrid
 {
   "models": [
     { "path": "v1.step" },
-    { "path": "v2.step" }
+    { "path": "v2.step" },
+    { "path": "v3.step" }
   ],
-  "preset": "compare"
+  "preset": "compare",
+  "camera": { "fov": 30 },
+  "scene": { "background": "#111" }
 }
 ```
 ````
 
-**4. Direct View**: Click any `.glb`/`.gltf`/`.stl` file in the file explorer.
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `models` | array | — | Model list (same `ModelConfig` as `3d` block) |
+| `preset` | string | `"gallery"` | Layout preset name (see table below) |
+| `params` | object | — | Preset-specific parameters (spacing, camera distance, etc.) |
+| `sections` | array | — | Section definitions for `"compose"` preset |
+| `direction` | string | `"horizontal"` | Compose layout direction: `"horizontal"` or `"vertical"` |
+| `columns` | number | auto | Number of grid columns |
+| `rowHeight` | number/string | `"auto"` | Row height in pixels |
+| `gapX` | number | — | Horizontal gap between cells (px) |
+| `gapY` | number | — | Vertical gap between cells (px) |
+| `camera` | object | — | Shared camera config (same as `3d` block) |
+| `lights` | array | — | Shared lights config (same as `3d` block) |
+| `scene` | object | — | Shared scene config (same as `3d` block) |
 
-### Grid Presets
+**Grid presets**:
 
 | Preset | Description |
 |--------|-------------|
@@ -212,8 +306,19 @@ Then run `npm run dev` for watch mode during development.
 | `showcase` | Multi-angle single model view |
 | `explode` | Ring arrangement for assembly breakdown |
 | `timeline` | Horizontal strip for version history |
-| `gallery` | All models in one scene |
-| `compose` | Custom multi-section layout |
+| `gallery` | All models in one scene (default) |
+| `compose` | Custom multi-section layout using `sections` |
+
+#### 4. Direct File View
+
+Click any supported model file in Obsidian's file explorer to open it in a dedicated viewer tab. No syntax needed.
+
+#### Supported Extensions
+
+| Category | Extensions |
+|----------|------------|
+| Direct render | `.glb` `.gltf` `.stl` `.obj` `.ply` `.splat` |
+| Conversion | `.step` `.stp` `.iges` `.igs` `.brep` `.sldprt` `.3mf` `.dae` `.fbx` |
 
 ### Keyboard Shortcuts (in preview)
 
