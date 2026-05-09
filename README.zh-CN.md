@@ -148,24 +148,6 @@ ln -s /path/to/ai-3d-model-workbench \
 
 ## 使用方法
 
-### 语法注册
-
-插件向 Obsidian 注册了以下语法：
-
-| 语法 | 类型 | 说明 |
-|------|------|------|
-| ` ```3d ` | 代码块 | 单模型 3D 预览，支持 JSON 配置 |
-| ` ```3dgrid ` | 代码块 | 多模型网格布局，支持预设 |
-| `![[model.ext]]` | 实时预览嵌入 | Wikilink 嵌入的内联 3D 渲染 |
-| `.glb` `.gltf` `.stl` | 文件扩展名 | 通过 `registerExtensions` 直接打开文件 |
-| `.obj` `.ply` `.splat` | 文件扩展名 | 通过 `registerExtensions` 直接打开文件 |
-
-**代码块处理器**通过 `registerMarkdownCodeBlockProcessor` 注册。解析代码围栏内容（裸路径或 JSON 配置），在渲染视图中挂载 Babylon.js 预览。
-
-**实时预览嵌入**由 CM6 `StateField` + `WidgetType` 处理，在编辑器中检测 `![[model.ext]]` 模式并替换为内联 3D 组件。
-
-**直接文件视图**通过 `registerExtensions` 注册，用户在文件资源管理器中点击支持的文件时打开 `DirectModelView` 标签页。
-
 ### 嵌入方式
 
 **1. 实时预览**（最简单）：
