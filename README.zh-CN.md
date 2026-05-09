@@ -26,7 +26,8 @@
 
 ## 功能特性
 
-- **17 种格式**开箱即用（6 种直接渲染 + 11 种通过转换）
+- **直接预览** GLB/GLTF、STL、OBJ、PLY、SPLAT
+- **可选转换** CAD、FBX、3MF、DAE 等资产到 GLB
 - **Babylon.js 9.6** 引擎，WebGL 2 渲染
 - **三种嵌入方式**：实时预览、代码块、直接文件查看
 - **网格系统**：在单个视口中渲染多个模型，支持预设布局
@@ -119,9 +120,8 @@ ln -s /path/to/ai-3d-model-workbench \
 | OBJ | `.obj` | MTL 材质、库内相对路径纹理解析 |
 | PLY | `.ply` | ASCII/二进制、顶点颜色、点云支持 |
 | SPLAT | `.splat` | 高斯溅射点云 |
-| FBX | `.fbx` | Autodesk FBX，通过社区加载器 |
 
-### CAD 转换（需要外部工具）
+### 转换（需要外部工具）
 
 | 格式 | 扩展名 | 转换器 | 输出 |
 |------|--------|--------|------|
@@ -131,10 +131,11 @@ ln -s /path/to/ai-3d-model-workbench \
 | SLDPRT | `.sldprt` | FreeCAD | GLB |
 | 3MF | `.3mf` | Python + trimesh | GLB |
 | DAE | `.dae` | Python + trimesh | GLB |
+| FBX | `.fbx` | FBX2glTF | GLB |
 
 ### 格式特性矩阵
 
-| 特性 | GLB/GLTF | STL | OBJ | PLY | SPLAT | FBX | CAD |
+| 特性 | GLB/GLTF | STL | OBJ | PLY | SPLAT | FBX（转换后） | CAD |
 |------|----------|-----|-----|-----|-------|-----|-----|
 | 网格 | 是 | 是 | 是 | 是 | 否 | 是 | 是 |
 | 点云 | 否 | 否 | 否 | 是 | 是 | 否 | 否 |
@@ -253,6 +254,8 @@ ln -s /path/to/ai-3d-model-workbench \
 | 启用 CAD 转换器 | 通过 CadQuery 启用 STEP/IGES/BREP |
 | 启用 SLDPRT 转换器 | 通过 FreeCAD 启用 SolidWorks |
 | 启用网格转换器 | 通过 trimesh 启用 3MF/DAE |
+| 启用 OBJ2GLTF 转换器 | 可选，通过 obj2gltf 标准化 OBJ |
+| 启用 FBX2glTF 转换器 | 通过 FBX2glTF 启用 FBX 转换 |
 | Python 命令 | 覆盖 Python 路径 |
 | FreeCADCmd 路径 | 覆盖 FreeCADCmd 路径 |
 
@@ -260,7 +263,7 @@ ln -s /path/to/ai-3d-model-workbench \
 
 ## 外部依赖
 
-仅 CAD 和网格转换需要外部工具。直接格式无需任何外部工具。
+仅 CAD、FBX 和网格转换需要外部工具。直接格式无需任何外部工具。
 
 ### Python + CadQuery（STEP、IGES、BREP）
 
@@ -287,6 +290,41 @@ python -c "import cadquery; print('OK')"
 pip install trimesh
 ```
 
+**自动发现**：使用与 CadQuery 相同的 Python 发现逻辑。
+
+**覆盖方式**：环境变量 `AI3D_ASSIMP_CMD`。
+
+### obj2gltf（OBJ，可选）
+
+插件已经内置 OBJ 加载器。obj2gltf 是可选替代方案，可用于生成更标准的 GLB 输出。
+
+**安装**：
+
+```bash
+npm install -g obj2gltf
+```
+
+**自动发现**：Windows 下查找 `obj2gltf.cmd`，Unix 系统下查找 `obj2gltf`。
+
+**启用**：设置 > 启用 OBJ2GLTF 转换器，或设置 obj2gltf 命令路径。
+
+### FBX2glTF（FBX）
+
+FBX 文件通过本地 FBX2glTF 二进制转换为 GLB。旧的社区 FBX 加载器没有打包进插件，因为它当前版本面向 Babylon.js 8，而本插件使用 Babylon.js 9。
+
+**安装**：
+
+下载 [github.com/godotengine/FBX2glTF](https://github.com/godotengine/FBX2glTF)，并将二进制文件放到可发现的位置。
+
+**Windows 自动发现路径**：
+
+```text
+C:\Program Files\FBX2glTF\FBX2glTF-windows-x64.exe
+C:\Program Files\FBX2glTF\FBX2glTF.exe
+```
+
+**启用**：设置 > 启用 FBX2glTF 转换器，或设置 FBX2glTF 命令路径。
+
 ### 环境变量
 
 | 变量 | 用途 |
@@ -294,6 +332,8 @@ pip install trimesh
 | `AI3D_FREECAD_CMD` | CadQuery 的 Python 命令 |
 | `AI3D_FREECMDCMD` | FreeCADCmd 路径 |
 | `AI3D_ASSIMP_CMD` | trimesh 的 Python 命令 |
+| `AI3D_OBJ2GLTF_CMD` | obj2gltf 命令路径 |
+| `AI3D_FBX2GLTF_CMD` | FBX2glTF 命令路径 |
 
 ---
 
@@ -373,7 +413,7 @@ Babylon.js v9 的 SceneLoader 存在一个 bug：自定义插件在通过 `Scene
 
 | 问题 | 受影响格式 | 解决方法 |
 |------|-----------|---------|
-| Babylon v9 data-URL bug | FBX（社区加载器） | 启用 FBX2glTF 转换器 |
+| 需要外部转换器 | FBX | 安装并启用 FBX2glTF |
 | 仅支持二进制 STL | STL | 将 ASCII STL 转换为二进制 |
 | 需要外部工具 | STEP/IGES/BREP/SLDPRT | 安装 Python + CadQuery 或 FreeCAD |
 | 纹理路径解析 | OBJ | 将纹理放在 OBJ 同一目录 |
