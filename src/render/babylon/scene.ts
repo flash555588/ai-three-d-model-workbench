@@ -29,7 +29,7 @@ import { ensureLoadersRegistered } from "./loaders/register";
 import { loadSTLBuffer } from "./loaders/stl-loader";
 import { loadPLYBuffer } from "./loaders/ply-loader";
 import { setExplode, resetExplode } from "./explode";
-import { setupPicking } from "./picking";
+import { setupPicking, type PickResult } from "./picking";
 import { arrayBufferToBase64 } from "../../utils/base64";
 import { isMobile } from "../../utils/device";
 import { OrientationGizmo } from "./orientation-gizmo";
@@ -60,6 +60,8 @@ export class BabylonModelPreview {
   private currentQuality: "low" | "medium" | "high" = "high";
   private animPlaying = false;
   private initialCamera = { alpha: Math.PI / 4, beta: Math.PI / 3, radius: 5, target: Vector3.Zero() };
+  private _lastPickResult: PickResult = { mesh: null, pickedPoint: null, screenX: 0, screenY: 0 };
+  private _onPickCallbacks: ((result: PickResult) => void)[] = [];
   private readonly preventCanvasWheelScroll = (event: WheelEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -298,7 +300,10 @@ export class BabylonModelPreview {
     this.engine.resize();
 
     this.cleanupPicking?.();
-    this.cleanupPicking = setupPicking(this.scene, () => {});
+    this.cleanupPicking = setupPicking(this.scene, (result) => {
+      this._lastPickResult = result;
+      this._onPickCallbacks.forEach(cb => cb(result));
+    });
 
     return this.computeSummary(this.rootMesh);
   }
@@ -557,11 +562,14 @@ export class BabylonModelPreview {
 
   setWireframe(enabled: boolean): void {
     if (!this.rootMesh) return;
+    // Gaussian Splat meshes don't support wireframe
+    if (this.rootMesh instanceof GaussianSplattingMesh) return;
     this.wireframeEnabled = enabled;
     const allMeshes = [this.rootMesh, ...this.rootMesh.getChildMeshes(true)];
     for (const m of allMeshes) {
-      if (m.material) {
-        (m.material as StandardMaterial).wireframe = enabled;
+      const mat = m.material as any;
+      if (mat && "wireframe" in mat) {
+        mat.wireframe = enabled;
       }
     }
   }
@@ -736,6 +744,25 @@ export class BabylonModelPreview {
     return this.engine;
   }
 
+  getCamera(): ArcRotateCamera {
+    return this.camera;
+  }
+
+  getCanvas(): HTMLCanvasElement | null {
+    return this.engine.getRenderingCanvas();
+  }
+
+  getLastPickResult(): PickResult {
+    return this._lastPickResult;
+  }
+
+  onPick(callback: (result: PickResult) => void): () => void {
+    this._onPickCallbacks.push(callback);
+    return () => {
+      this._onPickCallbacks = this._onPickCallbacks.filter(cb => cb !== callback);
+    };
+  }
+
   /**
    * Apply render quality preset and optional resolution scale.
    * - low:    0.5x resolution, no shadow blur
@@ -767,6 +794,7 @@ export class BabylonModelPreview {
 
   destroy() {
     this.engine.stopRenderLoop();
+    this._onPickCallbacks = [];
     this.cleanupPicking?.();
     this.cleanupPicking = null;
     this.gizmo?.dispose();

@@ -1,8 +1,9 @@
 import type { App, MarkdownPostProcessorContext } from "obsidian";
 import { isSupportedModelExtension, listSupportedModelExtensions } from "../../io/formats/registry";
-import type { PluginSettings } from "../../domain/models";
+import type { PluginSettings, AnnotationPin } from "../../domain/models";
 import { BabylonModelPreview } from "../../render/babylon/scene";
 import { GridRenderer } from "../../render/babylon/grid";
+import { AnnotationManager } from "../../render/babylon/annotations";
 import { readBinaryPath, resolveVaultAbsolutePath, resolveVaultPath } from "../../utils/resolve-path";
 import { getPreset, composeSections } from "../../render/babylon/presets";
 import { createHelperButtons, type HelperToolbar } from "./helper-buttons";
@@ -94,6 +95,7 @@ export function registerCodeBlockProcessor(
   app: App,
   getSettings: () => PluginSettings,
   convertedAssetCache: ConvertedAssetCache,
+  getAnnotations?: (modelPath: string) => AnnotationPin[],
 ) {
   return {
     id: "3d",
@@ -188,6 +190,8 @@ export function registerCodeBlockProcessor(
 
       // Add helper buttons
       let preview: BabylonModelPreview | null = null;
+      let annotationMgr: AnnotationManager | null = null;
+      let annotationVisible = true;
       let destroyed = false;
       let loaded = false;
 
@@ -196,10 +200,19 @@ export function registerCodeBlockProcessor(
         destroyed = true;
         observer.disconnect();
         io.disconnect();
+        annotationMgr?.destroy();
+        annotationMgr = null;
         preview?.destroy();
         preview = null;
         host.remove();
-      }, getSettings);
+      }, getSettings, () => {
+        annotationVisible = !annotationVisible;
+        if (annotationMgr) {
+          const overlay = host.querySelector(".ai3d-annotation-overlay") as HTMLElement | null;
+          if (overlay) overlay.style.display = annotationVisible ? "" : "none";
+        }
+        return annotationVisible;
+      });
 
       // Auto-destroy when the DOM element is removed
       const observer = new MutationObserver(() => {
@@ -208,6 +221,8 @@ export function registerCodeBlockProcessor(
           destroyed = true;
           observer.disconnect();
           io.disconnect();
+          annotationMgr?.destroy();
+          annotationMgr = null;
           preview?.destroy();
           preview = null;
         }
@@ -247,6 +262,24 @@ export function registerCodeBlockProcessor(
           }
           preview.applyConfig(config);
           preview.setRenderQuality(settings.renderQuality, settings.renderScale);
+
+          // Readonly annotations
+          if (getAnnotations && modelPath) {
+            const pins = getAnnotations(modelPath);
+            if (pins.length > 0) {
+              const canvasEl = preview.getCanvas();
+              if (canvasEl) {
+                annotationMgr = new AnnotationManager(
+                  { scene: preview.getScene(), camera: preview.getCamera(), engine: preview.getEngine(), canvas: canvasEl },
+                  host,
+                  "readonly",
+                  pins,
+                );
+                toolbar.showAnnotateButton();
+                toolbar.updateAnnotationBadge(pins.length);
+              }
+            }
+          }
 
           if (ext === "stl" && modelCfg.color) {
             preview.setSTLColor(modelCfg.color);

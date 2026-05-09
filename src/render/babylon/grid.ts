@@ -409,6 +409,15 @@ export class GridRenderer {
     return this.cells.length;
   }
 
+  getCanvas(): HTMLCanvasElement | null {
+    return this.engine.getRenderingCanvas();
+  }
+
+  /** Primary camera for annotations (first cell). */
+  getPrimaryCamera(): ArcRotateCamera | null {
+    return this.cells[0]?.camera ?? null;
+  }
+
   setRenderScale(scale: number): number {
     const clamped = Math.max(0.25, Math.min(scale, 2.0));
     const mobileBoost = isMobile() ? 1.5 : 1;

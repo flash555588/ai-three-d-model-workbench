@@ -81,19 +81,21 @@ export default class AI3DModelWorkbench extends Plugin {
 
     // Register direct file view for all supported formats. Conversion-capable formats
     // will be routed through the shared model pipeline inside DirectModelView.
-    this.registerView(DIRECT_VIEW_TYPE, (leaf) => new DirectModelView(leaf, () => this.getSettings(), this.convertedAssetCache));
+    this.registerView(DIRECT_VIEW_TYPE, (leaf) => new DirectModelView(leaf, () => this.getSettings(), this.convertedAssetCache, this.ps));
     this.registerExtensions(listSupportedModelExtensions(), DIRECT_VIEW_TYPE);
 
     // Register ```3d and ```3dgrid code block processors
     const { registerCodeBlockProcessor, registerGridCodeBlockProcessor } = await import("./view/inline/code-block");
-    const cb = registerCodeBlockProcessor(this.app, () => this.getSettings(), this.convertedAssetCache);
+    const getAnnotations = (modelPath: string) =>
+      this.ps.store.getState().modelAssetProfiles[modelPath]?.annotations ?? [];
+    const cb = registerCodeBlockProcessor(this.app, () => this.getSettings(), this.convertedAssetCache, getAnnotations);
     this.registerMarkdownCodeBlockProcessor(cb.id, cb.handler);
     const gridCb = registerGridCodeBlockProcessor(this.app, () => this.getSettings(), this.convertedAssetCache);
     this.registerMarkdownCodeBlockProcessor(gridCb.id, gridCb.handler);
 
     // Register Live Preview extension for ![[model.glb]] embeds
     const { registerLivePreviewExtension } = await import("./view/inline/live-preview");
-    const exts = registerLivePreviewExtension(this.app, () => this.getSettings(), this.convertedAssetCache);
+    const exts = registerLivePreviewExtension(this.app, () => this.getSettings(), this.convertedAssetCache, getAnnotations);
     for (const e of exts) {
       this.registerEditorExtension(e);
     }

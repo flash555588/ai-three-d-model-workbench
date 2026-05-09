@@ -849,3 +849,311 @@
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(350%); }
 }
+
+/* ===== Annotation Pins ===== */
+
+.ai3d-annotation-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Semi-transparent overlay when annotation mode is active */
+.ai3d-annot-mode-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: rgba(74, 158, 255, 0.06);
+  border: 2px solid rgba(74, 158, 255, 0.3);
+  border-radius: inherit;
+  pointer-events: none;
+  animation: ai3d-annot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ai3d-annot-pulse {
+  0%, 100% { border-color: rgba(74, 158, 255, 0.3); }
+  50% { border-color: rgba(74, 158, 255, 0.6); }
+}
+
+.ai3d-annotation-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: auto;
+  cursor: default;
+  user-select: none;
+  padding: 3px 8px 3px 6px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+  transition: opacity 0.25s ease, transform 0.15s ease, filter 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+}
+
+.ai3d-annotation-pin:hover {
+  transform: translate(-50%, -100%) scale(1.05);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* Occluded pin (behind model geometry) */
+.ai3d-annotation-pin.ai3d-pin-occluded {
+  opacity: 0.25;
+  filter: blur(1.5px) drop-shadow(0 0 4px rgba(255, 255, 255, 0.15));
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.ai3d-annotation-pin.ai3d-pin-occluded .ai3d-pin-dot {
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.2);
+}
+
+.ai3d-annotation-pin.ai3d-pin-occluded .ai3d-pin-label {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Fully hidden pin (camera idle + occluded) */
+.ai3d-annotation-pin.ai3d-pin-hidden {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ai3d-pin-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.ai3d-pin-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.ai3d-pin-delete {
+  display: none;
+  background: rgba(255, 60, 60, 0.85);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.ai3d-annotation-pin:hover .ai3d-pin-delete {
+  display: block;
+}
+
+/* Annotation editor popup */
+.ai3d-annotation-editor {
+  position: absolute;
+  z-index: 20;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: 8px;
+  min-width: 180px;
+  max-width: 240px;
+  pointer-events: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai3d-annotation-editor-input {
+  width: 100%;
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.ai3d-annotation-editor-input:focus {
+  border-color: var(--interactive-accent);
+}
+
+.ai3d-annotation-editor-colors {
+  display: flex;
+  gap: 4px;
+}
+
+.ai3d-pin-color-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.15s;
+}
+
+.ai3d-pin-color-swatch.active {
+  border-color: var(--text-normal);
+}
+
+.ai3d-pin-color-swatch:hover {
+  border-color: var(--text-muted);
+}
+
+.ai3d-annotation-editor-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.ai3d-annotation-editor-btn {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  cursor: pointer;
+}
+
+.ai3d-annotation-editor-confirm {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.ai3d-annotation-editor-delete {
+  background: var(--background-secondary);
+  color: var(--text-error);
+  border-color: var(--text-error);
+  margin-right: auto;
+}
+
+.ai3d-annotation-editor-delete:hover {
+  background: var(--text-error);
+  color: var(--text-on-accent);
+}
+
+/* Annotations panel section */
+.ai3d-annot-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai3d-annot-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai3d-annot-hint {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.ai3d-annot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai3d-annot-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: var(--radius-s);
+  transition: background 0.15s ease;
+}
+
+.ai3d-annot-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.ai3d-annot-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ai3d-annot-label {
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ai3d-annot-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  flex-shrink: 0;
+}
+
+.ai3d-annot-item:hover .ai3d-annot-actions {
+  opacity: 1;
+}
+
+.ai3d-annot-action-btn {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-s);
+  padding: 0;
+}
+
+.ai3d-annot-action-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.ai3d-annot-action-btn.is-delete:hover {
+  color: var(--text-error);
+}
+
+/* Pin count badge on annotation toolbar button */
+.ai3d-pin-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  pointer-events: none;
+}

@@ -1,9 +1,12 @@
 import { FileView, TFile, type WorkspaceLeaf } from "obsidian";
-import type { PluginSettings } from "../domain/models";
+import type { PluginSettings, ModelAssetProfile } from "../domain/models";
 import { BabylonModelPreview } from "../render/babylon/scene";
+import { AnnotationManager } from "../render/babylon/annotations";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector.js";
 import { createHelperButtons } from "./inline/helper-buttons";
 import { createConversionManager } from "../io/conversion/factory";
 import type { ConvertedAssetCache } from "../io/cache/converted-asset-cache";
+import type { PluginStore } from "../store/plugin-store";
 import { prepareModelInput } from "../io/model-pipeline";
 import { toPreviewSource } from "../io/preview/preview-source";
 import { readBinaryPath, resolveVaultAbsolutePath } from "../utils/resolve-path";
@@ -12,16 +15,25 @@ import { createLoadingOverlay } from "./inline/loading-overlay";
 
 export const DIRECT_VIEW_TYPE = "ai3d-direct-view";
 
+function createDefaultProfile(): ModelAssetProfile {
+  return { tags: [], notes: "", annotations: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+}
+
 export class DirectModelView extends FileView {
   private preview: BabylonModelPreview | null = null;
+  private annotationMgr: AnnotationManager | null = null;
+  private annotationMode = false;
   private loadGeneration = 0;
   private getSettings: () => PluginSettings;
   private convertedAssetCache: ConvertedAssetCache;
+  private ps: PluginStore;
+  private escHandler: ((e: KeyboardEvent) => void) | null = null;
 
-  constructor(leaf: WorkspaceLeaf, getSettings: () => PluginSettings, convertedAssetCache: ConvertedAssetCache) {
+  constructor(leaf: WorkspaceLeaf, getSettings: () => PluginSettings, convertedAssetCache: ConvertedAssetCache, ps: PluginStore) {
     super(leaf);
     this.getSettings = getSettings;
     this.convertedAssetCache = convertedAssetCache;
+    this.ps = ps;
   }
 
   getViewType(): string {
@@ -51,12 +63,21 @@ export class DirectModelView extends FileView {
   }
 
   async onClose(): Promise<void> {
+    if (this.escHandler) {
+      document.removeEventListener("keydown", this.escHandler);
+      this.escHandler = null;
+    }
+    this.annotationMgr?.destroy();
+    this.annotationMgr = null;
     this.preview?.destroy();
     this.preview = null;
   }
 
   private async loadModel(file: TFile): Promise<void> {
     const gen = ++this.loadGeneration;
+    this.annotationMgr?.destroy();
+    this.annotationMgr = null;
+    this.annotationMode = false;
     this.preview?.destroy();
     this.preview = null;
 
@@ -67,16 +88,44 @@ export class DirectModelView extends FileView {
     canvas.style.height = "100%";
     host.appendChild(canvas);
 
-    createHelperButtons(
+    // Semi-transparent overlay for annotation mode
+    const modeOverlay = document.createElement("div");
+    modeOverlay.className = "ai3d-annot-mode-overlay";
+    modeOverlay.style.display = "none";
+    host.appendChild(modeOverlay);
+
+    const self = this;
+
+    function setAnnotationMode(active: boolean) {
+      self.annotationMode = active;
+      self.annotationMgr?.hideEditor();
+      modeOverlay.style.display = active ? "" : "none";
+      console.debug("[AI3D] DirectView annotation mode:", active);
+    }
+
+    // ESC key to exit annotation mode
+    if (this.escHandler) document.removeEventListener("keydown", this.escHandler);
+    this.escHandler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && self.annotationMode) {
+        setAnnotationMode(false);
+      }
+    };
+    document.addEventListener("keydown", this.escHandler);
+
+    const toolbar = createHelperButtons(
       host,
       this.app,
       () => this.preview,
       () => file.path,
       () => {
-        // Remove just closes the tab
         this.leaf.detach();
       },
       this.getSettings,
+      // annotation toggle callback
+      () => {
+        setAnnotationMode(!self.annotationMode);
+        return self.annotationMode;
+      },
     );
 
     const loading = createLoadingOverlay(host);
@@ -93,7 +142,7 @@ export class DirectModelView extends FileView {
         conversionManager,
         convertedAssetCache: this.convertedAssetCache,
       });
-      if (gen !== this.loadGeneration) return; // stale load
+      if (gen !== this.loadGeneration) return;
       const source = toPreviewSource(prepared);
 
       this.preview = new BabylonModelPreview(canvas);
@@ -106,9 +155,56 @@ export class DirectModelView extends FileView {
       if (gen !== this.loadGeneration) { this.preview.destroy(); this.preview = null; return; }
       console.log(`[AI3D] DirectView loaded successfully: ${file.path}`);
       loading.setProgress(100);
+
+      // Set up annotation manager (edit mode)
+      const canvasEl = this.preview.getCanvas();
+      if (canvasEl) {
+        const profile = this.ps.store.getState().modelAssetProfiles[file.path];
+        const initialPins = profile?.annotations ?? [];
+        this.annotationMgr = new AnnotationManager(
+          { scene: this.preview.getScene(), camera: this.preview.getCamera(), engine: this.preview.getEngine(), canvas: canvasEl },
+          host,
+          "edit",
+          initialPins,
+          (pins) => {
+            const current = self.ps.store.getState().modelAssetProfiles;
+            const existing = current[file.path] ?? createDefaultProfile();
+            self.ps.store.setState({
+              modelAssetProfiles: { ...current, [file.path]: { ...existing, annotations: pins, updatedAt: new Date().toISOString() } },
+            });
+            // Update badge count
+            toolbar.updateAnnotationBadge(pins.length);
+          },
+        );
+
+        // Show annotate button with badge
+        toolbar.showAnnotateButton();
+        toolbar.updateAnnotationBadge(initialPins.length);
+
+        // Wire pick callback
+        this.preview.onPick((result) => {
+          if (!self.annotationMode || !self.annotationMgr) return;
+          const screenX = result.screenX;
+          const screenY = result.screenY;
+
+          let worldPos: Vector3 | null = null;
+          if (result.pickedPoint) {
+            worldPos = result.pickedPoint;
+          } else if (result.mesh) {
+            const bbox = result.mesh.getBoundingInfo().boundingBox;
+            worldPos = bbox.centerWorld.clone();
+            console.debug("[AI3D] Annotation: pickedPoint null, using bbox center fallback");
+          }
+          if (!worldPos) return;
+
+          console.debug("[AI3D] Annotation: creating pin at", worldPos.toString(), "screen:", screenX, screenY);
+          self.annotationMgr!.showEditor(screenX, screenY, worldPos);
+        });
+      }
+
       loading.hide();
     } catch (err) {
-      if (gen !== this.loadGeneration) return; // stale load error, already cleaned up
+      if (gen !== this.loadGeneration) return;
       loading.hide();
       this.preview?.destroy();
       this.preview = null;

@@ -1,6 +1,15 @@
 import type { Scene } from "@babylonjs/core/scene.js";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
+import type { Vector3 as BVector3 } from "@babylonjs/core/Maths/math.vector.js";
 import "@babylonjs/core/Layers/effectLayerSceneComponent.js";
+
+export interface PickResult {
+  mesh: AbstractMesh | null;
+  pickedPoint: BVector3 | null;
+  /** Screen coordinates from the pointer event (clientX, clientY). */
+  screenX: number;
+  screenY: number;
+}
 
 /**
  * Set up click-to-pick on a scene using onPointerObservable.
@@ -9,7 +18,7 @@ import "@babylonjs/core/Layers/effectLayerSceneComponent.js";
  */
 export function setupPicking(
   scene: Scene,
-  onPick: (mesh: AbstractMesh | null) => void,
+  onPick: (result: PickResult) => void,
 ): () => void {
   const { PointerEventTypes } = require("@babylonjs/core/Events/pointerEvents.js") as typeof import("@babylonjs/core/Events/pointerEvents.js");
   const { Color3 } = require("@babylonjs/core/Maths/math.color.js") as typeof import("@babylonjs/core/Maths/math.color.js");
@@ -30,13 +39,17 @@ export function setupPicking(
   const observer = scene.onPointerObservable.add((pointerInfo) => {
     if (pointerInfo.type !== PointerEventTypes.POINTERDOWN) return;
 
+    const evt = pointerInfo.event as PointerEvent;
+    const screenX = evt.clientX;
+    const screenY = evt.clientY;
+
     clearHighlight();
     const pickInfo = pointerInfo.pickInfo;
     if (pickInfo?.hit && pickInfo.pickedMesh) {
       applyHighlight(pickInfo.pickedMesh);
-      onPick(pickInfo.pickedMesh);
+      onPick({ mesh: pickInfo.pickedMesh, pickedPoint: pickInfo.pickedPoint ?? null, screenX, screenY });
     } else {
-      onPick(null);
+      onPick({ mesh: null, pickedPoint: null, screenX, screenY });
     }
   });
 

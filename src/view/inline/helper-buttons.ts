@@ -18,6 +18,8 @@ export interface SnapshotProvider {
 /** Handle returned by createHelperButtons — callers hold a direct reference. */
 export interface HelperToolbar {
   showAnimButton(): void;
+  showAnnotateButton(): void;
+  updateAnnotationBadge(count: number): void;
 }
 
 /**
@@ -32,6 +34,7 @@ export function createHelperButtons(
   getModelPath: () => string,
   onRemove: () => void,
   getSettings?: () => PluginSettings,
+  onToggleAnnotate?: () => boolean,
 ): HelperToolbar {
   const toolbar = document.createElement("div");
   toolbar.className = "ai3d-helper-toolbar";
@@ -249,11 +252,39 @@ export function createHelperButtons(
   });
   toolbar.appendChild(downloadBtn);
 
+  // Annotation toggle button (tag/label icon — hidden until explicitly shown)
+  const annotBtn = document.createElement("button");
+  annotBtn.className = "ai3d-inline-btn";
+  annotBtn.setAttribute("aria-label", "Toggle annotation mode");
+  annotBtn.style.display = "none";
+  annotBtn.style.position = "relative";
+  annotBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`;
+  const annotBadge = document.createElement("span");
+  annotBadge.className = "ai3d-pin-badge";
+  annotBadge.style.display = "none";
+  annotBtn.appendChild(annotBadge);
+  annotBtn.addEventListener("click", () => {
+    if (!onToggleAnnotate) return;
+    const active = onToggleAnnotate();
+    annotBtn.style.color = active ? "var(--interactive-accent)" : "";
+    showTooltip(annotBtn, active ? "Annotate On · ESC to exit" : "Annotate Off");
+  });
+  toolbar.appendChild(annotBtn);
+
   // Insert toolbar as a sibling AFTER the preview host
   previewHost.parentElement?.insertBefore(toolbar, previewHost.nextSibling);
 
   return {
     showAnimButton() { animBtn.style.display = ""; },
+    showAnnotateButton() { annotBtn.style.display = ""; },
+    updateAnnotationBadge(count: number) {
+      if (count > 0) {
+        annotBadge.textContent = String(count);
+        annotBadge.style.display = "";
+      } else {
+        annotBadge.style.display = "none";
+      }
+    },
   };
 }
 
