@@ -146,7 +146,7 @@ export function mountWorkbench(
       slider.addEventListener("input", () => {
         const val = parseInt(slider.value, 10);
         valueLabel.textContent = `${val}%`;
-        preview!.setExplode(val / 100, currentAxis);
+        preview?.setExplode(val / 100, currentAxis);
       });
 
       axisBtns.forEach((btn) => {
@@ -155,8 +155,8 @@ export function mountWorkbench(
           btn.classList.add("is-active");
           currentAxis = btn.dataset.axis as "x" | "y" | "z";
           const val = parseInt(slider.value, 10);
-          preview!.resetExplode();
-          if (val > 0) preview!.setExplode(val / 100, currentAxis);
+          preview?.resetExplode();
+          if (val > 0) preview?.setExplode(val / 100, currentAxis);
         });
       });
     }
