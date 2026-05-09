@@ -334,6 +334,10 @@ export class AnnotationManager {
   private updateProjections(): void {
     if (this.pinEls.size === 0) return;
     const { scene, camera, engine, canvas } = this.provider;
+
+    // Guard: scene may have been disposed between frames
+    if (scene.isDisposed) return;
+
     const rw = engine.getRenderWidth();
     const rh = engine.getRenderHeight();
     if (rw === 0 || rh === 0) return;
@@ -360,9 +364,9 @@ export class AnnotationManager {
       this.cameraIdle = true;
     }
 
-    // Throttle occlusion check to every 3 frames
+    // Throttle occlusion check to every 6 frames
     this.frameCount++;
-    const checkOcclusion = this.frameCount % 3 === 0;
+    const checkOcclusion = this.frameCount % 6 === 0;
     const camPos = checkOcclusion ? camera.position : null;
 
     for (const [, entry] of this.pinEls) {
@@ -395,7 +399,12 @@ export class AnnotationManager {
             entry.el.classList.toggle("ai3d-pin-occluded", occluded);
           }
         } else if (!checkOcclusion) {
-          // Non-occlusion frame: do nothing, keep current state
+          // Camera moved → ensure previously hidden pins (behind geometry but now
+          // potentially visible) get shown again immediately instead of waiting
+          // for the next occlusion check frame.
+          if (!this.cameraIdle && entry.el.classList.contains("ai3d-pin-hidden")) {
+            this.showPin(entry.el);
+          }
         }
       }
     }

@@ -562,16 +562,9 @@ export class BabylonModelPreview {
 
   setWireframe(enabled: boolean): void {
     if (!this.rootMesh) return;
-    // Gaussian Splat meshes don't support wireframe
     if (this.rootMesh instanceof GaussianSplattingMesh) return;
     this.wireframeEnabled = enabled;
-    const allMeshes = [this.rootMesh, ...this.rootMesh.getChildMeshes(true)];
-    for (const m of allMeshes) {
-      const mat = m.material as any;
-      if (mat && "wireframe" in mat) {
-        mat.wireframe = enabled;
-      }
-    }
+    this.scene.forceWireframe = enabled;
   }
 
   toggleWireframe(): boolean {
