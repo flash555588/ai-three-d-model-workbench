@@ -11,6 +11,7 @@ import { prepareModelInput } from "../io/model-pipeline";
 import { toPreviewSource } from "../io/preview/preview-source";
 import { readBinaryPath, resolveVaultAbsolutePath } from "../utils/resolve-path";
 import { listPreferredConversionExts } from "../io/formats/route-preferences";
+import { createNoteReader, createHeadingSearch } from "../utils/note-reader";
 import { createLoadingOverlay } from "./inline/loading-overlay";
 
 export const DIRECT_VIEW_TYPE = "ai3d-direct-view";
@@ -161,6 +162,8 @@ export class DirectModelView extends FileView {
       if (canvasEl) {
         const profile = this.ps.store.getState().modelAssetProfiles[file.path];
         const initialPins = profile?.annotations ?? [];
+        const noteReader = createNoteReader(this.app);
+        const headingSearch = createHeadingSearch(this.app);
         this.annotationMgr = new AnnotationManager(
           { scene: this.preview.getScene(), camera: this.preview.getCamera(), engine: this.preview.getEngine(), canvas: canvasEl },
           host,
@@ -175,6 +178,8 @@ export class DirectModelView extends FileView {
             // Update badge count
             toolbar.updateAnnotationBadge(pins.length);
           },
+          noteReader,
+          headingSearch,
         );
 
         // Show annotate button with badge

@@ -1049,6 +1049,111 @@
   color: var(--text-on-accent);
 }
 
+/* Editor input wrapper */
+.ai3d-editor-input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* Binding tag: shown below input when a heading is selected */
+.ai3d-editor-binding-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 3px;
+  padding: 1px 6px;
+  font-size: 11px;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  border-radius: var(--radius-s);
+  border: 1px solid var(--background-modifier-border);
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ai3d-editor-binding-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai3d-editor-binding-clear {
+  font-size: 10px;
+  line-height: 1;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.ai3d-editor-binding-clear:hover {
+  color: var(--text-error);
+}
+
+/* Content preview: shows heading section content */
+.ai3d-editor-content-preview {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  padding: 6px 8px;
+  max-height: 100px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai3d-editor-content-preview--empty {
+  font-style: italic;
+  color: var(--text-faint);
+}
+
+/* Heading autocomplete dropdown */
+.ai3d-heading-dropdown {
+  max-height: 180px;
+  overflow-y: auto;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.ai3d-heading-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  gap: 6px;
+}
+
+.ai3d-heading-dropdown-item:hover,
+.ai3d-heading-dropdown-item.active {
+  background: var(--background-modifier-hover);
+}
+
+.ai3d-heading-dropdown-heading {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-normal);
+}
+
+.ai3d-heading-dropdown-note {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Annotations panel section */
 .ai3d-annot-section {
   display: flex;
@@ -1156,4 +1261,69 @@
   justify-content: center;
   padding: 0 3px;
   pointer-events: none;
+}
+
+/* --- Pin Hover Popover --- */
+
+.ai3d-pin-popover {
+  position: fixed;
+  z-index: 100;
+  max-width: 320px;
+  max-height: 240px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  box-shadow: var(--shadow-s);
+  overflow: hidden;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.ai3d-pin-popover-title {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-accent);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.ai3d-pin-popover-body {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 8;
+  -webkit-box-orient: vertical;
+}
+
+/* --- Pin Pulse Animation (note heading hover) --- */
+
+@keyframes ai3d-pin-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(74, 158, 255, 0.6); transform: scale(1); }
+  50%  { box-shadow: 0 0 0 8px rgba(74, 158, 255, 0); transform: scale(1.2); }
+  100% { box-shadow: 0 0 0 0 rgba(74, 158, 255, 0); transform: scale(1); }
+}
+
+.ai3d-pin-pulse {
+  animation: ai3d-pin-pulse 1.2s ease-out;
+}
+
+/* --- Heading Pin Badge --- */
+
+.ai3d-heading-pin-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  font-size: 0.75em;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s, transform 0.15s;
+  vertical-align: middle;
+}
+
+.ai3d-heading-pin-badge:hover {
+  opacity: 1;
+  transform: scale(1.3);
 }

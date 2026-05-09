@@ -88,6 +88,9 @@ export interface AnnotationPin {
   label: string;
   color: string;
   createdAt: string;
+  notePath?: string;     // bound note vault path
+  headingRef?: string;   // heading text (e.g. "外壳组件")
+  headingLevel?: number; // heading level 1-6
 }
 
 export interface ModelAssetProfile {

@@ -14,6 +14,7 @@ import { prepareModelInput } from "../../io/model-pipeline";
 import { toPreviewSource } from "../../io/preview/preview-source";
 import { listPreferredConversionExts } from "../../io/formats/route-preferences";
 import { createLoadingOverlay } from "./loading-overlay";
+import { createNoteReader } from "../../utils/note-reader";
 
 interface PreparedInlineModel {
   sourcePath: string;
@@ -274,6 +275,8 @@ export function registerCodeBlockProcessor(
                   host,
                   "readonly",
                   pins,
+                  undefined,
+                  createNoteReader(app),
                 );
                 toolbar.showAnnotateButton();
                 toolbar.updateAnnotationBadge(pins.length);
