@@ -31,8 +31,10 @@
 - **Babylon.js 9.6** engine with WebGL 2 rendering
 - **Three embedding methods**: Live Preview, code blocks, direct file view
 - **Grid system**: render multiple models in a single viewport with presets
+- **3D annotations**: click-to-pin bookmarks with labels, colors, and depth-aware occlusion
 - **Knowledge notes**: generate structured Markdown from loaded models
 - **Snapshots**: copy, save, or download rendered previews as PNG
+- **i18n**: English and Simplified Chinese with auto-detect system locale
 - **Mobile support**: Obsidian Mobile with adaptive hardware scaling
 
 ---
@@ -79,7 +81,7 @@ Copy the three output files to your vault:
 |------|------|-------------|
 | `main.js` | ~1.7 MB | Plugin runtime (Babylon.js core) |
 | `manifest.json` | ~1 KB | Obsidian plugin manifest |
-| `styles.css` | ~5 KB | Plugin styles |
+| `styles.css` | ~10 KB | Plugin styles |
 
 **Target directory**: `<vault>/.obsidian/plugins/ai-3d-model-workbench/`
 
@@ -209,6 +211,25 @@ Then run `npm run dev` for watch mode during development.
 | `G` | Toggle orientation gizmo |
 | `B` | Toggle bounding box |
 | `Space` | Play/pause animation |
+| `Esc` | Exit annotation mode |
+
+### 3D Annotations
+
+Add labeled bookmarks directly on model surfaces. Annotations persist per model file.
+
+**Direct View & Workbench** (edit mode):
+
+1. Click the **tag icon** in the toolbar (or "Annotate" button in the workbench panel)
+2. A blue overlay indicates annotation mode is active
+3. Click anywhere on the model surface to place a pin
+4. Enter a label and pick a color in the popup editor
+5. Click an existing pin to edit its label/color or delete it
+6. Click a pin label in the workbench panel to animate the camera to that position
+7. Press `Esc` to exit annotation mode
+
+**Depth-aware occlusion**: Pins behind geometry display blurred and dimmed. When the camera stops moving for ~250ms, fully occluded pins are automatically hidden, leaving only visible bookmarks.
+
+**Code blocks & Live Preview**: Saved annotations display as read-only overlays with the same occlusion behavior.
 
 ---
 
@@ -216,6 +237,7 @@ Then run `npm run dev` for watch mode during development.
 
 | Setting | Default | Description |
 |---------|---------|-------------|
+| Language | auto | UI language (English / Simplified Chinese / auto-detect) |
 | Canvas height | 400 | Preview height in pixels |
 | Auto-rotate | off | Start with turntable animation |
 | Auto-rotate speed | 0.5 | Rotation speed (0.1-2.0) |
@@ -331,6 +353,8 @@ src/
 ├── render/babylon/
 │   ├── scene.ts               # BabylonModelPreview class
 │   ├── grid.ts                # GridRenderer class
+│   ├── annotations.ts         # AnnotationManager (pin overlay + occlusion)
+│   ├── picking.ts             # Click-to-pick with highlight
 │   ├── loaders/
 │   │   ├── stl-loader.ts      # Custom binary STL parser
 │   │   ├── ply-loader.ts      # Custom ASCII/binary PLY parser
