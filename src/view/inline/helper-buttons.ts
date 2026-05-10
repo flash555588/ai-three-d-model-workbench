@@ -1,6 +1,15 @@
 import type { App } from "obsidian";
 import type { PluginSettings } from "../../domain/models";
 
+/** Parse SVG inner markup into an SVG element without using innerHTML. */
+function createSvgIcon(inner: string): SVGSVGElement {
+  const doc = new DOMParser().parseFromString(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">${inner}</svg>`,
+    "image/svg+xml",
+  );
+  return doc.documentElement as unknown as SVGSVGElement;
+}
+
 /** Convert a data URL to a Blob without using fetch(). */
 function dataUrlToBlob(dataUrl: string): Blob {
   const [header, data] = dataUrl.split(",");
@@ -55,7 +64,7 @@ export function createHelperButtons(
   const resetBtn = document.createElement("button");
   resetBtn.className = "ai3d-inline-btn";
   resetBtn.setAttribute("aria-label", "Reset view");
-  resetBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>`;
+  resetBtn.appendChild(createSvgIcon(`<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>`));
   resetBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (preview?.resetView) {
@@ -69,7 +78,7 @@ export function createHelperButtons(
   const infoBtn = document.createElement("button");
   infoBtn.className = "ai3d-inline-btn";
   infoBtn.setAttribute("aria-label", "Copy model info as Markdown");
-  infoBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+  infoBtn.appendChild(createSvgIcon(`<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>`));
   infoBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.exportModelInfo) return;
@@ -92,7 +101,7 @@ export function createHelperButtons(
   const wireBtn = document.createElement("button");
   wireBtn.className = "ai3d-inline-btn";
   wireBtn.setAttribute("aria-label", "Toggle wireframe");
-  wireBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/></svg>`;
+  wireBtn.appendChild(createSvgIcon(`<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/>`));
   wireBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.toggleWireframe) return;
@@ -106,7 +115,7 @@ export function createHelperButtons(
   const gizmoBtn = document.createElement("button");
   gizmoBtn.className = "ai3d-inline-btn";
   gizmoBtn.setAttribute("aria-label", "Toggle orientation axes");
-  gizmoBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M2 12h20"/><path d="M12 2l4 4"/><path d="M12 2l-4 4"/><path d="M22 12l-4-4"/><path d="M22 12l-4 4"/></svg>`;
+  gizmoBtn.appendChild(createSvgIcon(`<path d="M12 2v20"/><path d="M2 12h20"/><path d="M12 2l4 4"/><path d="M12 2l-4 4"/><path d="M22 12l-4-4"/><path d="M22 12l-4 4"/>`));
   gizmoBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.toggleOrientationGizmo) return;
@@ -120,7 +129,7 @@ export function createHelperButtons(
   const bboxBtn = document.createElement("button");
   bboxBtn.className = "ai3d-inline-btn";
   bboxBtn.setAttribute("aria-label", "Toggle bounding box");
-  bboxBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`;
+  bboxBtn.appendChild(createSvgIcon(`<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>`));
   bboxBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.toggleBoundingBox) return;
@@ -134,7 +143,7 @@ export function createHelperButtons(
   const disassembleBtn = document.createElement("button");
   disassembleBtn.className = "ai3d-inline-btn";
   disassembleBtn.setAttribute("aria-label", "Toggle disassembly mode");
-  disassembleBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 17h6"/><path d="M17 14v6"/></svg>`;
+  disassembleBtn.appendChild(createSvgIcon(`<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 17h6"/><path d="M17 14v6"/>`));
   disassembleBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.toggleDisassembly) return;
@@ -148,7 +157,7 @@ export function createHelperButtons(
   const resetPartsBtn = document.createElement("button");
   resetPartsBtn.className = "ai3d-inline-btn";
   resetPartsBtn.setAttribute("aria-label", "Reset disassembled parts");
-  resetPartsBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 109-9"/><path d="M3 4v8h8"/><rect x="14" y="14" width="5" height="5" rx="1"/></svg>`;
+  resetPartsBtn.appendChild(createSvgIcon(`<path d="M3 12a9 9 0 109-9"/><path d="M3 4v8h8"/><rect x="14" y="14" width="5" height="5" rx="1"/>`));
   resetPartsBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.resetDisassembly) return;
@@ -178,14 +187,14 @@ export function createHelperButtons(
   const animBtn = document.createElement("button");
   animBtn.className = "ai3d-inline-btn is-hidden";
   animBtn.setAttribute("aria-label", "Play/Pause animation");
-  animBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+  animBtn.appendChild(createSvgIcon(`<polygon points="5 3 19 12 5 21 5 3"/>`));
   animBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.toggleAnimation) return;
     const playing = preview.toggleAnimation();
-    animBtn.innerHTML = playing
-      ? `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`
-      : `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+    animBtn.replaceChildren(createSvgIcon(playing
+      ? `<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>`
+      : `<polygon points="5 3 19 12 5 21 5 3"/>`));
     showTooltip(animBtn, playing ? "Playing" : "Paused");
   });
   toolbar.appendChild(animBtn);
@@ -194,7 +203,7 @@ export function createHelperButtons(
   const removeBtn = document.createElement("button");
   removeBtn.className = "ai3d-inline-btn";
   removeBtn.setAttribute("aria-label", "Remove preview");
-  removeBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>`;
+  removeBtn.appendChild(createSvgIcon(`<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>`));
   removeBtn.addEventListener("click", onRemove);
   toolbar.appendChild(removeBtn);
 
@@ -202,7 +211,7 @@ export function createHelperButtons(
   const copyBtn = document.createElement("button");
   copyBtn.className = "ai3d-inline-btn";
   copyBtn.setAttribute("aria-label", "Copy snapshot");
-  copyBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`;
+  copyBtn.appendChild(createSvgIcon(`<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>`));
   copyBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview) return;
@@ -228,7 +237,7 @@ export function createHelperButtons(
   const saveBtn = document.createElement("button");
   saveBtn.className = "ai3d-inline-btn";
   saveBtn.setAttribute("aria-label", "Save snapshot to vault");
-  saveBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
+  saveBtn.appendChild(createSvgIcon(`<path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>`));
   saveBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview) return;
@@ -281,7 +290,7 @@ export function createHelperButtons(
   const downloadBtn = document.createElement("button");
   downloadBtn.className = "ai3d-inline-btn";
   downloadBtn.setAttribute("aria-label", "Download snapshot");
-  downloadBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+  downloadBtn.appendChild(createSvgIcon(`<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>`));
   downloadBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview) return;
@@ -310,7 +319,7 @@ export function createHelperButtons(
   const annotBtn = document.createElement("button");
   annotBtn.className = "ai3d-inline-btn is-hidden ai3d-annot-btn";
   annotBtn.setAttribute("aria-label", "Toggle annotation mode");
-  annotBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`;
+  annotBtn.appendChild(createSvgIcon(`<path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>`));
   const annotBadge = document.createElement("span");
   annotBadge.className = "ai3d-pin-badge is-hidden";
   annotBtn.appendChild(annotBadge);

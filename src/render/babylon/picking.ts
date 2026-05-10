@@ -33,7 +33,8 @@ export function setupPicking(
 
   function applyHighlight(mesh: AbstractMesh) {
     if (mesh.isDisposed()) return;
-    highlightLayer.addMesh(mesh as any, highlightColor);
+    // @ts-expect-error — Babylon HighlightLayer accepts AbstractMesh at runtime
+    highlightLayer.addMesh(mesh as unknown, highlightColor);
   }
 
   const observer = scene.onPointerObservable.add((pointerInfo) => {

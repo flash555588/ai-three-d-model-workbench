@@ -1,5 +1,5 @@
 import type { ModelConfig, PresetResult, CellLayout } from "../../../domain/models";
-import type { PresetHandler } from "./base";
+import type { PresetHandler, CameraPresetName } from "./base";
 import { cam, viewportGrid, ringPositions } from "./base";
 
 /**
@@ -33,7 +33,7 @@ export const ExplodePreset: PresetHandler = {
 
     const cells: CellLayout[] = models.map((_m, i) => ({
       modelIndex: i,
-      camera: cam(angleName as any),
+      camera: cam(angleName as CameraPresetName),
       viewport: viewports[i],
     }));
 

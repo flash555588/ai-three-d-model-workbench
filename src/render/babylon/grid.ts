@@ -226,7 +226,7 @@ export class GridRenderer {
     const allMeshes = renderableMeshes.filter((mesh) => mesh !== root);
     const cellMask = 1 << index;
     for (const m of renderableMeshes) m.layerMask = cellMask;
-    if ((root as any).layerMask !== undefined) root.layerMask = cellMask;
+    if ("layerMask" in root) (root as unknown as { layerMask: number }).layerMask = cellMask;
 
     return { root, allMeshes };
   }

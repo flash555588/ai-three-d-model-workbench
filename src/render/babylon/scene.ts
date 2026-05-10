@@ -147,7 +147,7 @@ export class BabylonModelPreview {
       objMtlLock = new Promise<void>(r => { resolveLock = r; });
       try {
         const { OBJFileLoader } = await import("@babylonjs/loaders/OBJ/objFileLoader.js");
-        const proto = OBJFileLoader.prototype as any;
+        const proto = OBJFileLoader.prototype as unknown as Record<string, unknown>;
         if (typeof proto._loadMTL !== "function") {
           console.warn("[AI3D] OBJFileLoader._loadMTL not found — MTL vault resolution disabled");
         }
@@ -254,7 +254,7 @@ export class BabylonModelPreview {
         // Log material state after OBJ load
         for (const m of result.meshes) {
           const mat = m.material;
-          console.debug(`[AI3D] OBJ mesh "${m.name}" material:`, mat ? `${mat.name} diffuse=${(mat as any).diffuseColor}` : "NONE");
+          console.debug(`[AI3D] OBJ mesh "${m.name}" material:`, mat ? `${mat.name} diffuse=${(mat as unknown as Record<string, unknown>)?.diffuseColor}` : "NONE");
         }
 
         // Restore original _loadMTL
@@ -425,7 +425,7 @@ export class BabylonModelPreview {
         const l = new PointLight("point", pos, this.scene);
         l.diffuse = color;
         l.intensity = intensity;
-        if (cfg.decay !== undefined) (l as any).decay = cfg.decay;
+        if (cfg.decay !== undefined) (l as unknown as Record<string, unknown>).decay = cfg.decay;
         return l;
       }
       case "spot": {
@@ -437,7 +437,7 @@ export class BabylonModelPreview {
         const l = new SpotLight("spot", pos, dir, angle, penumbra, this.scene);
         l.diffuse = color;
         l.intensity = intensity;
-        if (cfg.decay !== undefined) (l as any).decay = cfg.decay;
+        if (cfg.decay !== undefined) (l as unknown as Record<string, unknown>).decay = cfg.decay;
         if (cfg.castShadow && this.rootMesh) {
           this.setupShadow(l);
         }

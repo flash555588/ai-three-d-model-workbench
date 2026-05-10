@@ -209,7 +209,7 @@ function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): BabylonMesh {
     // Vertex colors present — set white diffuse so colors are not tinted
     mat.diffuseColor = new Color3(1, 1, 1);
     mat.emissiveColor = new Color3(0.05, 0.05, 0.05);
-    (mat as any).vertexColorEnabled = true;
+    (mat as unknown as Record<string, unknown>).vertexColorEnabled = true;
   } else {
     mat.diffuseColor = new Color3(0.85, 0.85, 0.85);
     mat.emissiveColor = new Color3(0.1, 0.1, 0.1);
@@ -229,5 +229,6 @@ export function loadSTLBuffer(scene: Scene, buffer: ArrayBuffer): BabylonMesh {
 
 export async function registerSTLLoader() {
   const { SceneLoader } = await import("@babylonjs/core/Loading/sceneLoader.js");
-  SceneLoader.RegisterPlugin(stlPlugin as any);
+  // @ts-expect-error — Babylon plugin registration accepts ISceneLoaderPlugin
+  SceneLoader.RegisterPlugin(stlPlugin as unknown);
 }

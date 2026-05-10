@@ -32,7 +32,7 @@ export function resolveVaultPath(app: App, rawPath: string): string | null {
   const exact = app.vault.getAbstractFileByPath(rawPath);
   if (exact) return exact.path;
 
-  const resolved = (app as any).metadataCache?.getFirstLinkpathDest?.(rawPath, "");
+  const resolved = app.metadataCache?.getFirstLinkpathDest?.(rawPath, "");
   if (resolved) return resolved.path;
 
   return null;

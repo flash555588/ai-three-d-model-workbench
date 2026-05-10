@@ -1,5 +1,5 @@
 import type { ModelConfig, PresetResult, CellLayout } from "../../../domain/models";
-import type { PresetHandler } from "./base";
+import type { PresetHandler, CameraPresetName } from "./base";
 import { cam, viewportGrid } from "./base";
 
 /**
@@ -47,7 +47,7 @@ export const GalleryPreset: PresetHandler = {
     const viewports = viewportGrid(1, 1, 0);
     const cells: CellLayout[] = [{
       modelIndex: 0, // camera targets scene center, not a specific model
-      camera: cam(angleName as any, undefined, 3 + Math.max(cols, rows) * 0.5),
+      camera: cam(angleName as CameraPresetName, undefined, 3 + Math.max(cols, rows) * 0.5),
       viewport: viewports[0],
     }];
 

@@ -22,7 +22,7 @@ export const ComposePreset: PresetHandler = {
   minModels: 1,
   maxModels: 32,
 
-  compute(_models: ModelConfig[], _params, _extra?: any): PresetResult | null {
+  compute(_models: ModelConfig[], _params, _extra?: Record<string, unknown>): PresetResult | null {
     // Compose is handled specially in code-block.ts — this handler exists
     // only for registry listing. Actual computation happens in composeSections().
     return null;

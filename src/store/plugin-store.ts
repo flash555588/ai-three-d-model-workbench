@@ -59,7 +59,7 @@ export function createPluginStore(plugin: Plugin): PluginStore {
     async load() {
       const saved: PersistedPluginState | null = await plugin.loadData();
       if (!saved) return;
-      localeLoadedFromSaved = !!(saved.settings as any)?.locale;
+      localeLoadedFromSaved = !!saved.settings?.locale;
       store.setState({
         settings: { ...DEFAULT_SETTINGS, ...(saved.settings ?? {}) },
         convertedAssetRecords: saved.convertedAssetRecords ?? [],

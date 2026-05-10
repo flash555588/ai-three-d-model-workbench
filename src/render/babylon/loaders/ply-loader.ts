@@ -287,7 +287,7 @@ function parsePLY(scene: Scene, data: ArrayBuffer): BabylonMesh {
     vertexData.colors = new Float32Array(parsed.colors);
     vertexData.applyToMesh(mesh);
     mat.diffuseColor = new Color3(1, 1, 1);
-    (mat as any).vertexColorEnabled = true;
+    (mat as unknown as Record<string, unknown>).vertexColorEnabled = true;
   } else {
     mat.diffuseColor = new Color3(0.7, 0.7, 0.7);
   }
@@ -347,5 +347,6 @@ export function loadPLYBuffer(scene: Scene, buffer: ArrayBuffer): BabylonMesh {
 
 export async function registerPLYLoader() {
   const { SceneLoader } = await import("@babylonjs/core/Loading/sceneLoader.js");
-  SceneLoader.RegisterPlugin(plyPlugin as any);
+  // @ts-expect-error — Babylon plugin registration accepts ISceneLoaderPlugin
+  SceneLoader.RegisterPlugin(plyPlugin as unknown);
 }
