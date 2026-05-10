@@ -325,45 +325,53 @@ export function registerCodeBlockProcessor(
  * Normalize a raw parsed JSON object into ThreeDBlockConfig.
  * Handles both single-model shorthand and full config.
  */
-function normalizeConfig(raw: any): ThreeDBlockConfig {
+function normalizeConfig(raw: unknown): ThreeDBlockConfig {
   // If it's a string, treat as simple path
   if (typeof raw === "string") {
     return { models: [{ path: raw }] };
   }
 
+  if (typeof raw !== "object" || raw === null) {
+    return { models: [] };
+  }
+
+  const obj = raw as Record<string, unknown>;
+
   // If it has a "path" property at top level, it's a single model config
-  if (raw.path && typeof raw.path === "string") {
+  if (typeof obj.path === "string") {
     return {
-      models: [{ path: raw.path, color: raw.color, wireframe: raw.wireframe }],
-      camera: raw.camera,
-      lights: raw.lights,
-      scene: raw.scene,
-      stl: raw.stl,
-      width: raw.width,
-      height: raw.height,
+      models: [{ path: obj.path, color: obj.color as string | undefined, wireframe: obj.wireframe as boolean | undefined }],
+      camera: obj.camera as ThreeDBlockConfig["camera"],
+      lights: obj.lights as ThreeDBlockConfig["lights"],
+      scene: obj.scene as ThreeDBlockConfig["scene"],
+      stl: obj.stl as ThreeDBlockConfig["stl"],
+      width: obj.width as number | string | undefined,
+      height: obj.height as number | string | undefined,
     };
   }
 
   // Full config with models array
-  const models: ModelConfig[] = Array.isArray(raw.models)
-    ? raw.models
-        .filter((m: any) => {
-          const p = typeof m === "string" ? m : m?.path;
+  const models: ModelConfig[] = Array.isArray(obj.models)
+    ? obj.models
+        .filter((m: unknown) => {
+          const p = typeof m === "string" ? m : m && typeof m === "object" && "path" in m ? (m as Record<string, unknown>).path : undefined;
           return typeof p === "string" && p.length > 0;
         })
-        .map((m: any) =>
-          typeof m === "string" ? { path: m } : { path: m.path, color: m.color, wireframe: m.wireframe },
-        )
+        .map((m: unknown) => {
+          if (typeof m === "string") return { path: m };
+          const mo = m as Record<string, unknown>;
+          return { path: mo.path as string, color: mo.color as string | undefined, wireframe: mo.wireframe as boolean | undefined };
+        })
     : [];
 
   return {
     models,
-    camera: raw.camera,
-    lights: raw.lights,
-    scene: raw.scene,
-    stl: raw.stl,
-    width: raw.width,
-    height: raw.height,
+    camera: obj.camera as ThreeDBlockConfig["camera"],
+    lights: obj.lights as ThreeDBlockConfig["lights"],
+    scene: obj.scene as ThreeDBlockConfig["scene"],
+    stl: obj.stl as ThreeDBlockConfig["stl"],
+    width: obj.width as number | string | undefined,
+    height: obj.height as number | string | undefined,
   };
 }
 

@@ -244,12 +244,12 @@ export class AnnotationManager {
 
     const hideDropdown = () => {
       dropdown.classList.add("is-hidden");
-      dropdown.innerHTML = "";
+      dropdown.replaceChildren();
       dropdownIndex = -1;
     };
 
     const showResults = (results: HeadingSearchResult[]) => {
-      dropdown.innerHTML = "";
+      dropdown.replaceChildren();
       dropdownIndex = -1;
       lastResults = results;
       if (results.length === 0) {

@@ -93,7 +93,7 @@ export function mountWorkbench(
 
   function renderPanels() {
     const state = ps.store.getState();
-    panelsEl.innerHTML = "";
+    panelsEl.replaceChildren();
 
     // ── Model Status ──
     panelsEl.appendChild(html`
@@ -371,7 +371,7 @@ export function mountWorkbench(
   renderPanels();
 
   // ── Model loading subscription ──
-  const unsubModel = ps.store.subscribe(async () => {
+  const unsubModel = ps.store.subscribe(() => { void (async () => {
     const state = ps.store.getState();
     const path = state.currentModelPath;
     if (!path || loading) { pendingPath = path ?? pendingPath; return; }
@@ -496,7 +496,7 @@ export function mountWorkbench(
         ps.store.setState({});
       }
     }
-  });
+  })(); });
 
   // ── Panel re-render subscription ──
   const unsubPanels = ps.store.subscribe(() => renderPanels());
@@ -509,7 +509,7 @@ export function mountWorkbench(
     annotationMgr = null;
     preview?.destroy();
     preview = null;
-    container.innerHTML = "";
+    container.replaceChildren();
     container.classList.remove("ai3d-workbench");
   };
 }
