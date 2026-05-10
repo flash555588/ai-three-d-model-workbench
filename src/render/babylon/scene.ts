@@ -217,7 +217,7 @@ export class BabylonModelPreview {
                   lines[i] = `${m[1]} ${dataUrl}`;
                   texCount++;
                   resolved = true;
-                  console.log(`[AI3D] Texture resolved: ${cand}`);
+                  console.debug(`[AI3D] Texture resolved: ${cand}`);
                   break;
                 } catch { /* try next candidate */ }
               }
@@ -235,7 +235,7 @@ export class BabylonModelPreview {
               filtered.splice(nmIdx >= 0 ? nmIdx + 1 : 0, 0, "Kd 0.80 0.80 0.80");
             }
             mtlContent = filtered.join("\n");
-            console.log(`[AI3D] MTL: ${mtlPath} | textures: ${texCount} loaded, ${texMissing} missing`);
+            console.debug(`[AI3D] MTL: ${mtlPath} | textures: ${texCount} loaded, ${texMissing} missing`);
           } catch {
             console.debug(`[AI3D] No MTL in vault: ${mtlPath}`);
           }
@@ -244,7 +244,7 @@ export class BabylonModelPreview {
         // Override _loadMTL to use vault content or skip (prevents network fetch)
         proto._loadMTL = function(_url: string, _rootUrl: string, onSuccess: (data: string) => void) {
           const content = mtlContent ?? "";
-          console.log(`[AI3D] _loadMTL called: url=${_url}, content_len=${content.length}, has_Kd=${content.includes("Kd")}, has_map=${content.includes("map_")}`);
+          console.debug(`[AI3D] _loadMTL called: url=${_url}, content_len=${content.length}, has_Kd=${content.includes("Kd")}, has_map=${content.includes("map_")}`);
           onSuccess(content);
         };
 
@@ -254,7 +254,7 @@ export class BabylonModelPreview {
         // Log material state after OBJ load
         for (const m of result.meshes) {
           const mat = m.material;
-          console.log(`[AI3D] OBJ mesh "${m.name}" material:`, mat ? `${mat.name} diffuse=${(mat as any).diffuseColor}` : "NONE");
+          console.debug(`[AI3D] OBJ mesh "${m.name}" material:`, mat ? `${mat.name} diffuse=${(mat as any).diffuseColor}` : "NONE");
         }
 
         // Restore original _loadMTL
@@ -269,11 +269,11 @@ export class BabylonModelPreview {
     } else if (extLower === "stl") {
       // Direct parse — Babylon v9 SceneLoader mishandles data URLs for custom plugins
       this.rootMesh = loadSTLBuffer(scene, data);
-      this.loadedMeshes = [this.rootMesh];
+      if (this.rootMesh) this.loadedMeshes = [this.rootMesh];
     } else if (extLower === "ply") {
       // Direct parse — same Babylon v9 data-URL issue as STL
       this.rootMesh = loadPLYBuffer(scene, data);
-      this.loadedMeshes = [this.rootMesh];
+      if (this.rootMesh) this.loadedMeshes = [this.rootMesh];
     } else {
       const result = await SceneLoader.ImportMeshAsync("", "", dataUrl, scene, undefined, fileExt);
       this.loadedMeshes = result.meshes;

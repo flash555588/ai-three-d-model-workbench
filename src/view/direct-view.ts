@@ -63,7 +63,7 @@ export class DirectModelView extends FileView {
     await this.loadModel(file);
   }
 
-  async onClose(): Promise<void> {
+  onClose(): Promise<void> {
     if (this.escHandler) {
       document.removeEventListener("keydown", this.escHandler);
       this.escHandler = null;
@@ -72,6 +72,7 @@ export class DirectModelView extends FileView {
     this.annotationMgr = null;
     this.preview?.destroy();
     this.preview = null;
+    return Promise.resolve();
   }
 
   private async loadModel(file: TFile): Promise<void> {
@@ -85,29 +86,25 @@ export class DirectModelView extends FileView {
     const host = this.contentEl.createDiv({ cls: "ai3d-preview-host" });
 
     const canvas = document.createElement("canvas");
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
+    canvas.className = "ai3d-canvas-full";
     host.appendChild(canvas);
 
     // Semi-transparent overlay for annotation mode
     const modeOverlay = document.createElement("div");
-    modeOverlay.className = "ai3d-annot-mode-overlay";
-    modeOverlay.style.display = "none";
+    modeOverlay.className = "ai3d-annot-mode-overlay is-hidden";
     host.appendChild(modeOverlay);
 
-    const self = this;
-
-    function setAnnotationMode(active: boolean) {
-      self.annotationMode = active;
-      self.annotationMgr?.hideEditor();
-      modeOverlay.style.display = active ? "" : "none";
+    const setAnnotationMode = (active: boolean) => {
+      this.annotationMode = active;
+      this.annotationMgr?.hideEditor();
+      modeOverlay.classList.toggle("is-hidden", !active);
       console.debug("[AI3D] DirectView annotation mode:", active);
-    }
+    };
 
     // ESC key to exit annotation mode
     if (this.escHandler) document.removeEventListener("keydown", this.escHandler);
     this.escHandler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && self.annotationMode) {
+      if (e.key === "Escape" && this.annotationMode) {
         setAnnotationMode(false);
       }
     };
@@ -124,8 +121,8 @@ export class DirectModelView extends FileView {
       this.getSettings,
       // annotation toggle callback
       () => {
-        setAnnotationMode(!self.annotationMode);
-        return self.annotationMode;
+        setAnnotationMode(!this.annotationMode);
+        return this.annotationMode;
       },
     );
 
@@ -150,11 +147,11 @@ export class DirectModelView extends FileView {
       loading.setPhase("Loading model...");
       const data = await readBinaryPath(this.app, source.path);
       if (gen !== this.loadGeneration) { this.preview.destroy(); this.preview = null; return; }
-      console.log(`[AI3D] DirectView loading: ${file.path} via ${source.path} (${source.ext}, ${data.byteLength} bytes)`);
+      console.debug(`[AI3D] DirectView loading: ${file.path} via ${source.path} (${source.ext}, ${data.byteLength} bytes)`);
       const readFile = async (p: string) => readBinaryPath(this.app, p);
       await this.preview.loadModel(data, source.ext, readFile, source.path);
       if (gen !== this.loadGeneration) { this.preview.destroy(); this.preview = null; return; }
-      console.log(`[AI3D] DirectView loaded successfully: ${file.path}`);
+      console.debug(`[AI3D] DirectView loaded successfully: ${file.path}`);
       loading.setProgress(100);
 
       // Set up annotation manager (edit mode)
@@ -170,9 +167,9 @@ export class DirectModelView extends FileView {
           "edit",
           initialPins,
           (pins) => {
-            const current = self.ps.store.getState().modelAssetProfiles;
+            const current = this.ps.store.getState().modelAssetProfiles;
             const existing = current[file.path] ?? createDefaultProfile();
-            self.ps.store.setState({
+            this.ps.store.setState({
               modelAssetProfiles: { ...current, [file.path]: { ...existing, annotations: pins, updatedAt: new Date().toISOString() } },
             });
             // Update badge count
@@ -188,7 +185,7 @@ export class DirectModelView extends FileView {
 
         // Wire pick callback
         this.preview.onPick((result) => {
-          if (!self.annotationMode || !self.annotationMgr) return;
+          if (!this.annotationMode || !this.annotationMgr) return;
           const screenX = result.screenX;
           const screenY = result.screenY;
 
@@ -203,7 +200,7 @@ export class DirectModelView extends FileView {
           if (!worldPos) return;
 
           console.debug("[AI3D] Annotation: creating pin at", worldPos.toString(), "screen:", screenX, screenY);
-          self.annotationMgr!.showEditor(screenX, screenY, worldPos);
+          this.annotationMgr!.showEditor(screenX, screenY, worldPos);
         });
       }
 

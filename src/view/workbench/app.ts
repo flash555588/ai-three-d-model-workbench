@@ -1,5 +1,5 @@
 import type { App } from "obsidian";
-import { TFile } from "obsidian";
+import { MarkdownView, TFile } from "obsidian";
 import type { PluginStore } from "../../store/plugin-store";
 import type { PluginState, ModelAssetProfile } from "../../domain/models";
 import { normalizeTagList } from "../../utils/format";
@@ -74,14 +74,13 @@ export function mountWorkbench(
 
   // Semi-transparent overlay for annotation mode
   const modeOverlay = document.createElement("div");
-  modeOverlay.className = "ai3d-annot-mode-overlay";
-  modeOverlay.style.display = "none";
+  modeOverlay.className = "ai3d-annot-mode-overlay is-hidden";
   previewHost.appendChild(modeOverlay);
 
   function setAnnotationMode(active: boolean) {
     annotationMode = active;
     annotationMgr?.hideEditor();
-    modeOverlay.style.display = active ? "" : "none";
+    modeOverlay.classList.toggle("is-hidden", !active);
     renderPanels();
   }
 
@@ -94,7 +93,7 @@ export function mountWorkbench(
 
   function renderPanels() {
     const state = ps.store.getState();
-    panelsEl.innerHTML = "";
+    panelsEl.replaceChildren();
 
     // ── Model Status ──
     panelsEl.appendChild(html`
@@ -344,12 +343,11 @@ export function mountWorkbench(
           const path = ps.store.getState().currentModelPath ?? undefined;
           const md = preview.exportModelInfo(path);
           if (!md) return;
-          const activeLeaf = app.workspace.activeLeaf;
-          const view = activeLeaf?.view as any;
-          if (view?.editor) {
-            view.editor.replaceSelection(md);
+          const mdView = app.workspace.getActiveViewOfType(MarkdownView);
+          if (mdView && "editor" in mdView) {
+            (mdView as MarkdownView).editor.replaceSelection(md);
           } else {
-            navigator.clipboard.writeText(md);
+            void navigator.clipboard.writeText(md).catch(() => {});
           }
         });
       }
@@ -373,7 +371,7 @@ export function mountWorkbench(
   renderPanels();
 
   // ── Model loading subscription ──
-  const unsubModel = ps.store.subscribe(async () => {
+  const unsubModel = ps.store.subscribe(() => { void (async () => {
     const state = ps.store.getState();
     const path = state.currentModelPath;
     if (!path || loading) { pendingPath = path ?? pendingPath; return; }
@@ -387,16 +385,15 @@ export function mountWorkbench(
     annotationMgr?.destroy();
     annotationMgr = null;
     annotationMode = false;
-    modeOverlay.style.display = "none";
+    modeOverlay.classList.add("is-hidden");
     preview?.destroy();
     preview = null;
     previewHost.querySelectorAll(".ai3d-inline-empty:not(.ai3d-empty-state)").forEach(el => el.remove());
 
     // Clear empty state, show loading
-    emptyState.style.display = "none";
+    emptyState.classList.add("is-hidden");
     const canvas = document.createElement("canvas");
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
+    canvas.className = "ai3d-canvas-full";
     previewHost.appendChild(canvas);
 
     try {
@@ -488,7 +485,7 @@ export function mountWorkbench(
       preview?.destroy();
       preview = null;
       canvas.remove();
-      emptyState.style.display = "";
+      emptyState.classList.remove("is-hidden");
       const errDiv = previewHost.createDiv({ cls: "ai3d-inline-empty" });
       errDiv.textContent = `Failed to load: ${String(err)}`;
     } finally {
@@ -499,7 +496,7 @@ export function mountWorkbench(
         ps.store.setState({});
       }
     }
-  });
+  })(); });
 
   // ── Panel re-render subscription ──
   const unsubPanels = ps.store.subscribe(() => renderPanels());
@@ -512,7 +509,7 @@ export function mountWorkbench(
     annotationMgr = null;
     preview?.destroy();
     preview = null;
-    container.innerHTML = "";
+    container.replaceChildren();
     container.classList.remove("ai3d-workbench");
   };
 }
@@ -526,7 +523,7 @@ let noteGenerationLock: Promise<void> | null = null;
 
 export async function generateKnowledgeNote(app: App, state: PluginState) {
   // Serialize concurrent calls to prevent duplicate note creation
-  if (noteGenerationLock) await noteGenerationLock;
+  if (noteGenerationLock !== null) await noteGenerationLock;
   let resolveLock!: () => void;
   noteGenerationLock = new Promise<void>(r => { resolveLock = r; });
 

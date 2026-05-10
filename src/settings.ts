@@ -23,7 +23,7 @@ export class AI3DSettingTab extends PluginSettingTab {
     setLocale(this.plugin.getSettings().locale);
     let refreshCommandDiagnostics: (() => Promise<void>) | undefined;
 
-    containerEl.createEl("h2", { text: t("settings.title") });
+    new Setting(containerEl).setName(t("settings.title")).setHeading();
 
     // ── Language ─────────────────────────────────────────────────
 
@@ -35,7 +35,7 @@ export class AI3DSettingTab extends PluginSettingTab {
           .addOption("en", "English")
           .addOption("zh-CN", "简体中文")
           .setValue(this.plugin.getSettings().locale)
-          .onChange(async (val: string) => {
+          .onChange((val: string) => {
             this.plugin.updateSettings({ locale: val as Locale });
             this.display();
           }),
@@ -43,7 +43,7 @@ export class AI3DSettingTab extends PluginSettingTab {
 
     // ── Folders ──────────────────────────────────────────────────
 
-    containerEl.createEl("h3", { text: t("settings.folders") });
+    new Setting(containerEl).setName(t("settings.folders")).setHeading();
 
     new Setting(containerEl)
       .setName(t("settings.sourceModelFolder"))
@@ -52,7 +52,7 @@ export class AI3DSettingTab extends PluginSettingTab {
         text
           .setPlaceholder(DEFAULT_SETTINGS.sourceModelFolder)
           .setValue(this.plugin.getSettings().sourceModelFolder)
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ sourceModelFolder: val });
           }),
       );
@@ -64,7 +64,7 @@ export class AI3DSettingTab extends PluginSettingTab {
         text
           .setPlaceholder(DEFAULT_SETTINGS.reportFolder)
           .setValue(this.plugin.getSettings().reportFolder)
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ reportFolder: val });
           }),
       );
@@ -76,14 +76,14 @@ export class AI3DSettingTab extends PluginSettingTab {
         text
           .setPlaceholder(DEFAULT_SETTINGS.snapshotFolder)
           .setValue(this.plugin.getSettings().snapshotFolder)
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ snapshotFolder: val });
           }),
       );
 
     // ── Behavior ─────────────────────────────────────────────────
 
-    containerEl.createEl("h3", { text: t("settings.behavior") });
+    new Setting(containerEl).setName(t("settings.behavior")).setHeading();
 
     new Setting(containerEl)
       .setName(t("settings.autoGenerateKnowledgeNotes"))
@@ -91,7 +91,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.getSettings().autoGenerateKnowledgeNotes)
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ autoGenerateKnowledgeNotes: val });
           }),
       );
@@ -102,7 +102,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.getSettings().autoRotateDefault)
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ autoRotateDefault: val });
           }),
       );
@@ -115,7 +115,7 @@ export class AI3DSettingTab extends PluginSettingTab {
           .addOption("model-name", t("settings.snapshotNaming.modelName"))
           .addOption("timestamp", t("settings.snapshotNaming.timestamp"))
           .setValue(this.plugin.getSettings().snapshotNaming)
-          .onChange(async (val: string) => {
+          .onChange((val: string) => {
             this.plugin.updateSettings({ snapshotNaming: val as "timestamp" | "model-name" });
           }),
       );
@@ -130,21 +130,21 @@ export class AI3DSettingTab extends PluginSettingTab {
           .addOption("warn", "Warn")
           .addOption("error", "Error")
           .setValue(this.plugin.getSettings().logLevel)
-          .onChange(async (val: string) => {
+          .onChange((val: string) => {
             this.plugin.updateSettings({ logLevel: val as "debug" | "info" | "warn" | "error" });
           }),
       );
 
     // ── Converters ───────────────────────────────────────────────
 
-    containerEl.createEl("h3", { text: t("settings.converters") });
+    new Setting(containerEl).setName(t("settings.converters")).setHeading();
 
     new Setting(containerEl)
       .setName(t("settings.enableCad"))
       .setDesc(t("settings.enableCad.desc"))
       .addToggle((toggle) => {
         const enabled = this.plugin.getSettings().enabledConverterIds.includes("freecad");
-        return toggle.setValue(enabled).onChange(async (val) => {
+        return toggle.setValue(enabled).onChange((val) => {
           const current = this.plugin.getSettings().enabledConverterIds;
           const next = val
             ? Array.from(new Set([...current, "freecad"]))
@@ -158,7 +158,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .setDesc(t("settings.enableObj2gltf.desc"))
       .addToggle((toggle) => {
         const enabled = this.plugin.getSettings().enabledConverterIds.includes("obj2gltf");
-        return toggle.setValue(enabled).onChange(async (val) => {
+        return toggle.setValue(enabled).onChange((val) => {
           const current = this.plugin.getSettings().enabledConverterIds;
           const next = val
             ? Array.from(new Set([...current, "obj2gltf"]))
@@ -173,7 +173,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.getSettings().preferObj2gltfForObj)
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ preferObj2gltfForObj: val });
           }),
       );
@@ -183,7 +183,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .setDesc(t("settings.enableFbx2gltf.desc"))
       .addToggle((toggle) => {
         const enabled = this.plugin.getSettings().enabledConverterIds.includes("fbx2gltf");
-        return toggle.setValue(enabled).onChange(async (val) => {
+        return toggle.setValue(enabled).onChange((val) => {
           const current = this.plugin.getSettings().enabledConverterIds;
           const next = val
             ? Array.from(new Set([...current, "fbx2gltf"]))
@@ -197,7 +197,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .setDesc(t("settings.enableMesh.desc"))
       .addToggle((toggle) => {
         const enabled = this.plugin.getSettings().enabledConverterIds.includes("assimp");
-        return toggle.setValue(enabled).onChange(async (val) => {
+        return toggle.setValue(enabled).onChange((val) => {
           const current = this.plugin.getSettings().enabledConverterIds;
           const next = val
             ? Array.from(new Set([...current, "assimp"]))
@@ -211,7 +211,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .setDesc(t("settings.enableSldprt.desc"))
       .addToggle((toggle) => {
         const enabled = this.plugin.getSettings().enabledConverterIds.includes("sldprt");
-        return toggle.setValue(enabled).onChange(async (val) => {
+        return toggle.setValue(enabled).onChange((val) => {
           const current = this.plugin.getSettings().enabledConverterIds;
           const next = val
             ? Array.from(new Set([...current, "sldprt"]))
@@ -222,7 +222,7 @@ export class AI3DSettingTab extends PluginSettingTab {
 
     // ── Converter Paths ──────────────────────────────────────────
 
-    containerEl.createEl("h3", { text: t("settings.paths") });
+    new Setting(containerEl).setName(t("settings.paths")).setHeading();
 
     new Setting(containerEl)
       .setName(t("settings.pythonCmd"))
@@ -231,7 +231,7 @@ export class AI3DSettingTab extends PluginSettingTab {
         text
           .setPlaceholder("py")
           .setValue(this.plugin.getSettings().freecadCommand)
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ freecadCommand: val.trim() });
             void refreshCommandDiagnostics?.();
           }),
@@ -244,7 +244,7 @@ export class AI3DSettingTab extends PluginSettingTab {
         text
           .setPlaceholder("FreeCADCmd.exe")
           .setValue(this.plugin.getSettings().freecadcmdCommand)
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ freecadcmdCommand: val.trim() });
             void refreshCommandDiagnostics?.();
           }),
@@ -257,7 +257,7 @@ export class AI3DSettingTab extends PluginSettingTab {
         text
           .setPlaceholder("obj2gltf.cmd")
           .setValue(this.plugin.getSettings().obj2gltfCommand)
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ obj2gltfCommand: val.trim() });
             void refreshCommandDiagnostics?.();
           }),
@@ -270,7 +270,7 @@ export class AI3DSettingTab extends PluginSettingTab {
         text
           .setPlaceholder("FBX2glTF.exe")
           .setValue(this.plugin.getSettings().fbx2gltfCommand)
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ fbx2gltfCommand: val.trim() });
             void refreshCommandDiagnostics?.();
           }),
@@ -283,7 +283,7 @@ export class AI3DSettingTab extends PluginSettingTab {
         text
           .setPlaceholder("py")
           .setValue(this.plugin.getSettings().assimpCommand)
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ assimpCommand: val.trim() });
             void refreshCommandDiagnostics?.();
           }),
@@ -308,14 +308,13 @@ export class AI3DSettingTab extends PluginSettingTab {
         }),
     );
 
-    const diagnosticsEl = containerEl.createDiv();
-    diagnosticsEl.style.marginTop = "0.5rem";
+    const diagnosticsEl = containerEl.createDiv({ cls: "ai3d-settings-diagnostics" });
     refreshCommandDiagnostics = () => this.renderCommandDiagnostics(diagnosticsEl);
     void refreshCommandDiagnostics();
 
     // ── Performance ──────────────────────────────────────────────
 
-    containerEl.createEl("h3", { text: t("settings.performance") });
+    new Setting(containerEl).setName(t("settings.performance")).setHeading();
 
     new Setting(containerEl)
       .setName(t("settings.canvasHeight"))
@@ -325,7 +324,7 @@ export class AI3DSettingTab extends PluginSettingTab {
           .setLimits(200, 800, 25)
           .setValue(this.plugin.getSettings().defaultCanvasHeight)
           .setDynamicTooltip()
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ defaultCanvasHeight: val });
           }),
       );
@@ -338,7 +337,7 @@ export class AI3DSettingTab extends PluginSettingTab {
           .setLimits(0.1, 2.0, 0.1)
           .setValue(this.plugin.getSettings().autoRotateSpeed)
           .setDynamicTooltip()
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ autoRotateSpeed: val });
           }),
       );
@@ -352,7 +351,7 @@ export class AI3DSettingTab extends PluginSettingTab {
           .addOption("medium", "Medium")
           .addOption("high", "High")
           .setValue(this.plugin.getSettings().renderQuality)
-          .onChange(async (val: string) => {
+          .onChange((val: string) => {
             this.plugin.updateSettings({ renderQuality: val as "low" | "medium" | "high" });
           }),
       );
@@ -365,7 +364,7 @@ export class AI3DSettingTab extends PluginSettingTab {
           .setLimits(0.25, 2.0, 0.25)
           .setValue(this.plugin.getSettings().renderScale)
           .setDynamicTooltip()
-          .onChange(async (val) => {
+          .onChange((val) => {
             this.plugin.updateSettings({ renderScale: val });
           }),
       );
@@ -388,8 +387,7 @@ export class AI3DSettingTab extends PluginSettingTab {
   }
 
   private renderCommandStatus(containerEl: HTMLElement, status: ConverterCommandStatus): void {
-    const block = containerEl.createDiv();
-    block.style.marginBottom = "0.9rem";
+    const block = containerEl.createDiv({ cls: "ai3d-settings-status-block" });
 
     block.createEl("strong", {
       text: `${status.label}: ${status.available ? "available" : "not found"}`,

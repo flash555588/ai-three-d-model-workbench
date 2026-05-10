@@ -1,9 +1,8 @@
 import type { ConversionRequest, ConversionResult, ModelConverter } from "../types";
-import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { constants as fsConstants } from "node:fs";
-import { join, dirname, basename, extname, isAbsolute } from "node:path";
-import { tmpdir } from "node:os";
-import { execFile } from "node:child_process";
+import { F_OK, access, mkdir, readFile, rm, writeFile } from "../../../utils/node-shim";
+import { pathJoin as join, pathDirname as dirname, pathBasename as basename, pathExtname as extname, pathIsAbsolute as isAbsolute } from "../../../utils/node-shim";
+import { osTmpdir as tmpdir } from "../../../utils/node-shim";
+import { execFile } from "../../../utils/node-shim";
 import { createLogger } from "../../../utils/log";
 import { resolveConverterCommand } from "../command-discovery";
 
@@ -24,7 +23,7 @@ function pyPath(s: string): string {
 
 async function fileExists(path: string): Promise<boolean> {
   try {
-    await access(path, fsConstants.F_OK);
+    await access(path, F_OK);
     return true;
   } catch {
     return false;

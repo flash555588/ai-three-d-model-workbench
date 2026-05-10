@@ -1,5 +1,39 @@
 /* ===== AI 3D Model Workbench — Obsidian-native Design ===== */
 
+/* --- Utility Classes --- */
+
+.is-hidden {
+  display: none !important;
+}
+
+.ai3d-canvas-full {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ai3d-settings-diagnostics {
+  margin-top: 0.5rem;
+}
+
+.ai3d-settings-status-block {
+  margin-bottom: 0.9rem;
+}
+
+.ai3d-annot-btn {
+  position: relative;
+}
+
+.ai3d-btn-active {
+  color: var(--interactive-accent);
+}
+
+.ai3d-res-btn {
+  font-size: 10px;
+  font-weight: 600;
+  min-width: 32px;
+}
+
 /* --- Layout --- */
 
 .ai3d-workbench {
@@ -135,7 +169,8 @@
 /* --- Preview Host --- */
 
 .ai3d-preview-host {
-  min-height: clamp(200px, 30vh, 400px);
+  min-height: var(--min-height, clamp(200px, 30vh, 400px));
+  max-width: var(--max-width, none);
   border-radius: var(--ai3d-radius) var(--ai3d-radius) 0 0;
   border: 1px solid var(--background-modifier-border);
   overflow: hidden;
@@ -665,6 +700,7 @@
 /* --- Grid Host (3dgrid) --- */
 
 .ai3d-grid-host {
+  height: var(--grid-height, auto);
   border-radius: var(--ai3d-radius) var(--ai3d-radius) 0 0;
   border: 1px solid var(--background-modifier-border);
   overflow: hidden;
@@ -761,7 +797,7 @@
 .ai3d-embed-canvas {
   display: block;
   width: 100%;
-  height: 300px;
+  height: var(--ai3d-embed-height, 300px);
   touch-action: none;
 }
 
@@ -836,7 +872,7 @@
   height: 100%;
   border-radius: 2px;
   background: var(--interactive-accent);
-  width: 0%;
+  width: var(--bar-width, 0%);
   transition: width 0.4s ease;
 }
 
@@ -879,6 +915,8 @@
 
 .ai3d-annotation-pin {
   position: absolute;
+  left: var(--pin-left, 0);
+  top: var(--pin-top, 0);
   transform: translate(-50%, -100%);
   display: flex;
   align-items: center;
@@ -927,6 +965,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
+  background: var(--pin-color, #4a9eff);
   border: 2px solid rgba(255, 255, 255, 0.8);
   flex-shrink: 0;
   box-shadow: 0 0 6px currentColor;
@@ -962,6 +1001,8 @@
 /* Annotation editor popup */
 .ai3d-annotation-editor {
   position: absolute;
+  left: var(--editor-left, 0);
+  top: var(--editor-top, 0);
   z-index: 20;
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
@@ -1001,6 +1042,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
+  background: var(--swatch-color);
   border: 2px solid transparent;
   cursor: pointer;
   padding: 0;
@@ -1267,6 +1309,8 @@
 
 .ai3d-pin-popover {
   position: fixed;
+  left: var(--popover-left, 0);
+  top: var(--popover-top, 0);
   z-index: 100;
   max-width: 320px;
   max-height: 240px;

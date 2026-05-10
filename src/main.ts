@@ -20,7 +20,7 @@ export default class AI3DModelWorkbench extends Plugin {
     return this.ps.store.getState().settings;
   }
 
-  async updateSettings(partial: Partial<PluginSettings>) {
+  updateSettings(partial: Partial<PluginSettings>): void {
     const current = this.ps.store.getState().settings;
     const next = { ...current, ...partial };
     this.ps.store.setState({ settings: next });
@@ -73,8 +73,8 @@ export default class AI3DModelWorkbench extends Plugin {
     });
 
     this.addCommand({
-      id: "check-converter-commands",
-      name: "Check Converter Commands",
+      id: "check-converters",
+      name: "Check Converters",
       callback: () => void this.checkConverterCommands(),
     });
 
@@ -105,7 +105,7 @@ export default class AI3DModelWorkbench extends Plugin {
     this.setupHeadingPinObserver();
   }
 
-  async onunload() {
+  onunload(): void {
     this.ps.dispose();
     // Views are cleaned up by Obsidian calling onClose()
   }
@@ -265,7 +265,7 @@ export default class AI3DModelWorkbench extends Plugin {
     workspace.revealLeaf(leaf);
   }
 
-  private async importModel() {
+  private importModel() {
     new ModelFileSuggestModal(this.app, async (file: TFile) => {
       const ext = file.extension.toLowerCase();
       if (!isSupportedModelExtension(ext)) {

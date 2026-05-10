@@ -100,7 +100,7 @@ export function registerCodeBlockProcessor(
 ) {
   return {
     id: "3d",
-    handler: async (
+    handler: (
       source: string,
       el: HTMLElement,
       _ctx: MarkdownPostProcessorContext,
@@ -168,15 +168,14 @@ export function registerCodeBlockProcessor(
       const settings = getSettings();
       const host = el.createDiv({ cls: "ai3d-preview-host" });
       if (config.height) {
-        host.style.minHeight = typeof config.height === "number" ? `${config.height}px` : config.height;
+        host.style.setProperty("--min-height", typeof config.height === "number" ? `${config.height}px` : config.height);
       }
       if (config.width) {
-        host.style.maxWidth = typeof config.width === "number" ? `${config.width}px` : config.width;
+        host.style.setProperty("--max-width", typeof config.width === "number" ? `${config.width}px` : config.width);
       }
 
       const canvas = document.createElement("canvas");
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
+      canvas.className = "ai3d-canvas-full";
       canvas.tabIndex = 0;
       canvas.addEventListener("keydown", (e) => {
         if (destroyed || !preview) return;
@@ -210,7 +209,7 @@ export function registerCodeBlockProcessor(
         annotationVisible = !annotationVisible;
         if (annotationMgr) {
           const overlay = host.querySelector(".ai3d-annotation-overlay") as HTMLElement | null;
-          if (overlay) overlay.style.display = annotationVisible ? "" : "none";
+          if (overlay) overlay.classList.toggle("is-hidden", !annotationVisible);
         }
         return annotationVisible;
       });
@@ -326,45 +325,53 @@ export function registerCodeBlockProcessor(
  * Normalize a raw parsed JSON object into ThreeDBlockConfig.
  * Handles both single-model shorthand and full config.
  */
-function normalizeConfig(raw: any): ThreeDBlockConfig {
+function normalizeConfig(raw: unknown): ThreeDBlockConfig {
   // If it's a string, treat as simple path
   if (typeof raw === "string") {
     return { models: [{ path: raw }] };
   }
 
+  if (typeof raw !== "object" || raw === null) {
+    return { models: [] };
+  }
+
+  const obj = raw as Record<string, unknown>;
+
   // If it has a "path" property at top level, it's a single model config
-  if (raw.path && typeof raw.path === "string") {
+  if (typeof obj.path === "string") {
     return {
-      models: [{ path: raw.path, color: raw.color, wireframe: raw.wireframe }],
-      camera: raw.camera,
-      lights: raw.lights,
-      scene: raw.scene,
-      stl: raw.stl,
-      width: raw.width,
-      height: raw.height,
+      models: [{ path: obj.path, color: obj.color as string | undefined, wireframe: obj.wireframe as boolean | undefined }],
+      camera: obj.camera as ThreeDBlockConfig["camera"],
+      lights: obj.lights as ThreeDBlockConfig["lights"],
+      scene: obj.scene as ThreeDBlockConfig["scene"],
+      stl: obj.stl as ThreeDBlockConfig["stl"],
+      width: obj.width as number | string | undefined,
+      height: obj.height as number | string | undefined,
     };
   }
 
   // Full config with models array
-  const models: ModelConfig[] = Array.isArray(raw.models)
-    ? raw.models
-        .filter((m: any) => {
-          const p = typeof m === "string" ? m : m?.path;
+  const models: ModelConfig[] = Array.isArray(obj.models)
+    ? obj.models
+        .filter((m: unknown) => {
+          const p = typeof m === "string" ? m : m && typeof m === "object" && "path" in m ? (m as Record<string, unknown>).path : undefined;
           return typeof p === "string" && p.length > 0;
         })
-        .map((m: any) =>
-          typeof m === "string" ? { path: m } : { path: m.path, color: m.color, wireframe: m.wireframe },
-        )
+        .map((m: unknown) => {
+          if (typeof m === "string") return { path: m };
+          const mo = m as Record<string, unknown>;
+          return { path: mo.path as string, color: mo.color as string | undefined, wireframe: mo.wireframe as boolean | undefined };
+        })
     : [];
 
   return {
     models,
-    camera: raw.camera,
-    lights: raw.lights,
-    scene: raw.scene,
-    stl: raw.stl,
-    width: raw.width,
-    height: raw.height,
+    camera: obj.camera as ThreeDBlockConfig["camera"],
+    lights: obj.lights as ThreeDBlockConfig["lights"],
+    scene: obj.scene as ThreeDBlockConfig["scene"],
+    stl: obj.stl as ThreeDBlockConfig["stl"],
+    width: obj.width as number | string | undefined,
+    height: obj.height as number | string | undefined,
   };
 }
 
@@ -386,7 +393,7 @@ export function registerGridCodeBlockProcessor(
 ) {
   return {
     id: "3dgrid",
-    handler: async (
+    handler: (
       source: string,
       el: HTMLElement,
       _ctx: MarkdownPostProcessorContext,
@@ -413,6 +420,8 @@ export function registerGridCodeBlockProcessor(
 
       const settings = getSettings();
       const gridLoading = createLoadingOverlay(el);
+
+      void (async () => {
       const preparedModels: PreparedInlineModel[] = [];
       for (const entry of config.models ?? []) {
         try {
@@ -445,7 +454,7 @@ export function registerGridCodeBlockProcessor(
       // Height controlled by CSS max-height only; rowHeight sets inline height (capped by CSS max-height)
       if (typeof config.rowHeight === "number") {
         const rows = config.preset === "compose" ? 1 : Math.ceil(resolved.length / (config.columns ?? Math.min(resolved.length, 3)));
-        gridHost.style.height = `${config.rowHeight * rows}px`;
+        gridHost.style.setProperty("--grid-height", `${config.rowHeight * rows}px`);
       }
 
       let renderer: GridRenderer | null = null;
@@ -585,6 +594,7 @@ export function registerGridCodeBlockProcessor(
         }
       }, { rootMargin: "200px" });
       gridIo.observe(gridHost);
+      })(); // end async IIFE
     },
   };
 }
