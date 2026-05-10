@@ -4,11 +4,9 @@
  * Used by htm via h.ts.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Props = Record<string, any> | null;
+type Props = Record<string, unknown> | null;
 type Child = Node | string | number | boolean | null | undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ComponentFn = (props: Record<string, any>) => HTMLElement;
+type ComponentFn = (props: Record<string, unknown>) => HTMLElement;
 
 export function createElement(
   tag: string | ComponentFn,
@@ -30,15 +28,13 @@ export function createElement(
         el.className = val;
       } else if (key === "style" && typeof val === "object") {
         Object.assign(el.style, val);
-      } else if (key === "dangerouslySetInnerHTML" && val) {
-        el.innerHTML = val.__html ?? "";
       } else if (key.startsWith("on") && typeof val === "function") {
         const event = key.slice(2).toLowerCase();
-        el.addEventListener(event, val);
+        el.addEventListener(event, val as EventListener);
       } else if (key === "value" && "value" in el) {
-        (el as HTMLInputElement).value = val;
+        (el as HTMLInputElement).value = String(val);
       } else if (key === "checked" && "checked" in el) {
-        (el as HTMLInputElement).checked = val;
+        (el as HTMLInputElement).checked = val as boolean;
       } else if (val === true) {
         el.setAttribute(key, "");
       } else if (val !== false && val != null) {
