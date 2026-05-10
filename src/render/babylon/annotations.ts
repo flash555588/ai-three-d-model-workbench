@@ -129,8 +129,8 @@ export class AnnotationManager {
       if (partial.position) entry.worldPos = new Vector3(...partial.position);
       const labelEl = entry.el.querySelector(".ai3d-pin-label");
       if (labelEl && partial.label !== undefined) labelEl.textContent = partial.label;
-      const dotEl = entry.el.querySelector(".ai3d-pin-dot");
-      if (dotEl && partial.color !== undefined) (dotEl as HTMLElement).style.setProperty("--pin-color", partial.color);
+      const dotEl = entry.el.querySelector<HTMLElement>(".ai3d-pin-dot");
+      if (dotEl && partial.color !== undefined) dotEl.style.setProperty("--pin-color", partial.color);
     }
     this.updateProjections();
     this.onChange?.(this.annotations);

@@ -138,8 +138,8 @@ export function mountWorkbench(
       ` as HTMLElement;
       panelsEl.appendChild(controlsEl);
 
-      const slider = controlsEl.querySelector(".ai3d-slider") as HTMLInputElement;
-      const valueLabel = controlsEl.querySelector(".ai3d-slider-value") as HTMLSpanElement;
+      const slider = controlsEl.querySelector<HTMLInputElement>(".ai3d-slider")!;
+      const valueLabel = controlsEl.querySelector<HTMLSpanElement>(".ai3d-slider-value")!;
       const axisBtns = controlsEl.querySelectorAll<HTMLElement>(".ai3d-axis-btn");
       let currentAxis: "x" | "y" | "z" = "x";
 
@@ -215,8 +215,8 @@ export function mountWorkbench(
       ` as HTMLElement;
       panelsEl.appendChild(tagsEl);
 
-      const input = tagsEl.querySelector(".ai3d-input") as HTMLInputElement;
-      const addBtn = tagsEl.querySelector(".ai3d-axis-btn") as HTMLButtonElement;
+      const input = tagsEl.querySelector<HTMLInputElement>(".ai3d-input")!;
+      const addBtn = tagsEl.querySelector<HTMLButtonElement>(".ai3d-axis-btn")!;
       function addTag() {
         const val = input.value.trim();
         if (!val) return;
@@ -284,25 +284,25 @@ export function mountWorkbench(
       }
 
       // Pin action handlers
-      annotEl.querySelectorAll("[data-action='focus-pin']").forEach(el => {
+      annotEl.querySelectorAll<HTMLElement>("[data-action='focus-pin']").forEach(el => {
         el.addEventListener("click", () => {
-          const pinId = (el as HTMLElement).dataset.pinId!;
+          const pinId = el.dataset.pinId!;
           focusPin(pinId);
         });
       });
 
-      annotEl.querySelectorAll("[data-action='edit-pin']").forEach(el => {
+      annotEl.querySelectorAll<HTMLElement>("[data-action='edit-pin']").forEach(el => {
         el.addEventListener("click", (e) => {
           e.stopPropagation();
-          const pinId = (el as HTMLElement).dataset.pinId!;
+          const pinId = el.dataset.pinId!;
           annotationMgr?.editPin(pinId);
         });
       });
 
-      annotEl.querySelectorAll("[data-action='delete-pin']").forEach(el => {
+      annotEl.querySelectorAll<HTMLElement>("[data-action='delete-pin']").forEach(el => {
         el.addEventListener("click", (e) => {
           e.stopPropagation();
-          const pinId = (el as HTMLElement).dataset.pinId!;
+          const pinId = el.dataset.pinId!;
           annotationMgr?.removePin(pinId);
         });
       });

@@ -12,7 +12,7 @@ export function createElement(
   tag: string | ComponentFn,
   props: Props,
   ...children: Child[]
-): HTMLElement | Text {
+): HTMLElement | HTMLElement[] {
   // Component function
   if (typeof tag === "function") {
     return tag({ ...props, children });
