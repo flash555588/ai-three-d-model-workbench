@@ -347,7 +347,7 @@ export function mountWorkbench(
           if (mdView && "editor" in mdView) {
             (mdView as MarkdownView).editor.replaceSelection(md);
           } else {
-            void navigator.clipboard.writeText(md);
+            void navigator.clipboard.writeText(md).catch(() => {});
           }
         });
       }

@@ -2,6 +2,9 @@ import { F_OK, X_OK, access } from "../../utils/node-shim";
 import { pathDelimiter as delimiter, pathExtname as extname, pathIsAbsolute as isAbsolute, pathJoin as join } from "../../utils/node-shim";
 import type { PluginSettings } from "../../domain/models";
 
+/** Safe accessor for `process` — undefined on mobile/web where Node is unavailable. */
+const proc = typeof process !== "undefined" ? process : undefined;
+
 export type ConverterCommandId = "freecad" | "obj2gltf" | "fbx2gltf" | "assimp" | "freecadcmd";
 export type ConverterCommandSettingKey = "freecadCommand" | "obj2gltfCommand" | "fbx2gltfCommand" | "assimpCommand" | "freecadcmdCommand";
 export type ConverterCommandSource = "settings" | "env" | "candidate" | "path";
@@ -38,7 +41,7 @@ const WINDOWS_PATHEXT_FALLBACK = [".exe", ".cmd", ".bat", ".com"];
  * Skips user-specific hardcoded paths — only uses platform-standard locations.
  */
 function resolveFreeCadCandidates(): readonly string[] {
-  if (process.platform !== "win32") {
+  if (proc?.platform !== "win32") {
     return [
       "/usr/bin/freecadcmd",
       "/usr/local/bin/freecadcmd",
@@ -48,9 +51,9 @@ function resolveFreeCadCandidates(): readonly string[] {
   }
 
   const candidates: string[] = [];
-  const localAppData = process.env.LOCALAPPDATA;
-  const programFiles = process.env.ProgramFiles;
-  const programFilesX86 = process.env["ProgramFiles(x86)"];
+  const localAppData = proc?.env?.LOCALAPPDATA;
+  const programFiles = proc?.env?.ProgramFiles;
+  const programFilesX86 = proc?.env?.["ProgramFiles(x86)"];
 
   // User-level install: %LOCALAPPDATA%\Programs\FreeCAD*\bin\FreeCADCmd.exe
   if (localAppData) {
@@ -76,10 +79,10 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     label: "Python (CadQuery/OCCT)",
     settingsKey: "freecadCommand",
     envVar: "AI3D_FREECAD_CMD",
-    fallbackCommand: process.platform === "win32" ? "py" : "python3",
+    fallbackCommand: proc?.platform === "win32" ? "py" : "python3",
     // Python is discoverable via `py` launcher (Windows) or `python3` (Linux/macOS).
     // No user-specific paths — use settings/env if Python is not on PATH.
-    knownCandidates: process.platform === "win32"
+    knownCandidates: proc?.platform === "win32"
       ? ["py"]
       : ["/usr/bin/python3", "/usr/local/bin/python3", "/opt/homebrew/bin/python3", "python3"],
   },
@@ -88,8 +91,8 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     label: "obj2gltf",
     settingsKey: "obj2gltfCommand",
     envVar: "AI3D_OBJ2GLTF_CMD",
-    fallbackCommand: process.platform === "win32" ? "obj2gltf.cmd" : "obj2gltf",
-    knownCandidates: process.platform === "win32"
+    fallbackCommand: proc?.platform === "win32" ? "obj2gltf.cmd" : "obj2gltf",
+    knownCandidates: proc?.platform === "win32"
       ? ["C:/Users/Public/AppData/Roaming/npm/obj2gltf.cmd"]
       : [],
   },
@@ -98,8 +101,8 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     label: "FBX2glTF",
     settingsKey: "fbx2gltfCommand",
     envVar: "AI3D_FBX2GLTF_CMD",
-    fallbackCommand: process.platform === "win32" ? "FBX2glTF.exe" : "FBX2glTF",
-    knownCandidates: process.platform === "win32"
+    fallbackCommand: proc?.platform === "win32" ? "FBX2glTF.exe" : "FBX2glTF",
+    knownCandidates: proc?.platform === "win32"
       ? [
         "C:/Program Files/FBX2glTF/FBX2glTF-windows-x64.exe",
         "C:/Program Files/FBX2glTF/FBX2glTF.exe",
@@ -111,8 +114,8 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     label: "Python (trimesh)",
     settingsKey: "assimpCommand",
     envVar: "AI3D_ASSIMP_CMD",
-    fallbackCommand: process.platform === "win32" ? "py" : "python3",
-    knownCandidates: process.platform === "win32"
+    fallbackCommand: proc?.platform === "win32" ? "py" : "python3",
+    knownCandidates: proc?.platform === "win32"
       ? ["py"]
       : ["/usr/bin/python3", "/usr/local/bin/python3", "/opt/homebrew/bin/python3", "python3"],
   },
@@ -121,7 +124,7 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     label: "FreeCAD (SLDPRT)",
     settingsKey: "freecadcmdCommand",
     envVar: "AI3D_FREECMDCMD",
-    fallbackCommand: process.platform === "win32" ? "FreeCADCmd.exe" : "freecadcmd",
+    fallbackCommand: proc?.platform === "win32" ? "FreeCADCmd.exe" : "freecadcmd",
     knownCandidates: resolveFreeCadCandidates(),
   },
 ];
@@ -137,7 +140,7 @@ async function fileExists(path: string): Promise<boolean> {
 
 async function isExecutable(path: string): Promise<boolean> {
   try {
-    await access(path, process.platform === "win32" ? F_OK : X_OK);
+    await access(path, proc?.platform === "win32" ? F_OK : X_OK);
     return true;
   } catch {
     return false;
@@ -158,7 +161,7 @@ function getWindowsPathExtensions(command: string): string[] {
     return [""];
   }
 
-  const fromEnv = process.env.PATHEXT
+  const fromEnv = proc?.env?.PATHEXT
     ?.split(";")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
@@ -167,13 +170,13 @@ function getWindowsPathExtensions(command: string): string[] {
 }
 
 async function resolveCommandOnPath(command: string): Promise<string | undefined> {
-  const pathValue = process.env.PATH;
+  const pathValue = proc?.env?.PATH;
   if (!pathValue) {
     return undefined;
   }
 
   const pathEntries = pathValue.split(delimiter).map((entry) => entry.trim()).filter(Boolean);
-  const suffixes = process.platform === "win32" ? getWindowsPathExtensions(command) : [""];
+  const suffixes = proc?.platform === "win32" ? getWindowsPathExtensions(command) : [""];
 
   for (const entry of pathEntries) {
     for (const suffix of suffixes) {
@@ -265,7 +268,7 @@ export async function inspectConverterCommand(
     return inspectCommandReference(spec, configured, "settings", configured);
   }
 
-  const envCommand = normalizeCommandValue(process.env[spec.envVar]);
+  const envCommand = normalizeCommandValue(proc?.env?.[spec.envVar]);
   if (envCommand) {
     return inspectCommandReference(spec, envCommand, "env");
   }

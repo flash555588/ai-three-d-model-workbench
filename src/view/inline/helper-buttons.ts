@@ -78,6 +78,8 @@ export function createHelperButtons(
       if (!md) return;
       void navigator.clipboard.writeText(md).then(() => {
         showTooltip(infoBtn, "Copied!");
+      }).catch(() => {
+        showTooltip(infoBtn, "Failed");
       });
     } catch (err) {
       console.error("[AI3D] Export model info failed:", err);
@@ -212,6 +214,8 @@ export function createHelperButtons(
         new ClipboardItem({ "image/png": blob }),
       ]).then(() => {
         showTooltip(copyBtn, "Copied!");
+      }).catch(() => {
+        showTooltip(copyBtn, "Failed");
       });
     } catch (err) {
       console.error("[AI3D] Copy snapshot failed:", err);
@@ -256,6 +260,14 @@ export function createHelperButtons(
           console.error("[AI3D] Save snapshot failed:", err);
           showTooltip(saveBtn, "Failed");
         });
+      };
+      reader.onerror = () => {
+        console.error("[AI3D] FileReader error");
+        showTooltip(saveBtn, "Failed");
+      };
+      reader.onabort = () => {
+        console.error("[AI3D] FileReader aborted");
+        showTooltip(saveBtn, "Failed");
       };
       reader.readAsArrayBuffer(blob);
     } catch (err) {

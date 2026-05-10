@@ -50,7 +50,7 @@ export function createLogger(scope: string): Logger {
     },
     info(message: string, context?: LogContext) {
       if (!enabled("info")) return;
-      console.debug(prefix, stamp(), message, payload(context));
+      console.info(prefix, stamp(), message, payload(context));
     },
     warn(message: string, context?: LogContext) {
       if (!enabled("warn")) return;
