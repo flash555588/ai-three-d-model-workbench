@@ -25,11 +25,11 @@ const INITIAL_STATE: PluginState = {
 export function createPluginStore(plugin: Plugin): PluginStore {
   const store = createStore<PluginState>(INITIAL_STATE);
 
-  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+  let saveTimer: ReturnType<typeof activeWindow.setTimeout> | null = null;
 
   function scheduleSave() {
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
+    if (saveTimer) activeWindow.clearTimeout(saveTimer);
+    saveTimer = activeWindow.setTimeout(() => {
       saveTimer = null;
       persist().catch(err => console.error("[AI3D] Auto-save failed:", err));
     }, 500);
@@ -57,6 +57,7 @@ export function createPluginStore(plugin: Plugin): PluginStore {
     get localeLoadedFromSaved() { return localeLoadedFromSaved; },
 
     async load() {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Obsidian Plugin.loadData() returns any
       const saved: PersistedPluginState | null = await plugin.loadData();
       if (!saved) return;
       localeLoadedFromSaved = !!saved.settings?.locale;
@@ -71,7 +72,7 @@ export function createPluginStore(plugin: Plugin): PluginStore {
 
     async save() {
       if (saveTimer) {
-        clearTimeout(saveTimer);
+        activeWindow.clearTimeout(saveTimer);
         saveTimer = null;
       }
       await persist();
@@ -79,7 +80,7 @@ export function createPluginStore(plugin: Plugin): PluginStore {
 
     dispose() {
       if (saveTimer) {
-        clearTimeout(saveTimer);
+        activeWindow.clearTimeout(saveTimer);
         saveTimer = null;
       }
     },

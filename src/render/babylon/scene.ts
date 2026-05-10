@@ -248,13 +248,14 @@ export class BabylonModelPreview {
           onSuccess(content);
         };
 
+        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Babylon SceneLoader still required for OBJ plugin
         const result = await SceneLoader.ImportMeshAsync("", "", dataUrl, scene, undefined, fileExt);
         this.loadedMeshes = result.meshes;
         if (result.meshes.length > 0) this.rootMesh = result.meshes[0] as Mesh;
         // Log material state after OBJ load
         for (const m of result.meshes) {
           const mat = m.material;
-          console.debug(`[AI3D] OBJ mesh "${m.name}" material:`, mat ? `${mat.name} diffuse=${(mat as unknown as Record<string, unknown>)?.diffuseColor}` : "NONE");
+          console.debug(`[AI3D] OBJ mesh "${m.name}" material:`, mat ? `${mat.name} diffuse=${String((mat as unknown as Record<string, unknown>)?.diffuseColor)}` : "NONE");
         }
 
         // Restore original _loadMTL
@@ -275,6 +276,7 @@ export class BabylonModelPreview {
       this.rootMesh = loadPLYBuffer(scene, data);
       if (this.rootMesh) this.loadedMeshes = [this.rootMesh];
     } else {
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- Babylon SceneLoader still required for GLTF/OBJ
       const result = await SceneLoader.ImportMeshAsync("", "", dataUrl, scene, undefined, fileExt);
       this.loadedMeshes = result.meshes;
       if (result.meshes.length > 0) this.rootMesh = result.meshes[0] as Mesh;
@@ -459,6 +461,7 @@ export class BabylonModelPreview {
     if (!this.rootMesh) return;
     // ShadowGenerator requires a ShadowLight (DirectionalLight | PointLight | SpotLight).
     // HemisphericLight cannot cast shadows — silently skip.
+    // eslint-disable-next-line obsidianmd/prefer-instanceof -- Babylon types don't have .instanceOf()
     if (!(light instanceof DirectionalLight || light instanceof PointLight || light instanceof SpotLight)) {
       console.warn("[AI3D] Light type does not support shadows:", light.name);
       return;
@@ -580,6 +583,7 @@ export class BabylonModelPreview {
 
   setWireframe(enabled: boolean): void {
     if (!this.rootMesh) return;
+    // eslint-disable-next-line obsidianmd/prefer-instanceof -- Babylon types don't have .instanceOf()
     if (this.rootMesh instanceof GaussianSplattingMesh) return;
     this.wireframeEnabled = enabled;
     this.scene.forceWireframe = enabled;
@@ -705,6 +709,7 @@ export class BabylonModelPreview {
     if (!this.rootMesh) return "";
     const summary = this.computeSummary(this.rootMesh);
     const renderableMeshes = this.getRenderableMeshes(this.rootMesh);
+    // eslint-disable-next-line obsidianmd/prefer-instanceof -- Babylon types don't have .instanceOf()
     const isSplat = this.rootMesh instanceof GaussianSplattingMesh;
     const ext = this.loadedExt.toUpperCase();
 
@@ -878,6 +883,7 @@ export class BabylonModelPreview {
     let vertexCount = 0;
     const materials = new Set<string>();
 
+    // eslint-disable-next-line obsidianmd/prefer-instanceof -- Babylon types don't have .instanceOf()
     const isSplat = root instanceof GaussianSplattingMesh;
 
     for (const m of allMeshes) {

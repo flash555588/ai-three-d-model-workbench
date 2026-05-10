@@ -229,6 +229,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .setDesc(t("settings.pythonCmd.desc"))
       .addText((text) =>
         text
+          // eslint-disable-next-line obsidianmd/ui/sentence-case -- "py" is a command name, not UI prose
           .setPlaceholder("py")
           .setValue(this.plugin.getSettings().freecadCommand)
           .onChange((val) => {
@@ -281,6 +282,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .setDesc(t("settings.assimpCmd.desc"))
       .addText((text) =>
         text
+          // eslint-disable-next-line obsidianmd/ui/sentence-case -- "py" is a command name, not UI prose
           .setPlaceholder("py")
           .setValue(this.plugin.getSettings().assimpCommand)
           .onChange((val) => {
@@ -401,7 +403,7 @@ export class AI3DSettingTab extends PluginSettingTab {
     ].filter(Boolean);
 
     for (const line of lines) {
-      block.createEl("div", { text: line });
+      block.createDiv({ text: line });
     }
   }
 }

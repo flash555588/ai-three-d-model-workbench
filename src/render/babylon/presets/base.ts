@@ -28,7 +28,7 @@ export function cam(
   radiusMultiplier = 2.5,
 ): PresetCameraDef {
   if (typeof presetOrAlpha === "string") {
-    const p = CAMERA_PRESETS[presetOrAlpha as CameraPresetName] ?? CAMERA_PRESETS.iso;
+    const p = CAMERA_PRESETS[presetOrAlpha] ?? CAMERA_PRESETS.iso;
     return { alpha: p.alpha, beta: p.beta, radiusMultiplier };
   }
   return { alpha: presetOrAlpha, beta: beta ?? Math.PI / 3, radiusMultiplier };

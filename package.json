@@ -14,7 +14,10 @@
     "@lezer/highlight": "^1.2.3",
     "@lezer/lr": "^1.4.10",
     "@types/node": "^22.15.17",
+    "@typescript-eslint/parser": "^8.59.2",
     "esbuild": "^0.25.4",
+    "eslint": "^9.39.4",
+    "eslint-plugin-obsidianmd": "^0.2.9",
     "obsidian": "^1.8.7",
     "typescript": "^5.8.3"
   },

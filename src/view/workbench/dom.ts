@@ -15,15 +15,15 @@ export function createElement(
 ): HTMLElement | Text {
   // Component function
   if (typeof tag === "function") {
-    return tag({ ...props, children }) as HTMLElement;
+    return tag({ ...props, children });
   }
 
-  const el = document.createElement(tag);
+  const el = (activeDocument.createEl as (tag: string) => HTMLElement)(tag);
 
   if (props) {
     for (const [key, val] of Object.entries(props)) {
       if (key === "ref" && typeof val === "function") {
-        val(el);
+        (val as (el: HTMLElement) => void)(el);
       } else if (key === "class" && typeof val === "string") {
         el.className = val;
       } else if (key === "style" && typeof val === "object") {
@@ -38,6 +38,7 @@ export function createElement(
       } else if (val === true) {
         el.setAttribute(key, "");
       } else if (val !== false && val != null) {
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string -- intentional coercion for attribute values
         el.setAttribute(key, String(val));
       }
     }
@@ -55,7 +56,7 @@ function appendChildren(parent: HTMLElement, children: Child[]) {
     } else if (child instanceof Node) {
       parent.appendChild(child);
     } else {
-      parent.appendChild(document.createTextNode(String(child)));
+      parent.appendChild(activeDocument.createTextNode(String(child)));
     }
   }
 }

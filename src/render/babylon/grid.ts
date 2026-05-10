@@ -211,6 +211,7 @@ export class GridRenderer {
     };
     const fileExt = extToLoader[ext] ?? `.${ext}`;
 
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Babylon SceneLoader still required for grid loading
     const result = await SceneLoader.ImportMeshAsync(
       "",
       "",

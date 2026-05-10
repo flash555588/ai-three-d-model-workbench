@@ -58,10 +58,10 @@ export function mountWorkbench(
       setAnnotationMode(false);
     }
   };
-  document.addEventListener("keydown", handleEsc);
+  activeDocument.addEventListener("keydown", handleEsc);
 
   // ── Stable preview host (never removed from DOM) ──
-  const previewHost = document.createElement("div");
+  const previewHost = activeDocument.createDiv();
   previewHost.className = "ai3d-preview-host";
   const emptyState = html`
     <div class="ai3d-empty-state">
@@ -73,7 +73,7 @@ export function mountWorkbench(
   previewHost.appendChild(emptyState);
 
   // Semi-transparent overlay for annotation mode
-  const modeOverlay = document.createElement("div");
+  const modeOverlay = activeDocument.createDiv();
   modeOverlay.className = "ai3d-annot-mode-overlay is-hidden";
   previewHost.appendChild(modeOverlay);
 
@@ -85,7 +85,7 @@ export function mountWorkbench(
   }
 
   // ── Panels container (re-rendered on state change) ──
-  const panelsEl = document.createElement("div");
+  const panelsEl = activeDocument.createDiv();
   panelsEl.className = "ai3d-panels";
 
   container.appendChild(previewHost);
@@ -140,7 +140,7 @@ export function mountWorkbench(
 
       const slider = controlsEl.querySelector(".ai3d-slider") as HTMLInputElement;
       const valueLabel = controlsEl.querySelector(".ai3d-slider-value") as HTMLSpanElement;
-      const axisBtns = controlsEl.querySelectorAll(".ai3d-axis-btn") as NodeListOf<HTMLButtonElement>;
+      const axisBtns = controlsEl.querySelectorAll<HTMLElement>(".ai3d-axis-btn");
       let currentAxis: "x" | "y" | "z" = "x";
 
       slider.addEventListener("input", () => {
@@ -325,8 +325,8 @@ export function mountWorkbench(
       ` as HTMLElement;
       panelsEl.appendChild(actionsEl);
 
-      actionsEl.querySelector("[data-action='save']")!.addEventListener("click", async () => {
-        await ps.save();
+      actionsEl.querySelector("[data-action='save']")!.addEventListener("click", () => {
+        void ps.save();
       });
 
       const resetAction = actionsEl.querySelector("[data-action='reset']");
@@ -345,7 +345,7 @@ export function mountWorkbench(
           if (!md) return;
           const mdView = app.workspace.getActiveViewOfType(MarkdownView);
           if (mdView && "editor" in mdView) {
-            (mdView as MarkdownView).editor.replaceSelection(md);
+            (mdView).editor.replaceSelection(md);
           } else {
             void navigator.clipboard.writeText(md).catch(() => {});
           }
@@ -361,8 +361,8 @@ export function mountWorkbench(
         });
       }
 
-      actionsEl.querySelector("[data-action='note']")!.addEventListener("click", async () => {
-        await generateKnowledgeNote(app, ps.store.getState());
+      actionsEl.querySelector("[data-action='note']")!.addEventListener("click", () => {
+        void generateKnowledgeNote(app, ps.store.getState());
       });
     }
   }
@@ -392,7 +392,7 @@ export function mountWorkbench(
 
     // Clear empty state, show loading
     emptyState.classList.add("is-hidden");
-    const canvas = document.createElement("canvas");
+    const canvas = activeDocument.createEl("canvas");
     canvas.className = "ai3d-canvas-full";
     previewHost.appendChild(canvas);
 
@@ -467,7 +467,7 @@ export function mountWorkbench(
           if (!worldPos) return; // No mesh hit at all
 
           console.debug("[AI3D] Annotation: creating pin at", worldPos.toString(), "screen:", screenX, screenY);
-          annotationMgr!.showEditor(screenX, screenY, worldPos);
+          annotationMgr.showEditor(screenX, screenY, worldPos);
         });
       }
 
@@ -504,7 +504,7 @@ export function mountWorkbench(
   return () => {
     unsubModel();
     unsubPanels();
-    document.removeEventListener("keydown", handleEsc);
+    activeDocument.removeEventListener("keydown", handleEsc);
     annotationMgr?.destroy();
     annotationMgr = null;
     preview?.destroy();
@@ -563,7 +563,7 @@ export async function generateKnowledgeNote(app: App, state: PluginState) {
     }
   } finally {
     resolveLock();
-    if (noteGenerationLock) noteGenerationLock = null;
+    if (noteGenerationLock !== null) noteGenerationLock = null;
   }
 }
 

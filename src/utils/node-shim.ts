@@ -13,7 +13,6 @@ type NodeOs = typeof import("node:os");
 // Node.js builtins must be loaded dynamically — unavailable on mobile/web
 function tryRequire<T>(id: string): T | null {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires -- dynamic import for cross-platform compat
     return require(id) as T;
   } catch {
     return null;
@@ -39,11 +38,11 @@ export function access(path: string, mode?: number): Promise<void> {
   return throwIfNull(fsPromises, "node:fs/promises").access(path, mode);
 }
 
-export function readFile(path: string): Promise<Buffer> {
+export function readFile(path: string): Promise<Buffer> { // eslint-disable-line no-undef -- Buffer is a Node.js global available in Electron
   return throwIfNull(fsPromises, "node:fs/promises").readFile(path);
 }
 
-export function writeFile(path: string, data: string, encoding: BufferEncoding): Promise<void> {
+export function writeFile(path: string, data: string, encoding: BufferEncoding): Promise<void> { // eslint-disable-line no-undef -- BufferEncoding is a Node.js global available in Electron
   return throwIfNull(fsPromises, "node:fs/promises").writeFile(path, data, { encoding });
 }
 

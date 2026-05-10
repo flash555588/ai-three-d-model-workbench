@@ -25,8 +25,10 @@ export async function ensureLoadersRegistered(): Promise<void> {
 
   // The community FBX loader currently peers against Babylon 8, so keep it optional.
   try {
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, no-unsanitized/method, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-deprecated -- optional dynamic import of community FBX loader */
     const { FBXLoader } = await import(optionalFbxLoaderPackage);
     SceneLoader.RegisterPlugin(new FBXLoader());
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, no-unsanitized/method, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-deprecated */
   } catch {
     // FBX loader not available — silently skip
   }

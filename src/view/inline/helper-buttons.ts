@@ -57,11 +57,11 @@ export function createHelperButtons(
   getSettings?: () => PluginSettings,
   onToggleAnnotate?: () => boolean,
 ): HelperToolbar {
-  const toolbar = document.createElement("div");
+  const toolbar = activeDocument.createDiv();
   toolbar.className = "ai3d-helper-toolbar";
 
   // Reset view button (refresh arrow)
-  const resetBtn = document.createElement("button");
+  const resetBtn = activeDocument.createEl("button");
   resetBtn.className = "ai3d-inline-btn";
   resetBtn.setAttribute("aria-label", "Reset view");
   resetBtn.appendChild(createSvgIcon(`<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>`));
@@ -75,7 +75,7 @@ export function createHelperButtons(
   toolbar.appendChild(resetBtn);
 
   // Export model info button (info circle)
-  const infoBtn = document.createElement("button");
+  const infoBtn = activeDocument.createEl("button");
   infoBtn.className = "ai3d-inline-btn";
   infoBtn.setAttribute("aria-label", "Copy model info as Markdown");
   infoBtn.appendChild(createSvgIcon(`<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>`));
@@ -98,7 +98,7 @@ export function createHelperButtons(
   toolbar.appendChild(infoBtn);
 
   // Wireframe toggle button (grid/square icon)
-  const wireBtn = document.createElement("button");
+  const wireBtn = activeDocument.createEl("button");
   wireBtn.className = "ai3d-inline-btn";
   wireBtn.setAttribute("aria-label", "Toggle wireframe");
   wireBtn.appendChild(createSvgIcon(`<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/>`));
@@ -112,7 +112,7 @@ export function createHelperButtons(
   toolbar.appendChild(wireBtn);
 
   // Orientation gizmo toggle button (compass/axis icon)
-  const gizmoBtn = document.createElement("button");
+  const gizmoBtn = activeDocument.createEl("button");
   gizmoBtn.className = "ai3d-inline-btn";
   gizmoBtn.setAttribute("aria-label", "Toggle orientation axes");
   gizmoBtn.appendChild(createSvgIcon(`<path d="M12 2v20"/><path d="M2 12h20"/><path d="M12 2l4 4"/><path d="M12 2l-4 4"/><path d="M22 12l-4-4"/><path d="M22 12l-4 4"/>`));
@@ -126,7 +126,7 @@ export function createHelperButtons(
   toolbar.appendChild(gizmoBtn);
 
   // Bounding box toggle button (cube outline icon)
-  const bboxBtn = document.createElement("button");
+  const bboxBtn = activeDocument.createEl("button");
   bboxBtn.className = "ai3d-inline-btn";
   bboxBtn.setAttribute("aria-label", "Toggle bounding box");
   bboxBtn.appendChild(createSvgIcon(`<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>`));
@@ -140,7 +140,7 @@ export function createHelperButtons(
   toolbar.appendChild(bboxBtn);
 
   // Disassembly mode toggle button (separate parts by dragging)
-  const disassembleBtn = document.createElement("button");
+  const disassembleBtn = activeDocument.createEl("button");
   disassembleBtn.className = "ai3d-inline-btn";
   disassembleBtn.setAttribute("aria-label", "Toggle disassembly mode");
   disassembleBtn.appendChild(createSvgIcon(`<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 17h6"/><path d="M17 14v6"/>`));
@@ -154,7 +154,7 @@ export function createHelperButtons(
   toolbar.appendChild(disassembleBtn);
 
   // Reset disassembled parts button
-  const resetPartsBtn = document.createElement("button");
+  const resetPartsBtn = activeDocument.createEl("button");
   resetPartsBtn.className = "ai3d-inline-btn";
   resetPartsBtn.setAttribute("aria-label", "Reset disassembled parts");
   resetPartsBtn.appendChild(createSvgIcon(`<path d="M3 12a9 9 0 109-9"/><path d="M3 4v8h8"/><rect x="14" y="14" width="5" height="5" rx="1"/>`));
@@ -169,7 +169,7 @@ export function createHelperButtons(
   // Resolution scale cycle button (percentage display)
   const RES_PRESETS = [0.5, 0.75, 1.0, 1.5, 2.0];
   let resIndex = 2; // default 1.0x
-  const resBtn = document.createElement("button");
+  const resBtn = activeDocument.createEl("button");
   resBtn.className = "ai3d-inline-btn ai3d-res-btn";
   resBtn.setAttribute("aria-label", "Change resolution (click to cycle)");
   resBtn.textContent = "1.0x";
@@ -184,9 +184,9 @@ export function createHelperButtons(
   toolbar.appendChild(resBtn);
 
   // Animation play/pause button (play triangle — hidden until animations detected)
-  const animBtn = document.createElement("button");
+  const animBtn = activeDocument.createEl("button");
   animBtn.className = "ai3d-inline-btn is-hidden";
-  animBtn.setAttribute("aria-label", "Play/Pause animation");
+  animBtn.setAttribute("aria-label", "Play/pause animation");
   animBtn.appendChild(createSvgIcon(`<polygon points="5 3 19 12 5 21 5 3"/>`));
   animBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -200,7 +200,7 @@ export function createHelperButtons(
   toolbar.appendChild(animBtn);
 
   // Remove button (trash)
-  const removeBtn = document.createElement("button");
+  const removeBtn = activeDocument.createEl("button");
   removeBtn.className = "ai3d-inline-btn";
   removeBtn.setAttribute("aria-label", "Remove preview");
   removeBtn.appendChild(createSvgIcon(`<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>`));
@@ -208,7 +208,7 @@ export function createHelperButtons(
   toolbar.appendChild(removeBtn);
 
   // Copy snapshot button (clipboard)
-  const copyBtn = document.createElement("button");
+  const copyBtn = activeDocument.createEl("button");
   copyBtn.className = "ai3d-inline-btn";
   copyBtn.setAttribute("aria-label", "Copy snapshot");
   copyBtn.appendChild(createSvgIcon(`<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>`));
@@ -234,7 +234,7 @@ export function createHelperButtons(
   toolbar.appendChild(copyBtn);
 
   // Save to vault button (disk)
-  const saveBtn = document.createElement("button");
+  const saveBtn = activeDocument.createEl("button");
   saveBtn.className = "ai3d-inline-btn";
   saveBtn.setAttribute("aria-label", "Save snapshot to vault");
   saveBtn.appendChild(createSvgIcon(`<path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>`));
@@ -287,7 +287,7 @@ export function createHelperButtons(
   toolbar.appendChild(saveBtn);
 
   // Download snapshot button (download arrow)
-  const downloadBtn = document.createElement("button");
+  const downloadBtn = activeDocument.createEl("button");
   downloadBtn.className = "ai3d-inline-btn";
   downloadBtn.setAttribute("aria-label", "Download snapshot");
   downloadBtn.appendChild(createSvgIcon(`<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>`));
@@ -301,10 +301,10 @@ export function createHelperButtons(
       const baseName = modelPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") ?? "model";
       const fileName = `${baseName}_snapshot_${Date.now()}.png`;
 
-      const a = document.createElement("a");
+      const a = activeDocument.createEl("a");
       a.href = dataUrl;
       a.download = fileName;
-      document.body.appendChild(a);
+      activeDocument.body.appendChild(a);
       a.click();
       a.remove();
       showTooltip(downloadBtn, "Downloaded!");
@@ -316,11 +316,11 @@ export function createHelperButtons(
   toolbar.appendChild(downloadBtn);
 
   // Annotation toggle button (tag/label icon — hidden until explicitly shown)
-  const annotBtn = document.createElement("button");
+  const annotBtn = activeDocument.createEl("button");
   annotBtn.className = "ai3d-inline-btn is-hidden ai3d-annot-btn";
   annotBtn.setAttribute("aria-label", "Toggle annotation mode");
   annotBtn.appendChild(createSvgIcon(`<path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>`));
-  const annotBadge = document.createElement("span");
+  const annotBadge = activeDocument.createSpan();
   annotBadge.className = "ai3d-pin-badge is-hidden";
   annotBtn.appendChild(annotBadge);
   annotBtn.addEventListener("click", () => {
@@ -353,10 +353,10 @@ const activeTooltips = new WeakMap<HTMLElement, HTMLElement>();
 
 function showTooltip(anchor: HTMLElement, text: string): void {
   activeTooltips.get(anchor)?.remove();
-  const tip = document.createElement("div");
+  const tip = activeDocument.createDiv();
   tip.className = "ai3d-tooltip";
   tip.textContent = text;
   anchor.parentElement?.appendChild(tip);
   activeTooltips.set(anchor, tip);
-  setTimeout(() => { tip.remove(); activeTooltips.delete(anchor); }, 1500);
+  activeWindow.setTimeout(() => { tip.remove(); activeTooltips.delete(anchor); }, 1500);
 }

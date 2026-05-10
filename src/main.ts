@@ -46,17 +46,17 @@ export default class AI3DModelWorkbench extends Plugin {
 
     this.registerView(VIEW_TYPE, (leaf) => new AnalysisView(leaf, this.ps, this.convertedAssetCache));
 
-    this.addRibbonIcon("box", "Open 3D workbench", () => this.activateView());
+    this.addRibbonIcon("box", "Open 3d workbench", () => this.activateView());
 
     this.addCommand({
       id: "import-model",
-      name: "Import 3D model",
+      name: "Import 3d model",
       callback: () => this.importModel(),
     });
 
     this.addCommand({
       id: "open-workbench",
-      name: "Open 3D workbench",
+      name: "Open 3d workbench",
       callback: () => this.activateView(),
     });
 
@@ -161,7 +161,7 @@ export default class AI3DModelWorkbench extends Plugin {
       (el as HTMLElement).dataset.pinBound = entries[0].pinId;
 
       // Add pin badge: shows count if multiple, tooltip lists model sources
-      const badge = document.createElement("span");
+      const badge = activeDocument.createSpan();
       badge.className = "ai3d-heading-pin-badge";
       badge.textContent = entries.length > 1 ? `\ud83d\udccd\u00d7${entries.length}` : "\ud83d\udccd";
       const uniqueModels = [...new Set(entries.map(e => e.modelPath.replace(/^.*\//, "").replace(/\.[^.]+$/, "")))];
@@ -169,16 +169,16 @@ export default class AI3DModelWorkbench extends Plugin {
       badge.addEventListener("click", (e) => {
         e.stopPropagation();
         e.preventDefault();
-        for (const entry of entries!) {
-          document.dispatchEvent(new CustomEvent("ai3d-pin-highlight", { detail: { pinId: entry.pinId } }));
+        for (const entry of entries) {
+          activeDocument.dispatchEvent(new CustomEvent("ai3d-pin-highlight", { detail: { pinId: entry.pinId } }));
         }
       });
       el.appendChild(badge);
 
       // Hover on heading → pulse all linked pins
       const handler = () => {
-        for (const entry of entries!) {
-          document.dispatchEvent(new CustomEvent("ai3d-pin-highlight", { detail: { pinId: entry.pinId } }));
+        for (const entry of entries) {
+          activeDocument.dispatchEvent(new CustomEvent("ai3d-pin-highlight", { detail: { pinId: entry.pinId } }));
         }
       };
       el.addEventListener("mouseover", handler);
@@ -193,12 +193,12 @@ export default class AI3DModelWorkbench extends Plugin {
     };
 
     const scanAll = () => {
-      const containers = document.querySelectorAll(".markdown-preview-view, .markdown-source-view");
+      const containers = activeDocument.querySelectorAll(".markdown-preview-view, .markdown-source-view");
       containers.forEach(processHeadings);
     };
 
     this.registerEvent(this.app.workspace.on("layout-change", () => {
-      setTimeout(scanAll, 200);
+      activeWindow.setTimeout(scanAll, 200);
     }));
 
     // Debounced MutationObserver: coalesce rapid DOM changes into a single scan
@@ -220,19 +220,19 @@ export default class AI3DModelWorkbench extends Plugin {
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
         for (const node of Array.from(m.addedNodes)) {
-          if (node instanceof HTMLElement) pendingNodes.push(node);
+          if (node.instanceOf(HTMLElement)) pendingNodes.push(node);
         }
       }
       if (pendingNodes.length > 0 && !debounceTimer) {
         debounceTimer = window.setTimeout(flushPending, 100);
       }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(activeDocument.body, { childList: true, subtree: true });
 
     // Cleanup: disconnect observer, remove all heading listeners
     this.register(() => {
       observer.disconnect();
-      if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = 0; }
+      if (debounceTimer) { activeWindow.clearTimeout(debounceTimer); debounceTimer = 0; }
       for (const { el, handler } of boundEntries) {
         el.removeEventListener("mouseover", handler);
         el.removeEventListener("click", handler);
@@ -241,7 +241,7 @@ export default class AI3DModelWorkbench extends Plugin {
     });
 
     // Initial scan
-    setTimeout(scanAll, 500);
+    activeWindow.setTimeout(scanAll, 500);
   }
 
   private async activateView() {
@@ -262,10 +262,13 @@ export default class AI3DModelWorkbench extends Plugin {
       await leaf.setViewState({ type: VIEW_TYPE, active: true });
     }
 
-    workspace.revealLeaf(leaf);
+    // revealLeaf available since Obsidian 1.7.2, guarded for older versions
+    // eslint-disable-next-line obsidianmd/no-unsupported-api
+    if ("revealLeaf" in workspace) void workspace.revealLeaf(leaf);
   }
 
   private importModel() {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises -- async callback for file import
     new ModelFileSuggestModal(this.app, async (file: TFile) => {
       const ext = file.extension.toLowerCase();
       if (!isSupportedModelExtension(ext)) {
@@ -290,7 +293,7 @@ export default class AI3DModelWorkbench extends Plugin {
 
   private clearConversionCache() {
     this.convertedAssetCache.clear();
-    new Notice("AI 3D conversion cache cleared.");
+    new Notice("AI 3d conversion cache cleared.");
   }
 
   private async checkConverterCommands() {

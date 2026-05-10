@@ -65,7 +65,7 @@ export class DirectModelView extends FileView {
 
   onClose(): Promise<void> {
     if (this.escHandler) {
-      document.removeEventListener("keydown", this.escHandler);
+      activeDocument.removeEventListener("keydown", this.escHandler);
       this.escHandler = null;
     }
     this.annotationMgr?.destroy();
@@ -85,12 +85,12 @@ export class DirectModelView extends FileView {
 
     const host = this.contentEl.createDiv({ cls: "ai3d-preview-host" });
 
-    const canvas = document.createElement("canvas");
+    const canvas = activeDocument.createEl("canvas");
     canvas.className = "ai3d-canvas-full";
     host.appendChild(canvas);
 
     // Semi-transparent overlay for annotation mode
-    const modeOverlay = document.createElement("div");
+    const modeOverlay = activeDocument.createDiv();
     modeOverlay.className = "ai3d-annot-mode-overlay is-hidden";
     host.appendChild(modeOverlay);
 
@@ -102,13 +102,13 @@ export class DirectModelView extends FileView {
     };
 
     // ESC key to exit annotation mode
-    if (this.escHandler) document.removeEventListener("keydown", this.escHandler);
+    if (this.escHandler) activeDocument.removeEventListener("keydown", this.escHandler);
     this.escHandler = (e: KeyboardEvent) => {
       if (e.key === "Escape" && this.annotationMode) {
         setAnnotationMode(false);
       }
     };
-    document.addEventListener("keydown", this.escHandler);
+    activeDocument.addEventListener("keydown", this.escHandler);
 
     const toolbar = createHelperButtons(
       host,
@@ -200,7 +200,7 @@ export class DirectModelView extends FileView {
           if (!worldPos) return;
 
           console.debug("[AI3D] Annotation: creating pin at", worldPos.toString(), "screen:", screenX, screenY);
-          this.annotationMgr!.showEditor(screenX, screenY, worldPos);
+          this.annotationMgr.showEditor(screenX, screenY, worldPos);
         });
       }
 

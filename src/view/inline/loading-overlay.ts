@@ -18,19 +18,19 @@ export interface LoadingOverlay {
 }
 
 export function createLoadingOverlay(host: HTMLElement): LoadingOverlay {
-  const overlay = document.createElement("div");
+  const overlay = activeDocument.createDiv();
   overlay.className = "ai3d-loading-overlay";
 
-  const spinner = document.createElement("div");
+  const spinner = activeDocument.createDiv();
   spinner.className = "ai3d-loading-spinner";
 
-  const text = document.createElement("div");
+  const text = activeDocument.createDiv();
   text.className = "ai3d-loading-text";
   text.textContent = "Loading...";
 
-  const track = document.createElement("div");
+  const track = activeDocument.createDiv();
   track.className = "ai3d-loading-bar-track";
-  const fill = document.createElement("div");
+  const fill = activeDocument.createDiv();
   fill.className = "ai3d-loading-bar-fill is-indeterminate";
   track.appendChild(fill);
 
@@ -63,7 +63,7 @@ export function createLoadingOverlay(host: HTMLElement): LoadingOverlay {
       if (hidden) return;
       hidden = true;
       overlay.classList.add("is-hiding");
-      setTimeout(() => overlay.remove(), 300);
+      activeWindow.setTimeout(() => overlay.remove(), 300);
     },
   };
 }

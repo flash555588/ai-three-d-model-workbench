@@ -4,7 +4,9 @@
  */
 
 import type { App } from "obsidian";
+// eslint-disable-next-line import/no-extraneous-dependencies -- @codemirror/* provided by Obsidian runtime
 import { EditorView, Decoration, WidgetType } from "@codemirror/view";
+// eslint-disable-next-line import/no-extraneous-dependencies -- @codemirror/* provided by Obsidian runtime
 import { StateField, StateEffect, RangeSet, Range } from "@codemirror/state";
 import { isSupportedModelExtension } from "../../io/formats/registry";
 import type { PluginSettings, AnnotationPin } from "../../domain/models";
@@ -63,17 +65,17 @@ class ModelEmbedWidget extends WidgetType {
   }
 
   override toDOM(): HTMLElement {
-    const host = document.createElement("div");
+    const host = activeDocument.createDiv();
     host.className = "ai3d-embed-preview";
 
-    const canvas = document.createElement("canvas");
+    const canvas = activeDocument.createEl("canvas");
     canvas.className = "ai3d-embed-canvas";
     canvas.style.setProperty("--ai3d-embed-height", `${this.height}px`);
     host.appendChild(canvas);
 
     const loading = createLoadingOverlay(host);
 
-    const error = document.createElement("div");
+    const error = activeDocument.createDiv();
     error.className = "ai3d-embed-error is-hidden";
     host.appendChild(error);
 
@@ -83,7 +85,7 @@ class ModelEmbedWidget extends WidgetType {
       if (this.mounted) return;
       if (host.isConnected) {
         this.mounted = true;
-        this.initPreview(host, canvas, loading, error);
+        void this.initPreview(host, canvas, loading, error);
         return;
       }
       if (++attempts > 120) return; // ~2s at 60fps, give up
@@ -314,7 +316,8 @@ export function registerLivePreviewExtension(
         convertedAssetCache,
         getAnnotations,
       );
-      return ranges.length > 0 ? RangeSet.of(ranges, true) : RangeSet.empty;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- RangeSet.of<Decoration> correctly returns DecoSet
+      return ranges.length > 0 ? RangeSet.of<Decoration>(ranges, true) : RangeSet.empty;
     },
     update(value, tr): DecoSet {
       if (tr.docChanged || tr.effects.some((e) => e.is(updateEmbeds))) {
@@ -333,7 +336,8 @@ export function registerLivePreviewExtension(
           convertedAssetCache,
           getAnnotations,
         );
-        return ranges.length > 0 ? RangeSet.of(ranges, true) : RangeSet.empty;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- RangeSet.of<Decoration> correctly returns DecoSet
+        return ranges.length > 0 ? RangeSet.of<Decoration>(ranges, true) : RangeSet.empty;
       }
       return value.map(tr.changes);
     },

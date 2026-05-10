@@ -3,7 +3,7 @@ import { TFile } from "obsidian";
 import { readFile } from "./node-shim";
 import { pathIsAbsolute as isAbsolute, pathJoin as join, pathNormalize as normalize } from "./node-shim";
 
-function toArrayBuffer(buf: Buffer): ArrayBuffer {
+function toArrayBuffer(buf: Buffer): ArrayBuffer { // eslint-disable-line no-undef -- Buffer is a Node.js global available in Electron
   return Uint8Array.from(buf).buffer;
 }
 

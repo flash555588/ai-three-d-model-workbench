@@ -117,6 +117,7 @@ export function registerCodeBlockProcessor(
 
       if (isJson) {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- JSON.parse returns any
           const parsed = JSON.parse(trimmed);
           config = normalizeConfig(parsed);
         } catch (err) {
@@ -174,7 +175,7 @@ export function registerCodeBlockProcessor(
         host.style.setProperty("--max-width", typeof config.width === "number" ? `${config.width}px` : config.width);
       }
 
-      const canvas = document.createElement("canvas");
+      const canvas = activeDocument.createEl("canvas");
       canvas.className = "ai3d-canvas-full";
       canvas.tabIndex = 0;
       canvas.addEventListener("keydown", (e) => {
@@ -208,7 +209,7 @@ export function registerCodeBlockProcessor(
       }, getSettings, () => {
         annotationVisible = !annotationVisible;
         if (annotationMgr) {
-          const overlay = host.querySelector(".ai3d-annotation-overlay") as HTMLElement | null;
+          const overlay = host.querySelector(".ai3d-annotation-overlay");
           if (overlay) overlay.classList.toggle("is-hidden", !annotationVisible);
         }
         return annotationVisible;
@@ -406,6 +407,7 @@ export function registerGridCodeBlockProcessor(
 
       let config: GridBlockConfig;
       try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- JSON.parse returns any
         config = JSON.parse(trimmed);
       } catch (err) {
         const errorEl = el.createDiv({ cls: "ai3d-json-error" });
@@ -441,7 +443,7 @@ export function registerGridCodeBlockProcessor(
 
       // Create grid container
       const gridHost = el.createDiv({ cls: "ai3d-grid-host" });
-      const canvas = document.createElement("canvas");
+      const canvas = activeDocument.createEl("canvas");
       canvas.tabIndex = 0;
       canvas.addEventListener("keydown", (e) => {
         if (destroyed || !renderer) return;

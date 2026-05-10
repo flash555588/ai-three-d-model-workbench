@@ -11,7 +11,7 @@ export function setExplode(
   factor: number,
   axis: "x" | "y" | "z",
 ): void {
-  const children = rootMesh.getChildMeshes() as Mesh[];
+  const children = rootMesh.getChildMeshes();
   const rootCenter = rootMesh.getBoundingInfo().boundingBox.centerWorld;
 
   for (const child of children) {
@@ -43,7 +43,7 @@ export function setExplode(
 }
 
 export function resetExplode(rootMesh: Mesh): void {
-  const children = rootMesh.getChildMeshes() as Mesh[];
+  const children = rootMesh.getChildMeshes();
   for (const child of children) {
     const meta = child.metadata as ExplodeMeta | undefined;
     if (meta?._originalPos) {

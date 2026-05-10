@@ -7,7 +7,7 @@ export class ModelFileSuggestModal extends FuzzySuggestModal<TFile> {
   constructor(app: App, onChoose: (file: TFile) => void) {
     super(app);
     this.onChoose = onChoose;
-    this.setPlaceholder("Select a 3D model...");
+    this.setPlaceholder("Select a 3d model...");
   }
 
   getItems(): TFile[] {

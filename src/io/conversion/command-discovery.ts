@@ -3,7 +3,7 @@ import { pathDelimiter as delimiter, pathExtname as extname, pathIsAbsolute as i
 import type { PluginSettings } from "../../domain/models";
 
 /** Safe accessor for `process` — undefined on mobile/web where Node is unavailable. */
-const proc = typeof process !== "undefined" ? process : undefined;
+const proc = typeof process !== "undefined" ? process : undefined; // eslint-disable-line no-undef -- process is a Node.js global, typeof check is safe
 
 export type ConverterCommandId = "freecad" | "obj2gltf" | "fbx2gltf" | "assimp" | "freecadcmd";
 export type ConverterCommandSettingKey = "freecadCommand" | "obj2gltfCommand" | "fbx2gltfCommand" | "assimpCommand" | "freecadcmdCommand";

@@ -228,7 +228,8 @@ export function loadSTLBuffer(scene: Scene, buffer: ArrayBuffer): BabylonMesh {
 }
 
 export async function registerSTLLoader() {
+  /* eslint-disable @typescript-eslint/no-deprecated -- Babylon SceneLoader still required for custom plugins */
   const { SceneLoader } = await import("@babylonjs/core/Loading/sceneLoader.js");
-  // @ts-expect-error — Babylon plugin registration accepts ISceneLoaderPlugin
-  SceneLoader.RegisterPlugin(stlPlugin as unknown);
+  SceneLoader.RegisterPlugin(stlPlugin);
+  /* eslint-enable @typescript-eslint/no-deprecated */
 }
