@@ -21,7 +21,7 @@ export class AnalysisView extends FileView {
   }
 
   getDisplayText(): string {
-    return "AI 3D Workbench";
+    return "AI 3D workbench";
   }
 
   getIcon(): string {

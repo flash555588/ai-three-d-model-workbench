@@ -42,7 +42,7 @@ export class DirectModelView extends FileView {
   }
 
   getDisplayText(): string {
-    return this.file?.name ?? "3D Model";
+    return this.file?.name ?? "3D model";
   }
 
   getIcon(): string {

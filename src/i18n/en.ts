@@ -1,6 +1,6 @@
 export const en = {
   // Section headers
-  "settings.title": "AI 3D Model Workbench",
+  "settings.title": "AI 3D model workbench",
   "settings.folders": "Folders",
   "settings.behavior": "Behavior",
   "settings.converters": "Converters",
