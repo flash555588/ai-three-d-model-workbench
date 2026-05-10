@@ -5,16 +5,15 @@
  * On mobile, every function returns a safe fallback or throws a clear error.
  */
 
-/* eslint-disable @typescript-eslint/no-var-requires */
-
 type FsPromises = typeof import("node:fs/promises");
-type FsConstants = typeof import("node:fs").constants;
 type NodePath = typeof import("node:path");
 type NodeChildProcess = typeof import("node:child_process");
 type NodeOs = typeof import("node:os");
 
+// Node.js builtins must be loaded dynamically — unavailable on mobile/web
 function tryRequire<T>(id: string): T | null {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires -- dynamic import for cross-platform compat
     return require(id) as T;
   } catch {
     return null;

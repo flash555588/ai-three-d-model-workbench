@@ -3,7 +3,6 @@ import type {
   ModelPlacement,
   PresetCameraDef,
   ViewportRect,
-  CellLayout,
   PresetResult,
 } from "../../../domain/models";
 
