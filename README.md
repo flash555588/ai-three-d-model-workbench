@@ -41,23 +41,30 @@
 
 ## Quick Start
 
+1. Install dependencies and build the plugin:
+
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Build the plugin
 npm run build
-
-# 3. Copy into your target Obsidian vault's plugin directory
-cp main.js manifest.json styles.css \
-  /path/to/vault/.obsidian/plugins/ai-3d-model-workbench/
-
-# 4. Enable in Obsidian Settings > Community Plugins
 ```
 
-Here, `/path/to/vault/` means a local Obsidian vault folder, not a remote repository.
+2. Open your local Obsidian vault folder.
+Here, “vault” means a local folder on disk, not a remote code repository.
 
-Then in any note inside that vault:
+3. Create this plugin directory inside that vault:
+
+```text
+<your-local-vault>/.obsidian/plugins/ai-3d-model-workbench/
+```
+
+4. Copy the build outputs `main.js`, `manifest.json`, and `styles.css` into that directory.
+If the directory does not exist yet, create it first.
+
+5. In Obsidian, open `Settings > Community Plugins` and enable `AI 3D Model Workbench`.
+
+6. Put a supported model file into the same vault, for example `model.glb`.
+
+7. Then in any note inside that vault:
 
 ```markdown
 ![[model.glb]]           # Renders inline in Live Preview
@@ -77,7 +84,16 @@ npm install
 npm run build
 ```
 
-Copy the three output files to your vault:
+Open your local Obsidian vault folder.
+Here, `<vault>` means a local folder on disk, not a remote code repository.
+
+Create this plugin directory if it does not exist yet:
+
+```text
+<vault>/.obsidian/plugins/ai-3d-model-workbench/
+```
+
+Copy the three build output files into that directory:
 
 | File | Size | Description |
 |------|------|-------------|
@@ -85,7 +101,8 @@ Copy the three output files to your vault:
 | `manifest.json` | ~1 KB | Obsidian plugin manifest |
 | `styles.css` | ~10 KB | Plugin styles |
 
-**Target directory**: `<vault>/.obsidian/plugins/ai-3d-model-workbench/`
+Then enable `AI 3D Model Workbench` in `Settings > Community Plugins`.
+After that, put a supported model file such as `model.glb` into the same vault before embedding it in a note.
 
 ### Option B: Symlink for Development
 
@@ -105,9 +122,11 @@ Then run `npm run dev` for watch mode during development.
 ### Option C: Manual Download
 
 1. Download `main.js`, `manifest.json`, `styles.css` from [Releases](https://github.com/flash555588/ai-3d-model-workbench/releases)
-2. Create folder `<vault>/.obsidian/plugins/ai-3d-model-workbench/`
-3. Place files in the folder
-4. Enable in Obsidian Settings > Community Plugins
+2. Open your local Obsidian vault folder. Here, `<vault>` means a local folder on disk.
+3. Create folder `<vault>/.obsidian/plugins/ai-3d-model-workbench/`
+4. Place the files in that folder
+5. Enable in Obsidian Settings > Community Plugins
+6. Put a supported model file into the same vault before embedding it in a note
 
 ---
 

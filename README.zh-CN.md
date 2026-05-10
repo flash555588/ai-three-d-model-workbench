@@ -41,23 +41,30 @@
 
 ## 快速开始
 
+1. 安装依赖并构建插件：
+
 ```bash
-# 1. 安装依赖
 npm install
-
-# 2. 构建插件
 npm run build
-
-# 3. 复制到目标 Obsidian 仓库的插件目录
-cp main.js manifest.json styles.css \
-  /path/to/vault/.obsidian/plugins/ai-3d-model-workbench/
-
-# 4. 在 Obsidian 设置 > 社区插件中启用
 ```
 
-其中 `/path/to/vault/` 指的是你本地某个 Obsidian 仓库目录，不是远程仓库。
+2. 打开你本地的 Obsidian vault 目录。
+这里的 vault 指本地仓库目录，不是远程代码仓库。
 
-然后在该仓库的任意笔记中：
+3. 在该 vault 下创建插件目录：
+
+```text
+<your-local-vault>/.obsidian/plugins/ai-3d-model-workbench/
+```
+
+4. 把构建产物 `main.js`、`manifest.json`、`styles.css` 复制到这个目录里。
+如果目录不存在，请先创建目录再复制。
+
+5. 在 Obsidian 中打开“设置 > 社区插件”，启用 `AI 3D Model Workbench`。
+
+6. 把一个受支持的模型文件放进同一个 vault，例如 `model.glb`。
+
+7. 然后在该 vault 的任意笔记中：
 
 ```markdown
 ![[model.glb]]           # 在实时预览中内联渲染
@@ -77,7 +84,16 @@ npm install
 npm run build
 ```
 
-将三个输出文件复制到你的库：
+打开你本地的 Obsidian vault 目录。
+这里的 `<vault>` 指本地磁盘上的目录，不是远程代码仓库。
+
+如果目录还不存在，先创建这个插件目录：
+
+```text
+<vault>/.obsidian/plugins/ai-3d-model-workbench/
+```
+
+再把三个构建输出文件复制到这个目录里：
 
 | 文件 | 大小 | 说明 |
 |------|------|------|
@@ -85,7 +101,8 @@ npm run build
 | `manifest.json` | ~1 KB | Obsidian 插件清单 |
 | `styles.css` | ~5 KB | 插件样式 |
 
-**目标目录**：`<vault>/.obsidian/plugins/ai-3d-model-workbench/`
+然后在 Obsidian 的“设置 > 社区插件”里启用 `AI 3D Model Workbench`。
+启用后，先把一个受支持的模型文件例如 `model.glb` 放进同一个 vault，再在笔记里嵌入它。
 
 ### 方式 B：符号链接（开发用）
 
@@ -105,9 +122,11 @@ ln -s /path/to/ai-3d-model-workbench \
 ### 方式 C：手动下载
 
 1. 从 [Releases](https://github.com/flash555588/ai-3d-model-workbench/releases) 下载 `main.js`、`manifest.json`、`styles.css`
-2. 创建文件夹 `<vault>/.obsidian/plugins/ai-3d-model-workbench/`
-3. 将文件放入该文件夹
-4. 在 Obsidian 设置 > 社区插件中启用
+2. 打开你本地的 Obsidian vault 目录。这里的 `<vault>` 指本地磁盘上的目录。
+3. 创建文件夹 `<vault>/.obsidian/plugins/ai-3d-model-workbench/`
+4. 将文件放入该文件夹
+5. 在 Obsidian 设置 > 社区插件中启用
+6. 先把一个受支持的模型文件放进同一个 vault，再在笔记里嵌入
 
 ---
 
