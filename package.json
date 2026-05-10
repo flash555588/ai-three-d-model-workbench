@@ -1,6 +1,6 @@
 {
   "name": "obsidian-ai-3d-model-workbench",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": true,
   "description": "Obsidian plugin scaffold for AI-assisted 3D model analysis and knowledge mapping.",
   "scripts": {
