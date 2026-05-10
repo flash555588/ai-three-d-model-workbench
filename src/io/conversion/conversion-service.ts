@@ -3,7 +3,6 @@ import type { ConversionManager } from "./manager";
 import { CONVERTED_ASSET_CACHE_VERSION, type ConvertedAssetCache } from "../cache/converted-asset-cache";
 import { createLogger } from "../../utils/log";
 import { F_OK, access } from "../../utils/node-shim";
-import { pathIsAbsolute as isAbsolute } from "../../utils/node-shim";
 
 const log = createLogger("conversion-service");
 

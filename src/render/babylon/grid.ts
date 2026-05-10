@@ -8,7 +8,7 @@ import { Viewport } from "@babylonjs/core/Maths/math.viewport.js";
 import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader.js";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js";
-import type { ModelConfig, GridBlockConfig, ModelPlacement, PresetCameraDef, CellLayout, PresetResult } from "../../domain/models";
+import type { ModelConfig, GridBlockConfig, ModelPlacement, CellLayout, PresetResult } from "../../domain/models";
 import "./loaders/register";
 import { ensureLoadersRegistered } from "./loaders/register";
 import { arrayBufferToBase64 } from "../../utils/base64";

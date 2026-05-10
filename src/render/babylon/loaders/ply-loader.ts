@@ -1,5 +1,4 @@
 import type { Scene } from "@babylonjs/core/scene.js";
-import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh.js";
 import { AssetContainer } from "@babylonjs/core/assetContainer.js";
 import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData.js";

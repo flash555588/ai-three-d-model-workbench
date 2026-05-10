@@ -1,5 +1,5 @@
 import type { Plugin } from "obsidian";
-import type { PluginState, PersistedPluginState, PluginSettings } from "../domain/models";
+import type { PluginState, PersistedPluginState } from "../domain/models";
 import { DEFAULT_SETTINGS } from "../domain/constants";
 import { createStore, type Store } from "./create-store";
 

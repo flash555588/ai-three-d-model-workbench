@@ -1,6 +1,6 @@
 import type { ModelConfig, PresetResult, CellLayout } from "../../../domain/models";
 import type { PresetHandler, CameraPresetName } from "./base";
-import { cam, viewportGrid, CAMERA_PRESETS } from "./base";
+import { cam, viewportGrid } from "./base";
 
 /**
  * Showcase: one model from multiple camera angles.

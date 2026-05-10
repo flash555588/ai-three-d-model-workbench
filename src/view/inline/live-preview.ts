@@ -251,7 +251,6 @@ function findEmbeds(
       }
 
       const from = line.from + start;
-      const to = line.from + end + 2;
 
       // Widget decorations require zero-length ranges — place at the start of the embed
       ranges.push(
