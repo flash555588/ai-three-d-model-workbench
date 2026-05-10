@@ -18,7 +18,7 @@ export const en = {
 
   // Behavior
   "settings.autoGenerateKnowledgeNotes": "Auto-generate knowledge notes",
-  "settings.autoGenerateKnowledgeNotes.desc": "Automatically create a knowledge note when saving a model profile.",
+  "settings.autoGenerateKnowledgeNotes.desc": "Reserved for a future automation flow. For now, generate notes manually from the command or the workbench button.",
   "settings.autoRotateDefault": "Auto-rotate by default",
   "settings.autoRotateDefault.desc": "Start 3D previews with auto-rotation enabled.",
   "settings.snapshotNaming": "Snapshot naming",

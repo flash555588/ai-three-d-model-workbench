@@ -48,14 +48,16 @@ npm install
 # 2. 构建插件
 npm run build
 
-# 3. 复制到 Obsidian 库
+# 3. 复制到目标 Obsidian 仓库的插件目录
 cp main.js manifest.json styles.css \
   /path/to/vault/.obsidian/plugins/ai-3d-model-workbench/
 
 # 4. 在 Obsidian 设置 > 社区插件中启用
 ```
 
-然后在任意笔记中：
+其中 `/path/to/vault/` 指的是你本地某个 Obsidian 仓库目录，不是远程仓库。
+
+然后在该仓库的任意笔记中：
 
 ```markdown
 ![[model.glb]]           # 在实时预览中内联渲染
@@ -279,8 +281,9 @@ ln -s /path/to/ai-3d-model-workbench \
 | 渲染质量 | 高 | 质量预设（低/中/高） |
 | 渲染缩放 | 1.0 | 分辨率倍数（0.25-2.0） |
 | 快照文件夹 | Media/3D Previews | 导出文件夹 |
+| 快照命名 | model-name | 导出 PNG 快照时的文件命名方式 |
 | 报告文件夹 | Analysis/3D Reports | 知识笔记文件夹 |
-| 日志级别 | info | 控制台日志详细程度 |
+| 日志级别 | warn | 控制台日志详细程度 |
 
 ### 转换器设置
 
@@ -291,8 +294,12 @@ ln -s /path/to/ai-3d-model-workbench \
 | 启用网格转换器 | 通过 trimesh 启用 3MF/DAE |
 | 启用 OBJ2GLTF 转换器 | 可选，通过 obj2gltf 标准化 OBJ |
 | 启用 FBX2glTF 转换器 | 通过 FBX2glTF 启用 FBX 转换 |
-| Python 命令 | 覆盖 Python 路径 |
-| FreeCADCmd 路径 | 覆盖 FreeCADCmd 路径 |
+| Python 命令路径（CAD 用） | 覆盖 STEP/IGES/BREP 转换使用的 Python 可执行文件 |
+| FreeCADCmd 路径（SLDPRT 用） | 覆盖 `.sldprt` 转换使用的 FreeCAD 可执行文件 |
+| obj2gltf 命令路径 | 覆盖 obj2gltf CLI 路径 |
+| FBX2glTF 命令路径 | 覆盖 FBX2glTF CLI 路径 |
+| Python 命令路径（3MF/DAE 用） | 覆盖 3MF/DAE 转换使用的 Python 可执行文件 |
+| 转换器命令诊断 | 显示插件当前实际会使用的可执行文件路径 |
 
 ---
 

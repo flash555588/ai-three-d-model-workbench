@@ -48,14 +48,16 @@ npm install
 # 2. Build the plugin
 npm run build
 
-# 3. Copy to Obsidian vault
+# 3. Copy into your target Obsidian vault's plugin directory
 cp main.js manifest.json styles.css \
   /path/to/vault/.obsidian/plugins/ai-3d-model-workbench/
 
 # 4. Enable in Obsidian Settings > Community Plugins
 ```
 
-Then in any note:
+Here, `/path/to/vault/` means a local Obsidian vault folder, not a remote repository.
+
+Then in any note inside that vault:
 
 ```markdown
 ![[model.glb]]           # Renders inline in Live Preview
@@ -279,8 +281,9 @@ Add labeled bookmarks directly on model surfaces. Annotations persist per model 
 | Render quality | high | Quality preset (low/medium/high) |
 | Render scale | 1.0 | Resolution multiplier (0.25-2.0) |
 | Snapshot folder | Media/3D Previews | Export folder |
+| Snapshot naming | model-name | File naming mode for exported PNG snapshots |
 | Report folder | Analysis/3D Reports | Knowledge notes folder |
-| Log level | info | Console log verbosity |
+| Log level | warn | Console log verbosity |
 
 ### Converter Settings
 
@@ -291,8 +294,12 @@ Add labeled bookmarks directly on model surfaces. Annotations persist per model 
 | Enable mesh converter | Enable 3MF/DAE via trimesh |
 | Enable OBJ2GLTF converter | Optional OBJ normalization through obj2gltf |
 | Enable FBX2glTF converter | Enable FBX conversion through FBX2glTF |
-| Python command | Override Python path |
-| FreeCADCmd path | Override FreeCADCmd path |
+| Python command path (for CAD conversion) | Override the Python executable used for STEP/IGES/BREP conversion |
+| FreeCADCmd path (for SLDPRT conversion) | Override the FreeCAD executable used for `.sldprt` conversion |
+| obj2gltf command path | Override the obj2gltf CLI path |
+| FBX2glTF command path | Override the FBX2glTF CLI path |
+| Python command path (for 3MF/DAE conversion) | Override the Python executable used for 3MF/DAE conversion |
+| Converter command diagnostics | Show which executable path the plugin will actually use |
 
 ---
 

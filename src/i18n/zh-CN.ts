@@ -20,7 +20,7 @@ export const zhCN: Record<TranslationKey, string> = {
 
   // 行为
   "settings.autoGenerateKnowledgeNotes": "自动生成知识笔记",
-  "settings.autoGenerateKnowledgeNotes.desc": "保存模型配置文件时自动创建知识笔记。",
+  "settings.autoGenerateKnowledgeNotes.desc": "预留给后续自动化流程。当前请通过命令或工作台按钮手动生成知识笔记。",
   "settings.autoRotateDefault": "默认自动旋转",
   "settings.autoRotateDefault.desc": "启动 3D 预览时默认开启自动旋转。",
   "settings.snapshotNaming": "快照命名",

@@ -32,7 +32,10 @@ export function mountWorkbench(
   let annotationMgr: AnnotationManager | null = null;
   let annotationMode = false;
   let loading = false;
-  let pendingPath: string | null = null;
+  const initialState = ps.store.getState();
+  let queuedModelPath: string | null | undefined = initialState.currentModelPath;
+  let lastObservedModelPath = initialState.currentModelPath;
+  let lastObservedPreview = initialState.modelPreview;
 
   // Focus camera on a pin's world position
   function focusPin(pinId: string): void {
@@ -76,6 +79,31 @@ export function mountWorkbench(
   const modeOverlay = activeDocument.createDiv();
   modeOverlay.className = "ai3d-annot-mode-overlay is-hidden";
   previewHost.appendChild(modeOverlay);
+
+  function clearInlineMessages(): void {
+    previewHost.querySelectorAll(".ai3d-inline-empty:not(.ai3d-empty-state)").forEach((el) => el.remove());
+  }
+
+  function destroyActivePreview(): void {
+    annotationMgr?.hideEditor();
+    annotationMgr?.destroy();
+    annotationMgr = null;
+    annotationMode = false;
+    modeOverlay.classList.add("is-hidden");
+    preview?.destroy();
+    preview = null;
+    previewHost.querySelectorAll(".ai3d-canvas-full").forEach((el) => el.remove());
+    clearInlineMessages();
+  }
+
+  function showEmptyPreview(message?: string): void {
+    destroyActivePreview();
+    emptyState.classList.remove("is-hidden");
+    if (message) {
+      const errDiv = previewHost.createDiv({ cls: "ai3d-inline-empty" });
+      errDiv.textContent = message;
+    }
+  }
 
   function setAnnotationMode(active: boolean) {
     annotationMode = active;
@@ -371,132 +399,146 @@ export function mountWorkbench(
   renderPanels();
 
   // ── Model loading subscription ──
-  const unsubModel = ps.store.subscribe(() => { void (async () => {
-    const state = ps.store.getState();
-    const path = state.currentModelPath;
-    if (!path || loading) { pendingPath = path ?? pendingPath; return; }
-
-    const file = app.vault.getAbstractFileByPath(path);
-    if (!(file instanceof TFile)) return;
+  async function syncSelectedModel(): Promise<void> {
+    if (loading) return;
 
     loading = true;
-
-    // Destroy previous preview and clean up old error messages
-    annotationMgr?.destroy();
-    annotationMgr = null;
-    annotationMode = false;
-    modeOverlay.classList.add("is-hidden");
-    preview?.destroy();
-    preview = null;
-    previewHost.querySelectorAll(".ai3d-inline-empty:not(.ai3d-empty-state)").forEach(el => el.remove());
-
-    // Clear empty state, show loading
-    emptyState.classList.add("is-hidden");
-    const canvas = activeDocument.createEl("canvas");
-    canvas.className = "ai3d-canvas-full";
-    previewHost.appendChild(canvas);
-
     try {
-      log.info("begin model load", { path });
-      const absolutePath = resolveVaultAbsolutePath(app, path) ?? undefined;
-      const conversionManager = createConversionManager(state.settings);
-      const prepared = await prepareModelInput({
-        path,
-        absolutePath,
-        preferConversionExts: listPreferredConversionExts(state.settings),
-        conversionManager,
-        convertedAssetCache,
-      });
-      const source = toPreviewSource(prepared);
-      for (const warning of source.warnings) {
-        log.warn("model prepare warning", { path, warning });
-      }
+      while (queuedModelPath !== undefined) {
+        const path = queuedModelPath;
+        queuedModelPath = undefined;
+        const state = ps.store.getState();
 
-      const data = await readBinaryPath(app, source.path);
-      const readFile = async (p: string) => readBinaryPath(app, p);
+        if (!path) {
+          showEmptyPreview();
+          if (state.modelPreview !== null) {
+            ps.store.setState({ modelPreview: null });
+          }
+          continue;
+        }
 
-      preview = new BabylonModelPreview(canvas);
-      const summary = await preview.loadModel(data, source.ext, readFile, source.path);
-      const s = ps.store.getState().settings;
-      preview.setRenderQuality(s.renderQuality, s.renderScale);
+        const file = app.vault.getAbstractFileByPath(path);
+        if (!(file instanceof TFile)) {
+          showEmptyPreview(`File not found: ${path}`);
+          if (state.modelPreview !== null) {
+            ps.store.setState({ modelPreview: null });
+          }
+          continue;
+        }
 
-      // Set up annotation manager (edit mode)
-      const canvasEl = preview.getCanvas();
-      if (canvasEl) {
-        const profile = ps.store.getState().modelAssetProfiles[path];
-        const noteReader = createNoteReader(app);
-        const headingSearch = createHeadingSearch(app);
+        destroyActivePreview();
+        emptyState.classList.add("is-hidden");
+        const canvas = activeDocument.createEl("canvas");
+        canvas.className = "ai3d-canvas-full";
+        previewHost.appendChild(canvas);
 
-        annotationMgr = new AnnotationManager(
-          { scene: preview.getScene(), camera: preview.getCamera(), engine: preview.getEngine(), canvas: canvasEl },
-          previewHost,
-          "edit",
-          profile?.annotations ?? [],
-          (pins) => {
-            const current = ps.store.getState().modelAssetProfiles;
-            const p = ps.store.getState().currentModelPath;
-            if (!p) return;
-            const existing = current[p] ?? createDefaultProfile();
-            ps.store.setState({
-              modelAssetProfiles: { ...current, [p]: { ...existing, annotations: pins, updatedAt: new Date().toISOString() } },
-            });
-          },
-          noteReader,
-          headingSearch,
-        );
-        // Wire pick callback for annotation mode
-        preview.onPick((result) => {
-          if (!annotationMode || !annotationMgr) return;
-          // Use screen coordinates from pointer event (always available)
-          const screenX = result.screenX;
-          const screenY = result.screenY;
-
-          // Determine 3D world position for the pin
-          let worldPos: Vector3 | null = null;
-          if (result.pickedPoint) {
-            // Best case: exact hit point on mesh surface
-            worldPos = result.pickedPoint;
-          } else if (result.mesh) {
-            // Fallback: use mesh bounding box center when pickedPoint is null
-            // (common with Gaussian Splat or degenerate geometry)
-            const bbox = result.mesh.getBoundingInfo().boundingBox;
-            worldPos = bbox.centerWorld.clone();
-            console.debug("[AI3D] Annotation: pickedPoint null, using bbox center fallback");
+        try {
+          log.info("begin model load", { path });
+          const absolutePath = resolveVaultAbsolutePath(app, path) ?? undefined;
+          const conversionManager = createConversionManager(state.settings);
+          const prepared = await prepareModelInput({
+            path,
+            absolutePath,
+            preferConversionExts: listPreferredConversionExts(state.settings),
+            conversionManager,
+            convertedAssetCache,
+          });
+          const source = toPreviewSource(prepared);
+          for (const warning of source.warnings) {
+            log.warn("model prepare warning", { path, warning });
           }
 
-          if (!worldPos) return; // No mesh hit at all
+          const data = await readBinaryPath(app, source.path);
+          const readFile = async (p: string) => readBinaryPath(app, p);
 
-          console.debug("[AI3D] Annotation: creating pin at", worldPos.toString(), "screen:", screenX, screenY);
-          annotationMgr.showEditor(screenX, screenY, worldPos);
-        });
+          preview = new BabylonModelPreview(canvas);
+          const summary = await preview.loadModel(data, source.ext, readFile, source.path);
+          const latestPath = ps.store.getState().currentModelPath;
+          if (latestPath !== path) {
+            log.info("discard stale model load", { path, nextPath: latestPath });
+            preview.destroy();
+            preview = null;
+            canvas.remove();
+            continue;
+          }
+
+          const s = ps.store.getState().settings;
+          preview.setRenderQuality(s.renderQuality, s.renderScale);
+
+          const canvasEl = preview.getCanvas();
+          if (canvasEl) {
+            const profile = ps.store.getState().modelAssetProfiles[path];
+            const noteReader = createNoteReader(app);
+            const headingSearch = createHeadingSearch(app);
+
+            annotationMgr = new AnnotationManager(
+              { scene: preview.getScene(), camera: preview.getCamera(), engine: preview.getEngine(), canvas: canvasEl },
+              previewHost,
+              "edit",
+              profile?.annotations ?? [],
+              (pins) => {
+                const current = ps.store.getState().modelAssetProfiles;
+                const p = ps.store.getState().currentModelPath;
+                if (!p) return;
+                const existing = current[p] ?? createDefaultProfile();
+                ps.store.setState({
+                  modelAssetProfiles: { ...current, [p]: { ...existing, annotations: pins, updatedAt: new Date().toISOString() } },
+                });
+              },
+              noteReader,
+              headingSearch,
+            );
+            preview.onPick((result) => {
+              if (!annotationMode || !annotationMgr) return;
+              const screenX = result.screenX;
+              const screenY = result.screenY;
+
+              let worldPos: Vector3 | null = null;
+              if (result.pickedPoint) {
+                worldPos = result.pickedPoint;
+              } else if (result.mesh) {
+                const bbox = result.mesh.getBoundingInfo().boundingBox;
+                worldPos = bbox.centerWorld.clone();
+                console.debug("[AI3D] Annotation: pickedPoint null, using bbox center fallback");
+              }
+
+              if (!worldPos) return;
+
+              console.debug("[AI3D] Annotation: creating pin at", worldPos.toString(), "screen:", screenX, screenY);
+              annotationMgr.showEditor(screenX, screenY, worldPos);
+            });
+          }
+
+          ps.store.setState({ modelPreview: summary });
+          log.info("model load completed", {
+            path,
+            effectivePath: source.path,
+            effectiveExt: source.ext,
+            strategy: source.strategy,
+            meshCount: summary.meshCount,
+            triangleCount: summary.triangleCount,
+          });
+        } catch (err) {
+          log.error("model load failed", { path, error: err instanceof Error ? err.message : String(err) });
+          showEmptyPreview(`Failed to load: ${String(err)}`);
+        }
       }
-
-      ps.store.setState({ modelPreview: summary });
-      log.info("model load completed", {
-        path,
-        effectivePath: source.path,
-        effectiveExt: source.ext,
-        strategy: source.strategy,
-        meshCount: summary.meshCount,
-        triangleCount: summary.triangleCount,
-      });
-    } catch (err) {
-      log.error("model load failed", { path, error: err instanceof Error ? err.message : String(err) });
-      preview?.destroy();
-      preview = null;
-      canvas.remove();
-      emptyState.classList.remove("is-hidden");
-      const errDiv = previewHost.createDiv({ cls: "ai3d-inline-empty" });
-      errDiv.textContent = `Failed to load: ${String(err)}`;
     } finally {
       loading = false;
-      if (pendingPath) {
-        pendingPath = null;
-        // Re-fire subscription to pick up the skipped path change
-        ps.store.setState({});
-      }
     }
-  })(); });
+  }
+
+  const unsubModel = ps.store.subscribe(() => {
+    const state = ps.store.getState();
+    const pathChanged = state.currentModelPath !== lastObservedModelPath;
+    const previewWasReset = state.modelPreview === null && lastObservedPreview !== null;
+    lastObservedModelPath = state.currentModelPath;
+    lastObservedPreview = state.modelPreview;
+    if (!pathChanged && !previewWasReset) return;
+    queuedModelPath = state.currentModelPath;
+    void syncSelectedModel();
+  });
+  void syncSelectedModel();
 
   // ── Panel re-render subscription ──
   const unsubPanels = ps.store.subscribe(() => renderPanels());
@@ -505,10 +547,7 @@ export function mountWorkbench(
     unsubModel();
     unsubPanels();
     activeDocument.removeEventListener("keydown", handleEsc);
-    annotationMgr?.destroy();
-    annotationMgr = null;
-    preview?.destroy();
-    preview = null;
+    destroyActivePreview();
     container.replaceChildren();
     container.classList.remove("ai3d-workbench");
   };

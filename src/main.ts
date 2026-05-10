@@ -275,6 +275,13 @@ export default class AI3DModelWorkbench extends Plugin {
         return;
       }
 
+      if (this.ps.store.getState().currentModelPath === file.path) {
+        this.ps.store.setState({
+          currentModelPath: null,
+          modelPreview: null,
+        });
+      }
+
       // Update store with new model path and reset preview
       this.ps.store.setState({
         currentModelPath: file.path,
