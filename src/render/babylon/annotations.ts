@@ -58,10 +58,8 @@ export class AnnotationManager {
     private noteReader?: (notePath: string, heading: string) => Promise<string | null>,
     private headingSearch?: (query: string) => HeadingSearchResult[],
   ) {
-    // Create overlay container
-    this.overlay = activeDocument.createDiv();
-    this.overlay.className = "ai3d-annotation-overlay";
-    this.hostEl.appendChild(this.overlay);
+    // Create overlay container on hostEl (in DOM) to inherit Obsidian CSS variables
+    this.overlay = this.hostEl.createDiv({ cls: "ai3d-annotation-overlay" });
 
     // Set initial annotations
     this.setAnnotations(initial);
@@ -171,24 +169,20 @@ export class AnnotationManager {
     this.hideEditor();
     this._selectedHeading = null;
 
-    const editor = activeDocument.createDiv();
-    editor.className = "ai3d-annotation-editor";
+    // Create on overlay (in DOM) so Obsidian's createEl reads CSS variables
+    const editor = this.overlay.createDiv({ cls: "ai3d-annotation-editor" });
 
     // ── Input wrapper (input + binding indicator) ──
-    const inputWrap = activeDocument.createDiv();
-    inputWrap.className = "ai3d-editor-input-wrap";
+    const inputWrap = editor.createDiv({ cls: "ai3d-editor-input-wrap" });
 
-    const input = activeDocument.createEl("input");
+    const input = inputWrap.createEl("input", { cls: "ai3d-annotation-editor-input" });
     input.type = "text";
     input.placeholder = this.headingSearch ? "Label or search heading..." : "Label...";
-    input.className = "ai3d-annotation-editor-input";
     if (existingPin) input.value = existingPin.label;
 
     // Show existing binding indicator
-    const bindingTag = activeDocument.createSpan();
-    bindingTag.className = "ai3d-editor-binding-tag is-hidden";
-    const clearBindingBtn = activeDocument.createEl("button");
-    clearBindingBtn.className = "ai3d-editor-binding-clear";
+    const bindingTag = inputWrap.createSpan({ cls: "ai3d-editor-binding-tag is-hidden" });
+    const clearBindingBtn = bindingTag.createEl("button", { cls: "ai3d-editor-binding-clear" });
     clearBindingBtn.textContent = "\u00d7";
     clearBindingBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -199,18 +193,12 @@ export class AnnotationManager {
       input.value = "";
       input.focus();
     });
-    bindingTag.appendChild(clearBindingBtn);
-
-    inputWrap.appendChild(input);
-    inputWrap.appendChild(bindingTag);
 
     // ── Content preview (shows heading section content after binding) ──
-    const contentPreview = activeDocument.createDiv();
-    contentPreview.className = "ai3d-editor-content-preview is-hidden";
+    const contentPreview = editor.createDiv({ cls: "ai3d-editor-content-preview is-hidden" });
 
     // ── Heading autocomplete dropdown ──
-    const dropdown = activeDocument.createDiv();
-    dropdown.className = "ai3d-heading-dropdown is-hidden";
+    const dropdown = editor.createDiv({ cls: "ai3d-heading-dropdown is-hidden" });
     this._headingDropdown = dropdown;
 
     let dropdownIndex = -1;
@@ -232,10 +220,8 @@ export class AnnotationManager {
       // Show binding tag
       const shortPath = result.notePath.replace(/^.*\//, "").replace(/\.[^.]+$/, "");
       bindingTag.querySelector(".ai3d-editor-binding-text")?.remove();
-      const textSpan = activeDocument.createSpan();
-      textSpan.className = "ai3d-editor-binding-text";
+      const textSpan = bindingTag.createSpan({ cls: "ai3d-editor-binding-text" });
       textSpan.textContent = `\ud83d\udcc4 ${shortPath}`;
-      bindingTag.appendChild(textSpan);
       bindingTag.classList.remove("is-hidden");
       hideDropdown();
       input.focus();
@@ -259,26 +245,19 @@ export class AnnotationManager {
       }
       for (let i = 0; i < results.length; i++) {
         const r = results[i];
-        const item = activeDocument.createDiv();
-        item.className = "ai3d-heading-dropdown-item";
+        const item = dropdown.createDiv({ cls: "ai3d-heading-dropdown-item" });
 
-        const headingEl = activeDocument.createSpan();
-        headingEl.className = "ai3d-heading-dropdown-heading";
+        const headingEl = item.createSpan({ cls: "ai3d-heading-dropdown-heading" });
         headingEl.textContent = `${"#".repeat(r.level)} ${r.heading}`;
 
-        const noteEl = activeDocument.createSpan();
-        noteEl.className = "ai3d-heading-dropdown-note";
+        const noteEl = item.createSpan({ cls: "ai3d-heading-dropdown-note" });
         noteEl.textContent = r.notePath.replace(/^.*\//, "").replace(/\.[^.]+$/, "");
-
-        item.appendChild(headingEl);
-        item.appendChild(noteEl);
         item.addEventListener("mousedown", (e) => {
           e.preventDefault();
           e.stopPropagation();
           selectResult(r);
         });
         item.addEventListener("mouseenter", () => setDropdownIndex(i));
-        dropdown.appendChild(item);
       }
       dropdown.classList.remove("is-hidden");
     };
@@ -338,12 +317,10 @@ export class AnnotationManager {
     });
 
     // ── Color swatches ──
-    const colorRow = activeDocument.createDiv();
-    colorRow.className = "ai3d-annotation-editor-colors";
+    const colorRow = editor.createDiv({ cls: "ai3d-annotation-editor-colors" });
     let selectedColor = existingPin?.color ?? DEFAULT_COLORS[0];
     for (const c of DEFAULT_COLORS) {
-      const swatch = activeDocument.createEl("button");
-      swatch.className = "ai3d-pin-color-swatch";
+      const swatch = colorRow.createEl("button", { cls: "ai3d-pin-color-swatch" });
       swatch.style.setProperty("--swatch-color", c);
       if (c === selectedColor) swatch.classList.add("active");
       swatch.addEventListener("click", (e) => {
@@ -352,15 +329,23 @@ export class AnnotationManager {
         colorRow.querySelectorAll(".ai3d-pin-color-swatch").forEach(s => s.classList.remove("active"));
         swatch.classList.add("active");
       });
-      colorRow.appendChild(swatch);
     }
 
     // ── Action buttons ──
-    const btnRow = activeDocument.createDiv();
-    btnRow.className = "ai3d-annotation-editor-actions";
+    const btnRow = editor.createDiv({ cls: "ai3d-annotation-editor-actions" });
 
-    const confirmBtn = activeDocument.createEl("button");
-    confirmBtn.className = "ai3d-annotation-editor-btn ai3d-annotation-editor-confirm";
+    // Delete button (only for existing pins) — created first so it appears left of confirm/cancel
+    if (existingPin) {
+      const deleteBtn = btnRow.createEl("button", { cls: "ai3d-annotation-editor-btn ai3d-annotation-editor-delete" });
+      deleteBtn.textContent = "Delete";
+      deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.removePin(existingPin.id);
+        this.hideEditor();
+      });
+    }
+
+    const confirmBtn = btnRow.createEl("button", { cls: "ai3d-annotation-editor-btn ai3d-annotation-editor-confirm" });
     confirmBtn.textContent = existingPin ? "Save" : "OK";
     confirmBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -387,36 +372,12 @@ export class AnnotationManager {
       this.hideEditor();
     });
 
-    const cancelBtn = activeDocument.createEl("button");
-    cancelBtn.className = "ai3d-annotation-editor-btn ai3d-annotation-editor-cancel";
+    const cancelBtn = btnRow.createEl("button", { cls: "ai3d-annotation-editor-btn ai3d-annotation-editor-cancel" });
     cancelBtn.textContent = "Cancel";
     cancelBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       this.hideEditor();
     });
-
-    // Delete button (only for existing pins)
-    if (existingPin) {
-      const deleteBtn = activeDocument.createEl("button");
-      deleteBtn.className = "ai3d-annotation-editor-btn ai3d-annotation-editor-delete";
-      deleteBtn.textContent = "Delete";
-      deleteBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.removePin(existingPin.id);
-        this.hideEditor();
-      });
-      btnRow.appendChild(deleteBtn);
-    }
-
-    btnRow.appendChild(confirmBtn);
-    btnRow.appendChild(cancelBtn);
-
-    // ── Assemble editor ──
-    editor.appendChild(inputWrap);
-    editor.appendChild(dropdown);
-    editor.appendChild(contentPreview);
-    editor.appendChild(colorRow);
-    editor.appendChild(btnRow);
 
     // Position within overlay bounds
     const rect = this.overlay.getBoundingClientRect();
@@ -425,16 +386,13 @@ export class AnnotationManager {
     editor.style.setProperty("--editor-left", `${Math.max(0, Math.min(x, rect.width - 220))}px`);
     editor.style.setProperty("--editor-top", `${Math.max(0, Math.min(y - 10, rect.height - 160))}px`);
 
-    this.overlay.appendChild(editor);
     this.editorEl = editor;
 
     // If editing existing pin with binding, show the tag and content
     if (existingPin?.notePath && existingPin?.headingRef) {
       const shortPath = existingPin.notePath.replace(/^.*\//, "").replace(/\.[^.]+$/, "");
-      const textSpan = activeDocument.createSpan();
-      textSpan.className = "ai3d-editor-binding-text";
+      const textSpan = bindingTag.createSpan({ cls: "ai3d-editor-binding-text" });
       textSpan.textContent = `\ud83d\udcc4 ${shortPath}`;
-      bindingTag.appendChild(textSpan);
       bindingTag.classList.remove("is-hidden");
       this._selectedHeading = { notePath: existingPin.notePath, heading: existingPin.headingRef, level: existingPin.headingLevel ?? 2 };
       void this.loadContentPreview(contentPreview, existingPin.notePath, existingPin.headingRef);
@@ -483,19 +441,14 @@ export class AnnotationManager {
     const content = await this.noteReader(pin.notePath, pin.headingRef);
     if (!content) return;
 
-    const popover = activeDocument.createDiv();
-    popover.className = "ai3d-pin-popover";
+    // Create on hostEl (in DOM) to inherit Obsidian CSS variables
+    const popover = this.hostEl.createDiv({ cls: "ai3d-pin-popover" });
 
-    const title = activeDocument.createDiv();
-    title.className = "ai3d-pin-popover-title";
+    const title = popover.createDiv({ cls: "ai3d-pin-popover-title" });
     title.textContent = pin.headingRef;
 
-    const body = activeDocument.createDiv();
-    body.className = "ai3d-pin-popover-body";
+    const body = popover.createDiv({ cls: "ai3d-pin-popover-body" });
     body.textContent = content;
-
-    popover.appendChild(title);
-    popover.appendChild(body);
 
     // Position relative to pin
     const rect = pinEl.getBoundingClientRect();
@@ -550,31 +503,24 @@ export class AnnotationManager {
   // ── Private ─────────────────────────────────────────────────
 
   private createPinElement(pin: AnnotationPin): void {
-    const el = activeDocument.createDiv();
-    el.className = "ai3d-annotation-pin";
+    // Create on overlay (in DOM) to inherit Obsidian CSS variables
+    const el = this.overlay.createDiv({ cls: "ai3d-annotation-pin" });
     el.dataset.pinId = pin.id;
 
-    const dot = activeDocument.createDiv();
-    dot.className = "ai3d-pin-dot";
+    const dot = el.createDiv({ cls: "ai3d-pin-dot" });
     dot.style.setProperty("--pin-color", pin.color);
 
-    const label = activeDocument.createSpan();
-    label.className = "ai3d-pin-label";
+    const label = el.createSpan({ cls: "ai3d-pin-label" });
     label.textContent = pin.label;
-
-    el.appendChild(dot);
-    el.appendChild(label);
 
     // Readonly mode: no delete button
     if (this.mode === "edit") {
-      const del = activeDocument.createEl("button");
-      del.className = "ai3d-pin-delete";
+      const del = el.createEl("button", { cls: "ai3d-pin-delete" });
       del.textContent = "\u00d7";
       del.addEventListener("click", (e) => {
         e.stopPropagation();
         this.removePin(pin.id);
       });
-      el.appendChild(del);
 
       // Click pin to edit (not delete button)
       el.addEventListener("click", (e) => {
@@ -600,7 +546,6 @@ export class AnnotationManager {
       });
     }
 
-    this.overlay.appendChild(el);
     this.pinEls.set(pin.id, { el, worldPos: new Vector3(...pin.position) });
   }
 

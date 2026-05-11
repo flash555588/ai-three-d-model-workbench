@@ -25,7 +25,7 @@
 }
 
 .ai3d-btn-active {
-  color: var(--interactive-accent);
+  color: var(--interactive-accent, #7f6df2);
 }
 
 .ai3d-res-btn {
@@ -665,10 +665,10 @@
   gap: 4px;
   padding: 4px 2px;
   margin-top: -1px;
-  border: 1px solid var(--background-modifier-border);
+  border: 1px solid var(--background-modifier-border, rgba(255, 255, 255, 0.1));
   border-top: none;
-  border-radius: 0 0 var(--radius-s) var(--radius-s);
-  background: var(--background-secondary);
+  border-radius: 0 0 var(--radius-s, 4px) var(--radius-s, 4px);
+  background: var(--background-secondary, #1e1e1e);
 }
 
 .ai3d-inline-btn {
@@ -679,17 +679,19 @@
   justify-content: center;
   border: none;
   border-radius: var(--radius-s);
-  background: var(--background-primary);
-  color: var(--text-muted);
+  background: var(--background-primary, #202020);
+  color: var(--text-muted, #999);
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease;
   padding: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font-size: inherit;
+  font-family: inherit;
 }
 
 .ai3d-inline-btn:hover {
-  color: var(--text-normal);
-  background: var(--background-modifier-hover);
+  color: var(--text-normal, #fff);
+  background: var(--background-modifier-hover, rgba(255, 255, 255, 0.08));
 }
 
 .ai3d-inline-btn svg {
@@ -1047,14 +1049,15 @@
   cursor: pointer;
   padding: 0;
   transition: border-color 0.15s;
+  flex-shrink: 0;
 }
 
 .ai3d-pin-color-swatch.active {
-  border-color: var(--text-normal);
+  border-color: var(--text-normal, #fff);
 }
 
 .ai3d-pin-color-swatch:hover {
-  border-color: var(--text-muted);
+  border-color: var(--text-muted, #999);
 }
 
 .ai3d-annotation-editor-actions {

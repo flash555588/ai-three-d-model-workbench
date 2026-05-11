@@ -175,8 +175,7 @@ export function registerCodeBlockProcessor(
         host.style.setProperty("--max-width", typeof config.width === "number" ? `${config.width}px` : config.width);
       }
 
-      const canvas = activeDocument.createEl("canvas");
-      canvas.className = "ai3d-canvas-full";
+      const canvas = host.createEl("canvas", { cls: "ai3d-canvas-full" });
       canvas.tabIndex = 0;
       canvas.addEventListener("keydown", (e) => {
         if (destroyed || !preview) return;
@@ -196,7 +195,7 @@ export function registerCodeBlockProcessor(
       let destroyed = false;
       let loaded = false;
 
-      const toolbar: HelperToolbar = createHelperButtons(host, app, () => preview, () => modelPath, () => {
+      const toolbar: HelperToolbar = createHelperButtons(el, host, app, () => preview, () => modelPath, () => {
         if (destroyed) return;
         destroyed = true;
         observer.disconnect();
@@ -443,7 +442,7 @@ export function registerGridCodeBlockProcessor(
 
       // Create grid container
       const gridHost = el.createDiv({ cls: "ai3d-grid-host" });
-      const canvas = activeDocument.createEl("canvas");
+      const canvas = gridHost.createEl("canvas");
       canvas.tabIndex = 0;
       canvas.addEventListener("keydown", (e) => {
         if (destroyed || !renderer) return;
@@ -463,7 +462,7 @@ export function registerGridCodeBlockProcessor(
       let destroyed = false;
       let loaded = false;
 
-      createHelperButtons(gridHost, app, () => renderer, () => helperSourcePath, () => {
+      createHelperButtons(el, gridHost, app, () => renderer, () => helperSourcePath, () => {
         if (destroyed) return;
         destroyed = true;
         observer.disconnect();

@@ -161,8 +161,8 @@ export default class AI3DModelWorkbench extends Plugin {
       (el as HTMLElement).dataset.pinBound = entries[0].pinId;
 
       // Add pin badge: shows count if multiple, tooltip lists model sources
-      const badge = activeDocument.createSpan();
-      badge.className = "ai3d-heading-pin-badge";
+      // Create on heading element (in DOM) to inherit Obsidian CSS variables
+      const badge = (el as HTMLElement).createSpan({ cls: "ai3d-heading-pin-badge" });
       badge.textContent = entries.length > 1 ? `\ud83d\udccd\u00d7${entries.length}` : "\ud83d\udccd";
       const uniqueModels = [...new Set(entries.map(e => e.modelPath.replace(/^.*\//, "").replace(/\.[^.]+$/, "")))];
       badge.title = `Pin linked to: ${uniqueModels.join(", ")}`;

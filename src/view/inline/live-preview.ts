@@ -19,6 +19,7 @@ import { prepareModelInput } from "../../io/model-pipeline";
 import { listPreferredConversionExts } from "../../io/formats/route-preferences";
 import { createLoadingOverlay, type LoadingOverlay } from "./loading-overlay";
 import { createNoteReader } from "../../utils/note-reader";
+import { createStagedDiv, createStagedEl } from "../../utils/dom";
 
 // ── Widget ────────────────────────────────────────────────────────
 
@@ -65,18 +66,15 @@ class ModelEmbedWidget extends WidgetType {
   }
 
   override toDOM(): HTMLElement {
-    const host = activeDocument.createDiv();
-    host.className = "ai3d-embed-preview";
+    const host = createStagedDiv("ai3d-embed-preview");
 
-    const canvas = activeDocument.createEl("canvas");
-    canvas.className = "ai3d-embed-canvas";
+    const canvas = createStagedEl("canvas", "ai3d-embed-canvas");
     canvas.style.setProperty("--ai3d-embed-height", `${this.height}px`);
     host.appendChild(canvas);
 
     const loading = createLoadingOverlay(host);
 
-    const error = activeDocument.createDiv();
-    error.className = "ai3d-embed-error is-hidden";
+    const error = createStagedDiv("ai3d-embed-error is-hidden");
     host.appendChild(error);
 
     // Poll host.isConnected via rAF — avoids O(N*M) MutationObserver on document.body

@@ -64,8 +64,8 @@ export function mountWorkbench(
   activeDocument.addEventListener("keydown", handleEsc);
 
   // ── Stable preview host (never removed from DOM) ──
-  const previewHost = activeDocument.createDiv();
-  previewHost.className = "ai3d-preview-host";
+  // Create on container (in DOM) to inherit Obsidian CSS variables
+  const previewHost = container.createDiv({ cls: "ai3d-preview-host" });
   const emptyState = html`
     <div class="ai3d-empty-state">
       <div class="ai3d-empty-icon">3D</div>
@@ -76,9 +76,7 @@ export function mountWorkbench(
   previewHost.appendChild(emptyState);
 
   // Semi-transparent overlay for annotation mode
-  const modeOverlay = activeDocument.createDiv();
-  modeOverlay.className = "ai3d-annot-mode-overlay is-hidden";
-  previewHost.appendChild(modeOverlay);
+  const modeOverlay = previewHost.createDiv({ cls: "ai3d-annot-mode-overlay is-hidden" });
 
   function clearInlineMessages(): void {
     previewHost.querySelectorAll(".ai3d-inline-empty:not(.ai3d-empty-state)").forEach((el) => el.remove());
@@ -113,11 +111,7 @@ export function mountWorkbench(
   }
 
   // ── Panels container (re-rendered on state change) ──
-  const panelsEl = activeDocument.createDiv();
-  panelsEl.className = "ai3d-panels";
-
-  container.appendChild(previewHost);
-  container.appendChild(panelsEl);
+  const panelsEl = container.createDiv({ cls: "ai3d-panels" });
 
   function renderPanels() {
     const state = ps.store.getState();
@@ -428,8 +422,9 @@ export function mountWorkbench(
 
         destroyActivePreview();
         emptyState.classList.add("is-hidden");
-        const canvas = activeDocument.createEl("canvas");
-        canvas.className = "ai3d-canvas-full";
+        const canvas = previewHost.createEl("canvas", { cls: "ai3d-canvas-full" });
+        // Ensure canvas renders before modeOverlay (createEl auto-appends as last child)
+        previewHost.insertBefore(canvas, modeOverlay);
         previewHost.appendChild(canvas);
 
         try {

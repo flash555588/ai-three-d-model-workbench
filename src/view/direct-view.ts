@@ -83,16 +83,22 @@ export class DirectModelView extends FileView {
     this.preview?.destroy();
     this.preview = null;
 
-    const host = this.contentEl.createDiv({ cls: "ai3d-preview-host" });
+    // Use a detached staging container to avoid "Only one element on document" error.
+    // This happens because contentEl may be the document itself during onLoadFile.
+    // eslint-disable-next-line obsidianmd/prefer-create-el, obsidianmd/prefer-active-doc -- staging container must use raw createElement to avoid HierarchyRequestError
+    const staging = document.createElement("div");
+    const host = staging.createDiv({ cls: "ai3d-preview-host" });
 
-    const canvas = activeDocument.createEl("canvas");
+    const canvas = staging.createEl("canvas");
     canvas.className = "ai3d-canvas-full";
     host.appendChild(canvas);
 
     // Semi-transparent overlay for annotation mode
-    const modeOverlay = activeDocument.createDiv();
+    const modeOverlay = staging.createDiv();
     modeOverlay.className = "ai3d-annot-mode-overlay is-hidden";
     host.appendChild(modeOverlay);
+
+    this.contentEl.appendChild(host);
 
     const setAnnotationMode = (active: boolean) => {
       this.annotationMode = active;
@@ -111,6 +117,7 @@ export class DirectModelView extends FileView {
     activeDocument.addEventListener("keydown", this.escHandler);
 
     const toolbar = createHelperButtons(
+      this.contentEl,
       host,
       this.app,
       () => this.preview,

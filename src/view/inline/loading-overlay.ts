@@ -18,26 +18,15 @@ export interface LoadingOverlay {
 }
 
 export function createLoadingOverlay(host: HTMLElement): LoadingOverlay {
-  const overlay = activeDocument.createDiv();
-  overlay.className = "ai3d-loading-overlay";
+  const overlay = host.createDiv({ cls: "ai3d-loading-overlay" });
 
-  const spinner = activeDocument.createDiv();
-  spinner.className = "ai3d-loading-spinner";
+  overlay.createDiv({ cls: "ai3d-loading-spinner" });
 
-  const text = activeDocument.createDiv();
-  text.className = "ai3d-loading-text";
+  const text = overlay.createDiv({ cls: "ai3d-loading-text" });
   text.textContent = "Loading...";
 
-  const track = activeDocument.createDiv();
-  track.className = "ai3d-loading-bar-track";
-  const fill = activeDocument.createDiv();
-  fill.className = "ai3d-loading-bar-fill is-indeterminate";
-  track.appendChild(fill);
-
-  overlay.appendChild(spinner);
-  overlay.appendChild(text);
-  overlay.appendChild(track);
-  host.appendChild(overlay);
+  const track = overlay.createDiv({ cls: "ai3d-loading-bar-track" });
+  const fill = track.createDiv({ cls: "ai3d-loading-bar-fill is-indeterminate" });
 
   let hidden = false;
 
