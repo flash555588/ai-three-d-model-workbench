@@ -425,7 +425,7 @@ export class AnnotationManager {
     el.classList.add("is-hidden");
     const content = await this.noteReader(notePath, heading);
     if (!content) {
-      el.textContent = "(Empty section)";
+      el.textContent = "Section is empty.";
       el.className = "ai3d-editor-content-preview ai3d-editor-content-preview--empty";
       el.classList.remove("is-hidden");
       return;

@@ -10,6 +10,7 @@ type NodePath = typeof import("node:path");
 type NodeChildProcess = typeof import("node:child_process");
 type NodeOs = typeof import("node:os");
 type RuntimeRequire = <T = unknown>(id: string) => T;
+type RuntimeWindow = Window & { require?: RuntimeRequire; process?: RuntimeProcess };
 type WriteFileOptions = Parameters<FsPromises["writeFile"]>[2];
 type WriteFileEncoding = Extract<NonNullable<WriteFileOptions>, { encoding?: unknown }>["encoding"];
 
@@ -19,17 +20,17 @@ export interface RuntimeProcess {
 }
 
 function getRuntimeRequire(): RuntimeRequire | undefined {
-  if (typeof globalThis !== "object" || !("require" in globalThis)) {
+  if (!("require" in activeWindow)) {
     return undefined;
   }
-  return (globalThis as typeof globalThis & { require?: RuntimeRequire }).require;
+  return (activeWindow as RuntimeWindow).require;
 }
 
 export function getRuntimeProcess(): RuntimeProcess | undefined {
-  if (typeof globalThis !== "object" || !("process" in globalThis)) {
+  if (!("process" in activeWindow)) {
     return undefined;
   }
-  return (globalThis as typeof globalThis & { process?: RuntimeProcess }).process;
+  return (activeWindow as RuntimeWindow).process;
 }
 
 // Node.js builtins must be loaded dynamically — unavailable on mobile/web

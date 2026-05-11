@@ -120,7 +120,7 @@ export function createHelperButtons(
     if (!preview?.toggleOrientationGizmo) return;
     const on = preview.toggleOrientationGizmo();
     gizmoBtn.classList.toggle("ai3d-btn-active", on);
-    showTooltip(gizmoBtn, on ? "Axes On" : "Axes Off");
+    showTooltip(gizmoBtn, on ? "Axes on" : "Axes off");
   });
 
   // Bounding box toggle button (cube outline icon)
@@ -131,7 +131,7 @@ export function createHelperButtons(
     if (!preview?.toggleBoundingBox) return;
     const on = preview.toggleBoundingBox();
     bboxBtn.classList.toggle("ai3d-btn-active", on);
-    showTooltip(bboxBtn, on ? "BBox On" : "BBox Off");
+    showTooltip(bboxBtn, on ? "Bounding box on" : "Bounding box off");
   });
 
   // Disassembly mode toggle button (separate parts by dragging)
@@ -142,7 +142,7 @@ export function createHelperButtons(
     if (!preview?.toggleDisassembly) return;
     const on = preview.toggleDisassembly();
     disassembleBtn.classList.toggle("ai3d-btn-active", on);
-    showTooltip(disassembleBtn, on ? "Disassemble On" : "Disassemble Off");
+    showTooltip(disassembleBtn, on ? "Disassemble on" : "Disassemble off");
   });
 
   // Reset disassembled parts button
@@ -152,7 +152,7 @@ export function createHelperButtons(
     const preview = getPreview();
     if (!preview?.resetDisassembly) return;
     preview.resetDisassembly();
-    showTooltip(resetPartsBtn, "Parts Reset");
+    showTooltip(resetPartsBtn, "Parts reset");
   });
 
   // Resolution scale cycle button (percentage display)

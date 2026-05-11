@@ -69,8 +69,8 @@ export function mountWorkbench(
   const emptyState = html`
     <div class="ai3d-empty-state">
       <div class="ai3d-empty-icon">3D</div>
-      <div class="ai3d-empty-title">No Model</div>
-      <div class="ai3d-empty-text">Use "Import 3D Model" command to load a GLB, GLTF, or STL file.</div>
+      <div class="ai3d-empty-title">No model</div>
+      <div class="ai3d-empty-text">Use the "Import 3D model" command to load a GLB, GLTF, or STL file.</div>
     </div>
   ` as HTMLElement;
   previewHost.appendChild(emptyState);
@@ -122,7 +122,7 @@ export function mountWorkbench(
       <div class="ai3d-section">
         <div class="ai3d-section-header">
           <div>
-            <div class="ai3d-section-title">3D Model</div>
+            <div class="ai3d-section-title">3D model</div>
             <div class="ai3d-section-subtitle">Babylon.js</div>
           </div>
         </div>
@@ -269,7 +269,7 @@ export function mountWorkbench(
             <div class="ai3d-annot-section">
               <div class="ai3d-annot-toggle-row">
                 <button class=${`ai3d-axis-btn ${annotationMode ? "is-active" : ""}`} data-action="toggle-annot">
-                  ${annotationMode ? "Exit Annotate" : "Annotate"}
+                  ${annotationMode ? "Exit annotate" : "Annotate"}
                 </button>
                 <span class="ai3d-annot-hint">${annotationMode ? "Click model to add label · ESC to exit" : `${annotations.length} pin(s)`}</span>
               </div>
@@ -336,11 +336,11 @@ export function mountWorkbench(
         <div class="ai3d-section">
           <div class="ai3d-section-body">
             <div class="ai3d-actions">
-              ${preview ? html`<button class="ai3d-axis-btn" data-action="reset">Reset View</button>` : ""}
-              ${preview ? html`<button class="ai3d-axis-btn" data-action="info">Insert Info</button>` : ""}
+              ${preview ? html`<button class="ai3d-axis-btn" data-action="reset">Reset view</button>` : ""}
+              ${preview ? html`<button class="ai3d-axis-btn" data-action="info">Insert info</button>` : ""}
               ${preview?.hasAnimations() ? html`<button class="ai3d-axis-btn" data-action="anim">Play</button>` : ""}
-              <button class="ai3d-axis-btn" data-action="save">Save Profile</button>
-              <button class="ai3d-axis-btn" data-action="note">Generate Note</button>
+              <button class="ai3d-axis-btn" data-action="save">Save profile</button>
+              <button class="ai3d-axis-btn" data-action="note">Generate note</button>
             </div>
           </div>
         </div>
