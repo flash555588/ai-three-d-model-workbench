@@ -14,6 +14,7 @@ import { listPreferredConversionExts } from "../io/formats/route-preferences";
 import { createNoteReader, createHeadingSearch } from "../utils/note-reader";
 import { createLoadingOverlay } from "./inline/loading-overlay";
 import { describeModelLoadFailure, isMissingConverterError } from "../io/conversion/errors";
+import { t } from "../i18n";
 import { renderModelLoadFailure } from "./model-load-feedback";
 
 export const DIRECT_VIEW_TYPE = "ai3d-direct-view";
@@ -44,7 +45,7 @@ export class DirectModelView extends FileView {
   }
 
   getDisplayText(): string {
-    return this.file?.name ?? "3D model";
+    return this.file?.name ?? t("workbench.modelTitle");
   }
 
   getIcon(): string {

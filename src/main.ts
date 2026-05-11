@@ -9,7 +9,7 @@ import { ModelFileSuggestModal } from "./view/model-file-suggest-modal";
 import { AI3DSettingTab } from "./settings";
 import { inspectAllConverterCommands } from "./io/conversion/command-discovery";
 import { setLogLevel } from "./utils/log";
-import { setLocale, t, type Locale } from "./i18n";
+import { formatT, setLocale, t, type Locale } from "./i18n";
 import { normalizeHeadingText } from "./utils/note-reader";
 
 export default class AI3DModelWorkbench extends Plugin {
@@ -46,35 +46,35 @@ export default class AI3DModelWorkbench extends Plugin {
 
     this.registerView(VIEW_TYPE, (leaf) => new AnalysisView(leaf, this.ps, this.convertedAssetCache));
 
-    this.addRibbonIcon("box", "Open 3d workbench", () => this.activateView());
+    this.addRibbonIcon("box", t("main.ribbonOpenWorkbench"), () => this.activateView());
 
     this.addCommand({
       id: "import-model",
-      name: "Import 3d model",
+      name: t("main.commandImportModel"),
       callback: () => this.importModel(),
     });
 
     this.addCommand({
       id: "open-workbench",
-      name: "Open 3d workbench",
+      name: t("main.commandOpenWorkbench"),
       callback: () => this.activateView(),
     });
 
     this.addCommand({
       id: "generate-note",
-      name: "Generate knowledge note",
+      name: t("main.commandGenerateNote"),
       callback: () => this.generateNote(),
     });
 
     this.addCommand({
       id: "clear-conversion-cache",
-      name: "Clear conversion cache",
+      name: t("main.commandClearConversionCache"),
       callback: () => this.clearConversionCache(),
     });
 
     this.addCommand({
       id: "check-converters",
-      name: "Check converters",
+      name: t("main.commandCheckConverters"),
       callback: () => void this.checkConverterCommands(),
     });
 
@@ -185,7 +185,7 @@ export default class AI3DModelWorkbench extends Plugin {
         count.textContent = `\u00d7${entries.length}`;
       }
       const uniqueModels = [...new Set(entries.map(e => e.modelPath.replace(/^.*\//, "").replace(/\.[^.]+$/, "")))];
-      badge.title = t("headingPin.linkedTo").replace("{models}", uniqueModels.join(", "));
+      badge.title = formatT("headingPin.linkedTo", { models: uniqueModels.join(", ") });
       const highlightLinkedPins = (e?: Event) => {
         e?.stopPropagation();
         e?.preventDefault();

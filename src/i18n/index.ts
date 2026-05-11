@@ -23,3 +23,11 @@ export function getLocale(): Locale {
 export function t(key: TranslationKey): string {
   return dictionaries[currentLocale]?.[key] ?? en[key] ?? key;
 }
+
+export function interpolate(template: string, values: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
+}
+
+export function formatT(key: TranslationKey, values: Record<string, string>): string {
+  return interpolate(t(key), values);
+}

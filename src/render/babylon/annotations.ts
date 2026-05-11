@@ -5,6 +5,7 @@ import { Vector3, Matrix } from "@babylonjs/core/Maths/math.vector.js";
 import { Ray } from "@babylonjs/core/Culling/ray.core.js";
 import type { AnnotationPin } from "../../domain/models";
 import type { HeadingSearchResult } from "../../utils/note-reader";
+import { formatT, t } from "../../i18n";
 
 const DEFAULT_COLORS = ["#4a9eff", "#ff6b6b", "#51cf66", "#ffd43b"];
 let globalNextId = 1;
@@ -323,7 +324,7 @@ export class AnnotationManager {
       const swatch = colorRow.createEl("button", { cls: "ai3d-pin-color-swatch" });
       swatch.type = "button";
       swatch.title = c;
-      swatch.setAttribute("aria-label", `Select color ${c}`);
+      swatch.setAttribute("aria-label", formatT("annotation.selectColor", { color: c }));
       swatch.setCssProps({ "--swatch-color": c });
       if (c === selectedColor) swatch.classList.add("active");
       swatch.addEventListener("click", (e) => {
@@ -425,7 +426,7 @@ export class AnnotationManager {
     el.classList.add("is-hidden");
     const content = await this.noteReader(notePath, heading);
     if (!content) {
-      el.textContent = "Section is empty.";
+      el.textContent = t("annotation.sectionEmpty");
       el.className = "ai3d-editor-content-preview ai3d-editor-content-preview--empty";
       el.classList.remove("is-hidden");
       return;

@@ -1,5 +1,6 @@
 import type { App } from "obsidian";
 import type { PluginSettings } from "../../domain/models";
+import { formatT, t } from "../../i18n";
 
 /** Create an SVG icon that follows its button color via currentColor. */
 function createSvgIcon(inner: string): SVGSVGElement {
@@ -71,18 +72,18 @@ export function createHelperButtons(
   const toolbar = parentEl.createDiv({ cls: "ai3d-helper-toolbar" });
 
   // Reset view button (refresh arrow)
-  const resetBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": "Reset view" } });
+  const resetBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.resetViewLabel") } });
   resetBtn.appendChild(createSvgIcon(`<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>`));
   resetBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (preview?.resetView) {
       preview.resetView();
-      showTooltip(resetBtn, "Reset");
+      showTooltip(resetBtn, t("helper.resetViewDone"));
     }
   });
 
   // Export model info button (info circle)
-  const infoBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": "Copy model info as Markdown" } });
+  const infoBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.copyModelInfoLabel") } });
   infoBtn.appendChild(createSvgIcon(`<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>`));
   infoBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -91,74 +92,74 @@ export function createHelperButtons(
       const md = preview.exportModelInfo(getModelPath());
       if (!md) return;
       void navigator.clipboard.writeText(md).then(() => {
-        showTooltip(infoBtn, "Copied!");
+        showTooltip(infoBtn, t("helper.copied"));
       }).catch(() => {
-        showTooltip(infoBtn, "Failed");
+        showTooltip(infoBtn, t("helper.failed"));
       });
     } catch (err) {
       console.error("[AI3D] Export model info failed:", err);
-      showTooltip(infoBtn, "Failed");
+      showTooltip(infoBtn, t("helper.failed"));
     }
   });
 
   // Wireframe toggle button (grid/square icon)
-  const wireBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": "Toggle wireframe" } });
+  const wireBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.toggleWireframeLabel") } });
   wireBtn.appendChild(createSvgIcon(`<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/>`));
   wireBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.toggleWireframe) return;
     const on = preview.toggleWireframe();
     wireBtn.classList.toggle("ai3d-btn-active", on);
-    showTooltip(wireBtn, on ? "Wireframe" : "Solid");
+    showTooltip(wireBtn, on ? t("helper.wireframeOn") : t("helper.wireframeOff"));
   });
 
   // Orientation gizmo toggle button (compass/axis icon)
-  const gizmoBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": "Toggle orientation axes" } });
+  const gizmoBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.toggleAxesLabel") } });
   gizmoBtn.appendChild(createSvgIcon(`<path d="M12 2v20"/><path d="M2 12h20"/><path d="M12 2l4 4"/><path d="M12 2l-4 4"/><path d="M22 12l-4-4"/><path d="M22 12l-4 4"/>`));
   gizmoBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.toggleOrientationGizmo) return;
     const on = preview.toggleOrientationGizmo();
     gizmoBtn.classList.toggle("ai3d-btn-active", on);
-    showTooltip(gizmoBtn, on ? "Axes on" : "Axes off");
+    showTooltip(gizmoBtn, on ? t("helper.axesOn") : t("helper.axesOff"));
   });
 
   // Bounding box toggle button (cube outline icon)
-  const bboxBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": "Toggle bounding box" } });
+  const bboxBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.toggleBoundingBoxLabel") } });
   bboxBtn.appendChild(createSvgIcon(`<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>`));
   bboxBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.toggleBoundingBox) return;
     const on = preview.toggleBoundingBox();
     bboxBtn.classList.toggle("ai3d-btn-active", on);
-    showTooltip(bboxBtn, on ? "Bounding box on" : "Bounding box off");
+    showTooltip(bboxBtn, on ? t("helper.boundingBoxOn") : t("helper.boundingBoxOff"));
   });
 
   // Disassembly mode toggle button (separate parts by dragging)
-  const disassembleBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": "Toggle disassembly mode" } });
+  const disassembleBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.toggleDisassemblyLabel") } });
   disassembleBtn.appendChild(createSvgIcon(`<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 17h6"/><path d="M17 14v6"/>`));
   disassembleBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.toggleDisassembly) return;
     const on = preview.toggleDisassembly();
     disassembleBtn.classList.toggle("ai3d-btn-active", on);
-    showTooltip(disassembleBtn, on ? "Disassemble on" : "Disassemble off");
+    showTooltip(disassembleBtn, on ? t("helper.disassemblyOn") : t("helper.disassemblyOff"));
   });
 
   // Reset disassembled parts button
-  const resetPartsBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": "Reset disassembled parts" } });
+  const resetPartsBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.resetPartsLabel") } });
   resetPartsBtn.appendChild(createSvgIcon(`<path d="M3 12a9 9 0 109-9"/><path d="M3 4v8h8"/><rect x="14" y="14" width="5" height="5" rx="1"/>`));
   resetPartsBtn.addEventListener("click", () => {
     const preview = getPreview();
     if (!preview?.resetDisassembly) return;
     preview.resetDisassembly();
-    showTooltip(resetPartsBtn, "Parts reset");
+    showTooltip(resetPartsBtn, t("helper.partsReset"));
   });
 
   // Resolution scale cycle button (percentage display)
   const RES_PRESETS = [0.5, 0.75, 1.0, 1.5, 2.0];
   let resIndex = 2; // default 1.0x
-  const resBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn ai3d-res-btn", attr: { "aria-label": "Change resolution (click to cycle)" } });
+  const resBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn ai3d-res-btn", attr: { "aria-label": t("helper.changeResolutionLabel") } });
   resBtn.textContent = "1.0x";
   resBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -166,11 +167,11 @@ export function createHelperButtons(
     resIndex = (resIndex + 1) % RES_PRESETS.length;
     const applied = preview.setRenderScale(RES_PRESETS[resIndex]);
     resBtn.textContent = `${applied}x`;
-    showTooltip(resBtn, `Resolution: ${applied}x`);
+    showTooltip(resBtn, formatT("helper.resolutionValue", { value: `${applied}x` }));
   });
 
   // Animation play/pause button (play triangle — hidden until animations detected)
-  const animBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn is-hidden", attr: { "aria-label": "Play/pause animation" } });
+  const animBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn is-hidden", attr: { "aria-label": t("helper.toggleAnimationLabel") } });
   animBtn.appendChild(createSvgIcon(`<polygon points="5 3 19 12 5 21 5 3"/>`));
   animBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -179,16 +180,16 @@ export function createHelperButtons(
     animBtn.replaceChildren(createSvgIcon(playing
       ? `<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>`
       : `<polygon points="5 3 19 12 5 21 5 3"/>`));
-    showTooltip(animBtn, playing ? "Playing" : "Paused");
+    showTooltip(animBtn, playing ? t("helper.playing") : t("helper.paused"));
   });
 
   // Remove button (trash)
-  const removeBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": "Remove preview" } });
+  const removeBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.removePreviewLabel") } });
   removeBtn.appendChild(createSvgIcon(`<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>`));
   removeBtn.addEventListener("click", onRemove);
 
   // Copy snapshot button (clipboard)
-  const copyBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": "Copy snapshot" } });
+  const copyBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.copySnapshotLabel") } });
   copyBtn.appendChild(createSvgIcon(`<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>`));
   copyBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -200,18 +201,18 @@ export function createHelperButtons(
       void navigator.clipboard.write([
         new ClipboardItem({ "image/png": blob }),
       ]).then(() => {
-        showTooltip(copyBtn, "Copied!");
+        showTooltip(copyBtn, t("helper.copied"));
       }).catch(() => {
-        showTooltip(copyBtn, "Failed");
+        showTooltip(copyBtn, t("helper.failed"));
       });
     } catch (err) {
       console.error("[AI3D] Copy snapshot failed:", err);
-      showTooltip(copyBtn, "Failed");
+      showTooltip(copyBtn, t("helper.failed"));
     }
   });
 
   // Save to vault button (disk)
-  const saveBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": "Save snapshot to vault" } });
+  const saveBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.saveSnapshotLabel") } });
   saveBtn.appendChild(createSvgIcon(`<path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>`));
   saveBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -239,29 +240,29 @@ export function createHelperButtons(
         }).then(() => {
           return app.vault.createBinary(`${folder}/${fileName}`, buffer);
         }).then(() => {
-          showTooltip(saveBtn, "Saved!");
+          showTooltip(saveBtn, t("helper.saved"));
         }).catch((err: unknown) => {
           console.error("[AI3D] Save snapshot failed:", err);
-          showTooltip(saveBtn, "Failed");
+          showTooltip(saveBtn, t("helper.failed"));
         });
       };
       reader.onerror = () => {
         console.error("[AI3D] FileReader error");
-        showTooltip(saveBtn, "Failed");
+        showTooltip(saveBtn, t("helper.failed"));
       };
       reader.onabort = () => {
         console.error("[AI3D] FileReader aborted");
-        showTooltip(saveBtn, "Failed");
+        showTooltip(saveBtn, t("helper.failed"));
       };
       reader.readAsArrayBuffer(blob);
     } catch (err) {
       console.error("[AI3D] Save snapshot failed:", err);
-      showTooltip(saveBtn, "Failed");
+      showTooltip(saveBtn, t("helper.failed"));
     }
   });
 
   // Download snapshot button (download arrow)
-  const downloadBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": "Download snapshot" } });
+  const downloadBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.downloadSnapshotLabel") } });
   downloadBtn.appendChild(createSvgIcon(`<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>`));
   downloadBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -280,22 +281,22 @@ export function createHelperButtons(
       activeDocument.body.appendChild(a);
       a.click();
       a.remove();
-      showTooltip(downloadBtn, "Downloaded!");
+      showTooltip(downloadBtn, t("helper.downloaded"));
     } catch (err) {
       console.error("[AI3D] Download snapshot failed:", err);
-      showTooltip(downloadBtn, "Failed");
+      showTooltip(downloadBtn, t("helper.failed"));
     }
   });
 
   // Annotation toggle button (tag/label icon — hidden until explicitly shown)
-  const annotBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn is-hidden ai3d-annot-btn", attr: { "aria-label": "Toggle annotation mode" } });
+  const annotBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn is-hidden ai3d-annot-btn", attr: { "aria-label": t("helper.toggleAnnotationLabel") } });
   annotBtn.appendChild(createSvgIcon(`<path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>`));
   const annotBadge = annotBtn.createSpan({ cls: "ai3d-pin-badge is-hidden" });
   annotBtn.addEventListener("click", () => {
     if (!onToggleAnnotate) return;
     const active = onToggleAnnotate();
     annotBtn.classList.toggle("ai3d-btn-active", active);
-    showTooltip(annotBtn, active ? "Annotate On · ESC to exit" : "Annotate Off");
+    showTooltip(annotBtn, active ? t("helper.annotateOn") : t("helper.annotateOff"));
   });
 
   // Move toolbar to sit right after previewHost
