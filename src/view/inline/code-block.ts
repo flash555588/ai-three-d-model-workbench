@@ -246,7 +246,7 @@ export function registerCodeBlockProcessor(
         try {
           const absolutePath = resolveVaultAbsolutePath(app, modelPath) ?? undefined;
           const conversionManager = createConversionManager(settings);
-          loading.setPhase("Preparing model...");
+          loading.setPhaseKey("loading.preparingModel");
           const prepared = await prepareModelInput({
             path: modelPath,
             absolutePath,
@@ -256,7 +256,7 @@ export function registerCodeBlockProcessor(
           });
           const source = toPreviewSource(prepared);
           preview = new BabylonModelPreview(canvas);
-          loading.setPhase("Loading model...");
+          loading.setPhaseKey("loading.loadingModel");
           const data = await readBinaryPath(app, source.path);
           const readFile = async (p: string) => readBinaryPath(app, p);
 
@@ -500,7 +500,7 @@ export function registerGridCodeBlockProcessor(
       async function loadGrid() {
         if (loaded || destroyed) return;
         loaded = true;
-        gridLoading.setPhase(t("codeBlock.renderingGrid"));
+        gridLoading.setPhaseKey("codeBlock.renderingGrid");
         gridLoading.setProgress(-1);
 
         try {

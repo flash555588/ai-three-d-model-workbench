@@ -178,4 +178,6 @@ export const zhCN: Record<TranslationKey, string> = {
   "codeBlock.presetRequiresModels": "预设 “{preset}” 需要 {min}-{max} 个模型，当前为 {count} 个。",
   "codeBlock.gridFailed": "网格渲染失败：{reason}",
   "loading.default": "加载中...",
+  "loading.preparingModel": "正在准备模型...",
+  "loading.loadingModel": "正在加载模型...",
 };
