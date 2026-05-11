@@ -1,4 +1,4 @@
-import { F_OK, X_OK, access } from "../../utils/node-shim";
+import { F_OK, X_OK, access, execFile } from "../../utils/node-shim";
 import { getRuntimeProcess } from "../../utils/node-shim";
 import { pathDelimiter as delimiter, pathExtname as extname, pathIsAbsolute as isAbsolute, pathJoin as join } from "../../utils/node-shim";
 import type { PluginSettings } from "../../domain/models";
@@ -32,6 +32,13 @@ export interface ConverterCommandStatus {
   source: ConverterCommandSource;
   detail: string;
   checkedCandidates: readonly string[];
+  dependencyChecks?: readonly ConverterDependencyCheck[];
+}
+
+export interface ConverterDependencyCheck {
+  kind: "cad-python" | "mesh-python";
+  ok: boolean;
+  detail: string;
 }
 
 const WINDOWS_PATHEXT_FALLBACK = [".exe", ".cmd", ".bat", ".com"];
@@ -205,6 +212,58 @@ async function resolveCommandOnPath(command: string): Promise<string | undefined
   return undefined;
 }
 
+function execFileAsync(command: string, args: string[], timeoutMs = 15_000): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      command,
+      args,
+      { timeout: timeoutMs, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(new Error((stderr || stdout || error.message).toString().trim() || error.message));
+          return;
+        }
+
+        resolve({ stdout: stdout ?? "", stderr: stderr ?? "" });
+      },
+    );
+  });
+}
+
+function compactProcessError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  const oneLine = raw.replace(/\s+/g, " ").trim();
+  return oneLine.length > 180 ? `${oneLine.slice(0, 177)}...` : oneLine;
+}
+
+async function inspectDependencyChecks(status: ConverterCommandStatus): Promise<readonly ConverterDependencyCheck[]> {
+  if (!status.available) {
+    return [];
+  }
+
+  const command = status.resolvedPath ?? status.command;
+
+  if (status.id === "freecad") {
+    try {
+      await execFileAsync(command, ["-c", "import cadquery, trimesh; print('ok')"]);
+      return [{ kind: "cad-python", ok: true, detail: "" }];
+    } catch (err) {
+      return [{ kind: "cad-python", ok: false, detail: compactProcessError(err) }];
+    }
+  }
+
+  if (status.id === "assimp") {
+    try {
+      await execFileAsync(command, ["-c", "import trimesh, numpy, networkx, collada; print('ok')"]);
+      return [{ kind: "mesh-python", ok: true, detail: "" }];
+    } catch (err) {
+      return [{ kind: "mesh-python", ok: false, detail: compactProcessError(err) }];
+    }
+  }
+
+  return [];
+}
+
 function getSpec(id: ConverterCommandId): ConverterCommandSpec {
   const spec = CONVERTER_COMMAND_SPECS.find((entry) => entry.id === id);
   if (!spec) {
@@ -320,8 +379,15 @@ export async function inspectConverterCommand(
 }
 
 export async function inspectAllConverterCommands(settings: ConverterCommandSettings): Promise<ConverterCommandStatus[]> {
-  return Promise.all(
+  const statuses = await Promise.all(
     CONVERTER_COMMAND_SPECS.map((spec) => inspectConverterCommand(spec.id, settings[spec.settingsKey])),
+  );
+
+  return Promise.all(
+    statuses.map(async (status) => ({
+      ...status,
+      dependencyChecks: await inspectDependencyChecks(status),
+    })),
   );
 }
 

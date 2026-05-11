@@ -343,7 +343,15 @@ Add labeled bookmarks directly on model surfaces. Annotations persist per model 
 | obj2gltf command path | Override the obj2gltf CLI path |
 | FBX2glTF command path | Override the FBX2glTF CLI path |
 | Python command path (for 3MF/DAE conversion) | Override the Python executable used for 3MF/DAE conversion |
-| Converter command diagnostics | Show which executable path the plugin will actually use |
+| Converter command diagnostics | Show which executable path the plugin will actually use and run lightweight dependency self-checks |
+
+### Portability and diagnostics
+
+The rendering layer is cross-platform: direct formats like GLB, OBJ, STL, PLY, SPLAT, and already-converted `.ai3d-converted.glb` assets can render anywhere Obsidian Desktop can provide WebGL.
+
+The conversion layer is less portable because it depends on local tools and Python environments that vary by machine. Use the converter diagnostics panel in plugin settings as the first check when a CAD or mesh format fails. It verifies both the executable path the plugin resolved and whether the selected Python environment can import the required packages.
+
+On macOS in particular, the system Python at `/usr/bin/python3` often exists but does not include CAD packages. If diagnostics show that path and the self-check fails, install a separate Python environment and point the plugin setting to that interpreter explicitly.
 
 ---
 
@@ -363,6 +371,8 @@ Verify with the Python command your OS uses:
 - Windows: `py -c "import cadquery; print('OK')"`
 - macOS / Linux: `python3 -c "import cadquery; print('OK')"`
 
+If diagnostics resolve to `/usr/bin/python3` on macOS and the import check fails, install a separate Python (for example Homebrew Python), install `cadquery` and `trimesh` there, then set that interpreter path in plugin settings.
+
 ### FreeCAD (SLDPRT)
 
 Install FreeCAD for your platform:
@@ -379,7 +389,7 @@ Auto-discovery paths:
 ### Python + trimesh (3MF, DAE)
 
 ```bash
-pip install trimesh
+pip install trimesh numpy networkx pycollada
 ```
 
 **Auto-discovery**: Same Python as CadQuery (see above).

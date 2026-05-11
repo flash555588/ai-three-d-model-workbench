@@ -343,7 +343,15 @@ ln -s /path/to/ai-3d-model-workbench \
 | obj2gltf 命令路径 | 覆盖 obj2gltf CLI 路径 |
 | FBX2glTF 命令路径 | 覆盖 FBX2glTF CLI 路径 |
 | Python 命令路径（3MF/DAE 用） | 覆盖 3MF/DAE 转换使用的 Python 可执行文件 |
-| 转换器命令诊断 | 显示插件当前实际会使用的可执行文件路径 |
+| 转换器命令诊断 | 显示插件当前实际会使用的可执行文件路径，并运行轻量依赖自检 |
+
+### 可移植性与诊断
+
+渲染层本身具备较好的跨平台可移植性：GLB、OBJ、STL、PLY、SPLAT 以及已经生成好的 `.ai3d-converted.glb`，只要 Obsidian Desktop 能提供 WebGL 就可以显示。
+
+转换层的可移植性较弱，因为它依赖每台机器本地安装的工具和 Python 环境。当 CAD 或网格格式加载失败时，优先看插件设置里的转换器诊断面板。它会同时检查插件最终解析到的可执行文件路径，以及当前 Python 环境能否导入所需依赖。
+
+尤其在 macOS 上，系统自带的 `/usr/bin/python3` 往往存在，但并不包含 CAD 依赖。如果诊断面板显示使用的是这个路径且自检失败，应安装一个独立的 Python 环境，并在插件设置里显式填入那个解释器路径。
 
 ---
 
@@ -363,6 +371,8 @@ pip install cadquery trimesh
 - Windows：`py -c "import cadquery; print('OK')"`
 - macOS / Linux：`python3 -c "import cadquery; print('OK')"`
 
+如果诊断面板在 macOS 上解析到 `/usr/bin/python3` 且导入检查失败，请安装独立 Python（例如 Homebrew Python），在那个环境里安装 `cadquery` 和 `trimesh`，然后把该解释器路径填入插件设置。
+
 ### FreeCAD（SLDPRT）
 
 按平台安装 FreeCAD：
@@ -379,7 +389,7 @@ pip install cadquery trimesh
 ### Python + trimesh（3MF、DAE）
 
 ```bash
-pip install trimesh
+pip install trimesh numpy networkx pycollada
 ```
 
 **自动发现**：使用与 CadQuery 相同的 Python 发现逻辑。

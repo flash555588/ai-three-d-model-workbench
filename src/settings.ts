@@ -4,6 +4,7 @@ import { DEFAULT_SETTINGS } from "./domain/constants";
 import {
   describeConverterCommandSource,
   inspectAllConverterCommands,
+  type ConverterDependencyCheck,
   type ConverterCommandStatus,
 } from "./io/conversion/command-discovery";
 import { t, setLocale, type Locale } from "./i18n";
@@ -432,18 +433,33 @@ export class AI3DSettingTab extends PluginSettingTab {
     const block = containerEl.createDiv({ cls: "ai3d-settings-status-block" });
 
     block.createEl("strong", {
-      text: `${status.label}: ${status.available ? "available" : "not found"}`,
+      text: `${status.label}: ${status.available ? t("settings.diagnostics.available") : t("settings.diagnostics.notFound")}`,
     });
 
     const lines = [
-      `Source: ${describeConverterCommandSource(status.source)}`,
-      `Command: ${status.command}`,
-      status.resolvedPath && status.resolvedPath !== status.command ? `Resolved path: ${status.resolvedPath}` : "",
+      `${t("settings.diagnostics.sourceLabel")}: ${describeConverterCommandSource(status.source)}`,
+      `${t("settings.diagnostics.commandLabel")}: ${status.command}`,
+      status.resolvedPath && status.resolvedPath !== status.command ? `${t("settings.diagnostics.resolvedPathLabel")}: ${status.resolvedPath}` : "",
       status.detail,
     ].filter(Boolean);
 
     for (const line of lines) {
       block.createDiv({ text: line });
+    }
+
+    for (const check of status.dependencyChecks ?? []) {
+      this.renderDependencyCheck(block, check);
+    }
+  }
+
+  private renderDependencyCheck(containerEl: HTMLElement, check: ConverterDependencyCheck): void {
+    const label = check.kind === "cad-python"
+      ? t("settings.diagnostics.cadPythonCheck")
+      : t("settings.diagnostics.meshPythonCheck");
+    const summary = check.ok ? t("settings.diagnostics.selfCheckOk") : t("settings.diagnostics.selfCheckFailed");
+    containerEl.createDiv({ text: `${t("settings.diagnostics.selfCheckLabel")}: ${label} - ${summary}` });
+    if (check.detail) {
+      containerEl.createDiv({ text: check.detail });
     }
   }
 }

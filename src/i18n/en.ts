@@ -57,11 +57,21 @@ export const en = {
   "settings.assimpCmd.desc": "Optional path to the python command used for 3mf and dae conversion. Windows usually uses py. macOS and Linux usually use python3. Overrides auto-discovery when set.",
 
   // Diagnostics
-  "settings.diagnostics.desc": "Shows the exact executable path the plugin would use right now. This is the same discovery chain used by runtime conversion and cache identity.",
+  "settings.diagnostics.desc": "Shows the exact executable path the plugin would use right now and runs lightweight self-checks for Python-based converters.",
   "settings.diagnostics.checkNow": "Check now",
   "settings.diagnostics.checking": "Checking...",
   "settings.diagnostics.refreshed": "Converter command diagnostics refreshed.",
   "settings.diagnostics.checkingAvailability": "Checking converter command availability...",
+  "settings.diagnostics.available": "available",
+  "settings.diagnostics.notFound": "not found",
+  "settings.diagnostics.sourceLabel": "Source",
+  "settings.diagnostics.commandLabel": "Command",
+  "settings.diagnostics.resolvedPathLabel": "Resolved path",
+  "settings.diagnostics.selfCheckLabel": "Self-check",
+  "settings.diagnostics.selfCheckOk": "passed",
+  "settings.diagnostics.selfCheckFailed": "failed",
+  "settings.diagnostics.cadPythonCheck": "Python packages (cadquery, trimesh)",
+  "settings.diagnostics.meshPythonCheck": "Python packages (trimesh, numpy, networkx, collada)",
 
   // Performance
   "settings.canvasHeight": "Default canvas height",
