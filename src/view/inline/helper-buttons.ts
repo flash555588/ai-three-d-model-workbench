@@ -3,7 +3,8 @@ import type { PluginSettings } from "../../domain/models";
 
 /** Create an SVG icon that follows its button color via currentColor. */
 function createSvgIcon(inner: string): SVGSVGElement {
-  const svg = activeDocument.createSvg("svg");
+  // eslint-disable-next-line obsidianmd/prefer-create-el, obsidianmd/prefer-active-doc -- detached SVG root must avoid Document.createSvg because it appends to document and triggers HierarchyRequestError
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("width", "16");
   svg.setAttribute("height", "16");
