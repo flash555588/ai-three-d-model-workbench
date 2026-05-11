@@ -665,10 +665,10 @@
   gap: 4px;
   padding: 4px 2px;
   margin-top: -1px;
-  border: 1px solid var(--background-modifier-border, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--background-modifier-border);
   border-top: none;
-  border-radius: 0 0 var(--radius-s, 4px) var(--radius-s, 4px);
-  background: var(--background-secondary, #1e1e1e);
+  border-radius: 0 0 var(--radius-s) var(--radius-s);
+  background: var(--background-secondary);
 }
 
 .ai3d-inline-btn {
@@ -679,24 +679,29 @@
   justify-content: center;
   border: none;
   border-radius: var(--radius-s);
-  background: var(--background-primary, #202020);
-  color: var(--text-muted, #999);
+  background: transparent;
+  color: var(--text-muted);
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease;
   padding: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  font-size: inherit;
-  font-family: inherit;
 }
 
 .ai3d-inline-btn:hover {
-  color: var(--text-normal, #fff);
-  background: var(--background-modifier-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
 }
 
-.ai3d-inline-btn svg {
+/* SVG icons inside plugin buttons — CSS properties override both SVG presentation
+   attributes AND Obsidian's base SVG rules (which may set fill/stroke). */
+.ai3d-inline-btn svg,
+.ai3d-annot-action-btn svg {
   width: 14px;
   height: 14px;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* --- Grid Host (3dgrid) --- */
