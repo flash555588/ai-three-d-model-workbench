@@ -9,11 +9,37 @@ type FsPromises = typeof import("node:fs/promises");
 type NodePath = typeof import("node:path");
 type NodeChildProcess = typeof import("node:child_process");
 type NodeOs = typeof import("node:os");
+type RuntimeRequire = <T = unknown>(id: string) => T;
+type WriteFileOptions = Parameters<FsPromises["writeFile"]>[2];
+type WriteFileEncoding = Extract<NonNullable<WriteFileOptions>, { encoding?: unknown }>["encoding"];
+
+export interface RuntimeProcess {
+  platform?: string;
+  env?: Record<string, string | undefined>;
+}
+
+function getRuntimeRequire(): RuntimeRequire | undefined {
+  if (typeof globalThis !== "object" || !("require" in globalThis)) {
+    return undefined;
+  }
+  return (globalThis as typeof globalThis & { require?: RuntimeRequire }).require;
+}
+
+export function getRuntimeProcess(): RuntimeProcess | undefined {
+  if (typeof globalThis !== "object" || !("process" in globalThis)) {
+    return undefined;
+  }
+  return (globalThis as typeof globalThis & { process?: RuntimeProcess }).process;
+}
 
 // Node.js builtins must be loaded dynamically — unavailable on mobile/web
 function tryRequire<T>(id: string): T | null {
+  const runtimeRequire = getRuntimeRequire();
+  if (!runtimeRequire) {
+    return null;
+  }
   try {
-    return require(id) as T;
+    return runtimeRequire<T>(id);
   } catch {
     return null;
   }
@@ -38,11 +64,11 @@ export function access(path: string, mode?: number): Promise<void> {
   return throwIfNull(fsPromises, "node:fs/promises").access(path, mode);
 }
 
-export function readFile(path: string): Promise<Buffer> { // eslint-disable-line no-undef -- Buffer is a Node.js global available in Electron
+export function readFile(path: string): Promise<Uint8Array> {
   return throwIfNull(fsPromises, "node:fs/promises").readFile(path);
 }
 
-export function writeFile(path: string, data: string, encoding: BufferEncoding): Promise<void> { // eslint-disable-line no-undef -- BufferEncoding is a Node.js global available in Electron
+export function writeFile(path: string, data: string, encoding: WriteFileEncoding): Promise<void> {
   return throwIfNull(fsPromises, "node:fs/promises").writeFile(path, data, { encoding });
 }
 

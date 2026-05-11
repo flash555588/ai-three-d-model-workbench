@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "devDependencies": {
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/view": "^6.38.6",
     "@codemirror/language": "^6.12.3",
     "@lezer/common": "^1.5.2",
     "@lezer/highlight": "^1.2.3",

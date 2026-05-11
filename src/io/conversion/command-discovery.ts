@@ -1,9 +1,9 @@
 import { F_OK, X_OK, access } from "../../utils/node-shim";
+import { getRuntimeProcess } from "../../utils/node-shim";
 import { pathDelimiter as delimiter, pathExtname as extname, pathIsAbsolute as isAbsolute, pathJoin as join } from "../../utils/node-shim";
 import type { PluginSettings } from "../../domain/models";
 
-/** Safe accessor for `process` — undefined on mobile/web where Node is unavailable. */
-const proc = typeof process !== "undefined" ? process : undefined; // eslint-disable-line no-undef -- process is a Node.js global, typeof check is safe
+const proc = getRuntimeProcess();
 
 export type ConverterCommandId = "freecad" | "obj2gltf" | "fbx2gltf" | "assimp" | "freecadcmd";
 export type ConverterCommandSettingKey = "freecadCommand" | "obj2gltfCommand" | "fbx2gltfCommand" | "assimpCommand" | "freecadcmdCommand";

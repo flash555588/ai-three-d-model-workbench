@@ -7,8 +7,9 @@ import {
   type ConverterCommandStatus,
 } from "./io/conversion/command-discovery";
 import { t, setLocale, type Locale } from "./i18n";
+import { getRuntimeProcess } from "./utils/node-shim";
 
-const proc = typeof process !== "undefined" ? process : undefined; // eslint-disable-line no-undef -- process is a Node.js global, typeof check is safe
+const proc = getRuntimeProcess();
 
 function getConverterCommandPlaceholders(): {
   python: string;

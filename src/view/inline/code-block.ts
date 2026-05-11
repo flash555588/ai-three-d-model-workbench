@@ -117,8 +117,7 @@ export function registerCodeBlockProcessor(
 
       if (isJson) {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- JSON.parse returns any
-          const parsed = JSON.parse(trimmed);
+          const parsed = JSON.parse(trimmed) as unknown;
           config = normalizeConfig(parsed);
         } catch (err) {
           const errorEl = el.createDiv({ cls: "ai3d-json-error" });
@@ -406,8 +405,7 @@ export function registerGridCodeBlockProcessor(
 
       let config: GridBlockConfig;
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- JSON.parse returns any
-        config = JSON.parse(trimmed);
+        config = JSON.parse(trimmed) as GridBlockConfig;
       } catch (err) {
         const errorEl = el.createDiv({ cls: "ai3d-json-error" });
         errorEl.createEl("pre", { text: `JSON parse error: ${String(err)}` });
