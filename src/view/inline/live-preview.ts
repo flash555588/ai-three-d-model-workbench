@@ -4,9 +4,7 @@
  */
 
 import type { App } from "obsidian";
-// eslint-disable-next-line import/no-extraneous-dependencies -- @codemirror/* provided by Obsidian runtime
 import { EditorView, Decoration, WidgetType } from "@codemirror/view";
-// eslint-disable-next-line import/no-extraneous-dependencies -- @codemirror/* provided by Obsidian runtime
 import { StateField, StateEffect, RangeSet, Range } from "@codemirror/state";
 import { isSupportedModelExtension } from "../../io/formats/registry";
 import type { PluginSettings, AnnotationPin } from "../../domain/models";
@@ -291,6 +289,13 @@ const updateEmbeds = StateEffect.define<void>();
 
 type DecoSet = RangeSet<Decoration>;
 
+function toDecoSet(ranges: Range<Decoration>[]): DecoSet {
+  if (ranges.length === 0) {
+    return RangeSet.empty as DecoSet;
+  }
+  return RangeSet.of<Decoration>(ranges, true);
+}
+
 export function registerLivePreviewExtension(
   app: App,
   getSettings: () => PluginSettings,
@@ -314,8 +319,7 @@ export function registerLivePreviewExtension(
         convertedAssetCache,
         getAnnotations,
       );
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- RangeSet.of<Decoration> correctly returns DecoSet
-      return ranges.length > 0 ? RangeSet.of<Decoration>(ranges, true) : RangeSet.empty;
+      return toDecoSet(ranges);
     },
     update(value, tr): DecoSet {
       if (tr.docChanged || tr.effects.some((e) => e.is(updateEmbeds))) {
@@ -334,8 +338,7 @@ export function registerLivePreviewExtension(
           convertedAssetCache,
           getAnnotations,
         );
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- RangeSet.of<Decoration> correctly returns DecoSet
-        return ranges.length > 0 ? RangeSet.of<Decoration>(ranges, true) : RangeSet.empty;
+        return toDecoSet(ranges);
       }
       return value.map(tr.changes);
     },

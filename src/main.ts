@@ -279,14 +279,11 @@ export default class AI3DModelWorkbench extends Plugin {
       await leaf.setViewState({ type: VIEW_TYPE, active: true });
     }
 
-    // revealLeaf available since Obsidian 1.7.2, guarded for older versions
-    // eslint-disable-next-line obsidianmd/no-unsupported-api
-    if ("revealLeaf" in workspace) void workspace.revealLeaf(leaf);
+    workspace.setActiveLeaf(leaf, { focus: true });
   }
 
   private importModel() {
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises -- async callback for file import
-    new ModelFileSuggestModal(this.app, async (file: TFile) => {
+    new ModelFileSuggestModal(this.app, (file: TFile) => {
       const ext = file.extension.toLowerCase();
       if (!isSupportedModelExtension(ext)) {
         return;
@@ -306,7 +303,7 @@ export default class AI3DModelWorkbench extends Plugin {
       });
 
       // Open workbench if not already open
-      await this.activateView();
+      void this.activateView();
     }).open();
   }
 

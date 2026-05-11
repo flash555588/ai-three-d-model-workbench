@@ -57,8 +57,7 @@ export function createPluginStore(plugin: Plugin): PluginStore {
     get localeLoadedFromSaved() { return localeLoadedFromSaved; },
 
     async load() {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Obsidian Plugin.loadData() returns any
-      const saved: PersistedPluginState | null = await plugin.loadData();
+      const saved = (await plugin.loadData()) as PersistedPluginState | null;
       if (!saved) return;
       localeLoadedFromSaved = !!saved.settings?.locale;
       store.setState({
