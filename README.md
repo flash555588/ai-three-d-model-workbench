@@ -1,6 +1,6 @@
 # AI 3D Model Workbench
 
-> An Obsidian plugin that renders 3D models in a Babylon.js viewport and connects them to your knowledge notes. Common mesh formats render directly; CAD, FBX, and interchange formats can be converted to GLB through local tools.
+> An Obsidian plugin for viewing 3D assets, annotating key parts, and turning models into linked knowledge notes. Common mesh formats render directly; CAD, FBX, and interchange formats can be converted to GLB through local tools.
 
 **English** | [简体中文](README.zh-CN.md)
 

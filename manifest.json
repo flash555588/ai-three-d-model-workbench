@@ -1,9 +1,9 @@
 {
   "id": "ai-3d-model-workbench",
   "name": "AI 3D Model Workbench",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "minAppVersion": "1.5.0",
-  "description": "Turn 3D models into linked knowledge assets.",
+  "description": "Render 3D models in Obsidian and connect them to linked knowledge notes.",
   "author": "flash",
   "authorUrl": "https://github.com/flash555588",
   "isDesktopOnly": false

@@ -1,8 +1,8 @@
 {
   "name": "obsidian-ai-3d-model-workbench",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
-  "description": "Obsidian plugin scaffold for AI-assisted 3D model analysis and knowledge mapping.",
+  "description": "Obsidian plugin for viewing 3D assets, annotating them, and linking them to knowledge notes.",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",

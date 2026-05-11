@@ -1,6 +1,6 @@
 # AI 3D 模型工作台
 
-> 一个 Obsidian 插件，可在 Babylon.js 视口中渲染 3D 模型，并将其与知识笔记关联。
+> 一个 Obsidian 插件，可在 Babylon.js 视口中查看 3D 资产、标注关键部位，并将模型整理为可链接的知识笔记。
 
 [English](README.md) | **简体中文**
 
