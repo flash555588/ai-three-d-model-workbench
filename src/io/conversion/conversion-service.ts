@@ -3,6 +3,7 @@ import type { ConversionManager } from "./manager";
 import { CONVERTED_ASSET_CACHE_VERSION, type ConvertedAssetCache } from "../cache/converted-asset-cache";
 import { createLogger } from "../../utils/log";
 import { F_OK, access } from "../../utils/node-shim";
+import { MissingConverterError } from "./errors";
 
 const log = createLogger("conversion-service");
 
@@ -109,10 +110,7 @@ export async function convertForPreview(input: ConversionRouteInput): Promise<Co
   }
 
   if (!input.conversionManager.canConvert(input.sourceExt)) {
-    throw new Error(
-      `Converter '${converterId}' is not registered for .${input.sourceExt}. ` +
-      `Enable the matching converter in plugin settings before loading this format.`,
-    );
+    throw new MissingConverterError(converterId, input.sourceExt);
   }
 
   const result = await input.conversionManager.convert({

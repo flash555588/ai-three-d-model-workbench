@@ -17,6 +17,8 @@ import { createLogger } from "../../utils/log";
 import { readBinaryPath, resolveVaultAbsolutePath } from "../../utils/resolve-path";
 import { listPreferredConversionExts } from "../../io/formats/route-preferences";
 import { createNoteReader, createHeadingSearch } from "../../utils/note-reader";
+import { describeModelLoadFailure, type ModelLoadFailureDetails, isMissingConverterError } from "../../io/conversion/errors";
+import { renderModelLoadFailure } from "../model-load-feedback";
 
 const log = createLogger("workbench");
 
@@ -94,12 +96,16 @@ export function mountWorkbench(
     clearInlineMessages();
   }
 
-  function showEmptyPreview(message?: string): void {
+  function showEmptyPreview(message?: string | ModelLoadFailureDetails): void {
     destroyActivePreview();
     emptyState.classList.remove("is-hidden");
     if (message) {
-      const errDiv = previewHost.createDiv({ cls: "ai3d-inline-empty" });
-      errDiv.textContent = message;
+      if (typeof message === "string") {
+        const errDiv = previewHost.createDiv({ cls: "ai3d-inline-empty" });
+        errDiv.textContent = message;
+      } else {
+        renderModelLoadFailure(previewHost, message);
+      }
     }
   }
 
@@ -514,8 +520,13 @@ export function mountWorkbench(
             triangleCount: summary.triangleCount,
           });
         } catch (err) {
-          log.error("model load failed", { path, error: err instanceof Error ? err.message : String(err) });
-          showEmptyPreview(`Failed to load: ${String(err)}`);
+          const failure = describeModelLoadFailure(err);
+          if (isMissingConverterError(err)) {
+            log.warn("model load blocked by converter settings", { path, error: err.message });
+          } else {
+            log.error("model load failed", { path, error: err instanceof Error ? err.message : String(err) });
+          }
+          showEmptyPreview(failure);
         }
       }
     } finally {

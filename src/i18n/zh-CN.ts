@@ -74,4 +74,17 @@ export const zhCN: Record<TranslationKey, string> = {
   "settings.renderQuality.desc": "更高质量使用更多 GPU 资源。影响抗锯齿和分辨率。",
   "settings.renderScale": "渲染缩放",
   "settings.renderScale.desc": "渲染分辨率倍数。1.0 = 原始，0.5 = 一半，2.0 = 双倍（超采样）。范围：0.25–2.0。",
+
+  // 模型加载提示
+  "modelLoad.warningTitle": "暂时无法预览模型",
+  "modelLoad.warningMessage": "{ext} 文件需要先在插件设置中启用 {converterName} 转换器，才能加载。",
+  "modelLoad.warningHint": "请先在插件设置中启用对应转换器，然后重新加载当前文件。",
+  "modelLoad.errorTitle": "无法显示这个模型",
+  "modelLoad.errorMessage": "加载失败：{reason}",
+  "modelLoad.errorHint": "请检查文件格式，或打开开发者控制台查看详细信息。",
+
+  // 标题 pin 徽标
+  "headingPin.showSingle": "显示关联标注",
+  "headingPin.showMultiple": "显示关联标注",
+  "headingPin.linkedTo": "关联到：{models}",
 };

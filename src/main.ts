@@ -9,7 +9,7 @@ import { ModelFileSuggestModal } from "./view/model-file-suggest-modal";
 import { AI3DSettingTab } from "./settings";
 import { inspectAllConverterCommands } from "./io/conversion/command-discovery";
 import { setLogLevel } from "./utils/log";
-import { setLocale, type Locale } from "./i18n";
+import { setLocale, t, type Locale } from "./i18n";
 import { normalizeHeadingText } from "./utils/note-reader";
 
 export default class AI3DModelWorkbench extends Plugin {
@@ -177,18 +177,32 @@ export default class AI3DModelWorkbench extends Plugin {
       const distinctColors = [...new Set(entries.map((entry) => entry.color).filter(Boolean))];
       const swatch = badge.createSpan({ cls: "ai3d-heading-pin-badge-swatch" });
       swatch.style.background = buildBadgeSwatchBackground(distinctColors);
+      swatch.title = entries.length > 1 ? t("headingPin.showMultiple") : t("headingPin.showSingle");
+      swatch.setAttribute("role", "button");
+      swatch.setAttribute("tabindex", "0");
       if (entries.length > 1) {
         const count = badge.createSpan({ cls: "ai3d-heading-pin-badge-count" });
         count.textContent = `\u00d7${entries.length}`;
       }
       const uniqueModels = [...new Set(entries.map(e => e.modelPath.replace(/^.*\//, "").replace(/\.[^.]+$/, "")))];
-      badge.title = `Pin linked to: ${uniqueModels.join(", ")}`;
-      badge.addEventListener("click", (e) => {
-        e.stopPropagation();
-        e.preventDefault();
+      badge.title = t("headingPin.linkedTo").replace("{models}", uniqueModels.join(", "));
+      const highlightLinkedPins = (e?: Event) => {
+        e?.stopPropagation();
+        e?.preventDefault();
         for (const entry of entries) {
           activeDocument.dispatchEvent(new CustomEvent("ai3d-pin-highlight", { detail: { pinId: entry.pinId } }));
         }
+      };
+      swatch.addEventListener("click", (e) => {
+        highlightLinkedPins(e);
+      });
+      swatch.addEventListener("keydown", (e) => {
+        if (!e.instanceOf(KeyboardEvent)) return;
+        if (e.key !== "Enter" && e.key !== " ") return;
+        highlightLinkedPins(e);
+      });
+      badge.addEventListener("click", (e) => {
+        e.stopPropagation();
       });
       el.appendChild(badge);
 

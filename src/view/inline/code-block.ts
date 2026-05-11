@@ -15,6 +15,8 @@ import { toPreviewSource } from "../../io/preview/preview-source";
 import { listPreferredConversionExts } from "../../io/formats/route-preferences";
 import { createLoadingOverlay } from "./loading-overlay";
 import { createNoteReader } from "../../utils/note-reader";
+import { describeModelLoadFailure, isMissingConverterError } from "../../io/conversion/errors";
+import { renderModelLoadFailure } from "../model-load-feedback";
 
 interface PreparedInlineModel {
   sourcePath: string;
@@ -301,8 +303,14 @@ export function registerCodeBlockProcessor(
           loading.hide();
           preview?.destroy();
           preview = null;
-          console.error("[AI3D] Inline preview failed:", err);
-          host.createDiv({ cls: "ai3d-inline-empty", text: `Failed to load: ${String(err)}` });
+          host.replaceChildren();
+          const failure = describeModelLoadFailure(err);
+          if (isMissingConverterError(err)) {
+            console.warn("[AI3D] Inline preview blocked by converter settings:", failure.message);
+          } else {
+            console.error("[AI3D] Inline preview failed:", err);
+          }
+          renderModelLoadFailure(host, failure);
         }
       }
 

@@ -13,6 +13,8 @@ import { readBinaryPath, resolveVaultAbsolutePath } from "../utils/resolve-path"
 import { listPreferredConversionExts } from "../io/formats/route-preferences";
 import { createNoteReader, createHeadingSearch } from "../utils/note-reader";
 import { createLoadingOverlay } from "./inline/loading-overlay";
+import { describeModelLoadFailure, isMissingConverterError } from "../io/conversion/errors";
+import { renderModelLoadFailure } from "./model-load-feedback";
 
 export const DIRECT_VIEW_TYPE = "ai3d-direct-view";
 
@@ -217,8 +219,14 @@ export class DirectModelView extends FileView {
       loading.hide();
       this.preview?.destroy();
       this.preview = null;
-      console.error("[AI3D] Direct view failed:", err);
-      host.createDiv({ cls: "ai3d-inline-empty", text: `Failed to load: ${String(err)}` });
+      host.replaceChildren();
+      const failure = describeModelLoadFailure(err);
+      if (isMissingConverterError(err)) {
+        console.warn("[AI3D] Direct view blocked by converter settings:", failure.message);
+      } else {
+        console.error("[AI3D] Direct view failed:", err);
+      }
+      renderModelLoadFailure(host, failure);
     }
   }
 }

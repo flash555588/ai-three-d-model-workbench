@@ -72,6 +72,19 @@ export const en = {
   "settings.renderQuality.desc": "Higher quality uses more GPU resources. Affects anti-aliasing and resolution.",
   "settings.renderScale": "Resolution scale",
   "settings.renderScale.desc": "Render resolution multiplier. 1.0 = native, 0.5 = half, 2.0 = double (supersampling). Range: 0.25–2.0.",
+
+  // Model load feedback
+  "modelLoad.warningTitle": "Model preview unavailable",
+  "modelLoad.warningMessage": "{ext} files need the {converterName} converter enabled in plugin settings before they can load.",
+  "modelLoad.warningHint": "Enable the matching converter in plugin settings, then reload this file.",
+  "modelLoad.errorTitle": "Couldn't display this model",
+  "modelLoad.errorMessage": "Failed to load: {reason}",
+  "modelLoad.errorHint": "Check the file format or open the developer console for details.",
+
+  // Heading pin badge
+  "headingPin.showSingle": "Show linked pin",
+  "headingPin.showMultiple": "Show linked pins",
+  "headingPin.linkedTo": "Pin linked to: {models}",
 } as const;
 
 export type TranslationKey = keyof typeof en;
