@@ -48,15 +48,15 @@ export const zhCN: Record<TranslationKey, string> = {
 
   // 转换器路径
   "settings.pythonCmd": "Python 命令路径（CAD 用）",
-  "settings.pythonCmd.desc": "可选的 Python 可执行文件路径，用于 CAD 转换。设置后覆盖自动发现和 AI3D_FREECAD_CMD。",
-  "settings.freecadCmd": "FreeCADCmd 路径（SLDPRT 用）",
-  "settings.freecadCmd.desc": "可选的 FreeCADCmd.exe 路径，用于 SolidWorks 文件转换。设置后覆盖自动发现和 AI3D_FREECMDCMD。",
+  "settings.pythonCmd.desc": "可选的 Python 命令路径，用于 CAD 转换。Windows 通常用 py，macOS 和 Linux 通常用 python3。设置后覆盖自动发现和 AI3D_FREECAD_CMD。",
+  "settings.freecadCmd": "FreeCAD 命令路径（SLDPRT 用）",
+  "settings.freecadCmd.desc": "可选的 FreeCAD 命令路径，用于 SolidWorks 文件转换。Windows 通常用 FreeCADCmd.exe，macOS 通常用 FreeCADCmd，Linux 通常用 freecadcmd。设置后覆盖自动发现和 AI3D_FREECMDCMD。",
   "settings.obj2gltfCmd": "obj2gltf 命令路径",
-  "settings.obj2gltfCmd.desc": "可选的 obj2gltf CLI 路径。设置后覆盖自动发现和 AI3D_OBJ2GLTF_CMD。",
+  "settings.obj2gltfCmd.desc": "可选的 obj2gltf 命令路径。Windows 通常用 obj2gltf.cmd，macOS 和 Linux 通常用 obj2gltf。设置后覆盖自动发现和 AI3D_OBJ2GLTF_CMD。",
   "settings.fbx2gltfCmd": "FBX2glTF 命令路径",
-  "settings.fbx2gltfCmd.desc": "可选的 FBX2glTF CLI 路径。设置后覆盖自动发现和 AI3D_FBX2GLTF_CMD。",
+  "settings.fbx2gltfCmd.desc": "可选的 FBX2glTF 命令路径。Windows 通常用 FBX2glTF.exe，macOS 和 Linux 通常用 FBX2glTF。设置后覆盖自动发现和 AI3D_FBX2GLTF_CMD。",
   "settings.assimpCmd": "Python 命令路径（3MF/DAE 用）",
-  "settings.assimpCmd.desc": "可选的 Python 可执行文件路径。设置后覆盖自动发现和 AI3D_ASSIMP_CMD。",
+  "settings.assimpCmd.desc": "可选的 Python 命令路径，用于 3MF 和 DAE 转换。Windows 通常用 py，macOS 和 Linux 通常用 python3。设置后覆盖自动发现和 AI3D_ASSIMP_CMD。",
 
   // 诊断
   "settings.diagnostics.desc": "显示插件当前实际使用的可执行文件路径。与运行时转换和缓存标识使用的发现链相同。",

@@ -35,7 +35,8 @@
 - **知识笔记**：从已加载的模型生成结构化 Markdown
 - **快照功能**：复制、保存或下载渲染预览为 PNG
 - **国际化**：英文和简体中文，自动检测系统语言
-- **移动端支持**：Obsidian Mobile 自适应硬件缩放
+- **桌面端支持**：Windows、macOS、Linux 上的 Obsidian Desktop
+- **移动端支持**：Obsidian Mobile 直接预览，自适应硬件缩放
 
 ---
 
@@ -78,6 +79,7 @@ npm run build
 ### 前提
 
 - Obsidian 1.5.0 或更高版本
+- 需要 Windows、macOS 或 Linux 上的 Obsidian Desktop 才能使用本地转换工具
 - 你电脑上的本地 Obsidian vault 文件夹
 - vault 里的插件目录：
 
@@ -92,6 +94,8 @@ npm run build
 | `main.js` | ~1.7 MB | 插件运行时（Babylon.js 核心） |
 | `manifest.json` | ~1 KB | Obsidian 插件清单 |
 | `styles.css` | ~5 KB | 插件样式 |
+
+直接渲染在桌面端和移动端都可用。CAD、FBX、3MF、DAE 的本地转换工具只适用于桌面系统。
 
 ### 方式 A：从源码构建
 
@@ -352,18 +356,24 @@ ln -s /path/to/ai-3d-model-workbench \
 ```bash
 # 安装
 pip install cadquery trimesh
-
-# 验证
-python -c "import cadquery; print('OK')"
 ```
+
+按你的系统使用对应的 Python 命令验证：
+
+- Windows：`py -c "import cadquery; print('OK')"`
+- macOS / Linux：`python3 -c "import cadquery; print('OK')"`
 
 ### FreeCAD（SLDPRT）
 
-从 [freecad.org/downloads](https://www.freecad.org/downloads.php) 下载。
+按平台安装 FreeCAD：
+
+- Windows：从 [freecad.org/downloads](https://www.freecad.org/downloads.php) 安装
+- macOS：安装官方 app，或使用 `brew install --cask freecad`
+- Linux：安装发行版提供的 FreeCAD 包，并确保 `freecadcmd` 可用
 
 自动发现路径：
 - Windows：`%LOCALAPPDATA%\Programs\FreeCAD*\bin\FreeCADCmd.exe`
-- macOS：`/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd`
+- macOS：`/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd`、`/usr/local/bin/FreeCADCmd`、`/opt/homebrew/bin/FreeCADCmd`
 - Linux：`/usr/bin/freecadcmd`
 
 ### Python + trimesh（3MF、DAE）
@@ -386,7 +396,7 @@ pip install trimesh
 npm install -g obj2gltf
 ```
 
-**自动发现**：Windows 下查找 `obj2gltf.cmd`，Unix 系统下查找 `obj2gltf`。
+**自动发现**：Windows 下查找 `obj2gltf.cmd`，macOS 和 Linux 下查找标准位置中的 `obj2gltf`，例如 `/usr/local/bin/obj2gltf`、`/opt/homebrew/bin/obj2gltf`。
 
 **启用**：设置 > 启用 OBJ2GLTF 转换器，或设置 obj2gltf 命令路径。
 
@@ -396,13 +406,16 @@ FBX 文件通过本地 FBX2glTF 二进制转换为 GLB。旧的社区 FBX 加载
 
 **安装**：
 
-下载 [github.com/godotengine/FBX2glTF](https://github.com/godotengine/FBX2glTF)，并将二进制文件放到可发现的位置。
+下载或自行构建适用于你平台的 [FBX2glTF](https://github.com/godotengine/FBX2glTF)，并将二进制文件放到可发现的位置。
 
-**Windows 自动发现路径**：
+**自动发现路径**：
 
 ```text
 C:\Program Files\FBX2glTF\FBX2glTF-windows-x64.exe
 C:\Program Files\FBX2glTF\FBX2glTF.exe
+/usr/local/bin/FBX2glTF
+/opt/homebrew/bin/FBX2glTF
+/usr/local/bin/fbx2gltf
 ```
 
 **启用**：设置 > 启用 FBX2glTF 转换器，或设置 FBX2glTF 命令路径。

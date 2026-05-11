@@ -8,6 +8,46 @@ import {
 } from "./io/conversion/command-discovery";
 import { t, setLocale, type Locale } from "./i18n";
 
+const proc = typeof process !== "undefined" ? process : undefined; // eslint-disable-line no-undef -- process is a Node.js global, typeof check is safe
+
+function getConverterCommandPlaceholders(): {
+  python: string;
+  freecad: string;
+  obj2gltf: string;
+  fbx2gltf: string;
+} {
+  switch (proc?.platform) {
+    case "win32":
+      return {
+        python: "Path to python executable",
+        freecad: "Path to FreeCADCmd.exe",
+        obj2gltf: "Path to obj2gltf.cmd",
+        fbx2gltf: "Path to FBX2glTF.exe",
+      };
+    case "darwin":
+      return {
+        python: "Path to python3",
+        freecad: "Path to FreeCADCmd",
+        obj2gltf: "Path to obj2gltf",
+        fbx2gltf: "Path to FBX2glTF",
+      };
+    case "linux":
+      return {
+        python: "Path to python3",
+        freecad: "Path to freecadcmd",
+        obj2gltf: "Path to obj2gltf",
+        fbx2gltf: "Path to FBX2glTF",
+      };
+    default:
+      return {
+        python: "Path to python executable",
+        freecad: "Path to FreeCAD command",
+        obj2gltf: "Path to obj2gltf",
+        fbx2gltf: "Path to FBX2glTF",
+      };
+  }
+}
+
 export class AI3DSettingTab extends PluginSettingTab {
   private plugin: AI3DModelWorkbench;
   private diagnosticsRunId = 0;
@@ -22,6 +62,7 @@ export class AI3DSettingTab extends PluginSettingTab {
     containerEl.empty();
     setLocale(this.plugin.getSettings().locale);
     let refreshCommandDiagnostics: (() => Promise<void>) | undefined;
+    const commandPlaceholders = getConverterCommandPlaceholders();
 
     new Setting(containerEl).setName(t("settings.title")).setHeading();
 
@@ -229,8 +270,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .setDesc(t("settings.pythonCmd.desc"))
       .addText((text) =>
         text
-          // eslint-disable-next-line obsidianmd/ui/sentence-case -- "py" is a command name, not UI prose
-          .setPlaceholder("py")
+          .setPlaceholder(commandPlaceholders.python)
           .setValue(this.plugin.getSettings().freecadCommand)
           .onChange((val) => {
             this.plugin.updateSettings({ freecadCommand: val.trim() });
@@ -243,7 +283,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .setDesc(t("settings.freecadCmd.desc"))
       .addText((text) =>
         text
-          .setPlaceholder("FreeCADCmd.exe")
+          .setPlaceholder(commandPlaceholders.freecad)
           .setValue(this.plugin.getSettings().freecadcmdCommand)
           .onChange((val) => {
             this.plugin.updateSettings({ freecadcmdCommand: val.trim() });
@@ -256,7 +296,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .setDesc(t("settings.obj2gltfCmd.desc"))
       .addText((text) =>
         text
-          .setPlaceholder("obj2gltf.cmd")
+          .setPlaceholder(commandPlaceholders.obj2gltf)
           .setValue(this.plugin.getSettings().obj2gltfCommand)
           .onChange((val) => {
             this.plugin.updateSettings({ obj2gltfCommand: val.trim() });
@@ -269,7 +309,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .setDesc(t("settings.fbx2gltfCmd.desc"))
       .addText((text) =>
         text
-          .setPlaceholder("FBX2glTF.exe")
+          .setPlaceholder(commandPlaceholders.fbx2gltf)
           .setValue(this.plugin.getSettings().fbx2gltfCommand)
           .onChange((val) => {
             this.plugin.updateSettings({ fbx2gltfCommand: val.trim() });
@@ -282,8 +322,7 @@ export class AI3DSettingTab extends PluginSettingTab {
       .setDesc(t("settings.assimpCmd.desc"))
       .addText((text) =>
         text
-          // eslint-disable-next-line obsidianmd/ui/sentence-case -- "py" is a command name, not UI prose
-          .setPlaceholder("py")
+          .setPlaceholder(commandPlaceholders.python)
           .setValue(this.plugin.getSettings().assimpCommand)
           .onChange((val) => {
             this.plugin.updateSettings({ assimpCommand: val.trim() });

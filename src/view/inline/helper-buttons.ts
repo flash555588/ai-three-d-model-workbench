@@ -1,13 +1,20 @@
 import type { App } from "obsidian";
 import type { PluginSettings } from "../../domain/models";
 
-/** Parse SVG inner markup into an SVG element without using innerHTML. */
+/** Create an SVG icon that follows its button color via currentColor. */
 function createSvgIcon(inner: string): SVGSVGElement {
+  const svg = activeDocument.createSvg("svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "16");
+  svg.setAttribute("height", "16");
   const doc = new DOMParser().parseFromString(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">${inner}</svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg">${inner}</svg>`,
     "image/svg+xml",
   );
-  return doc.documentElement as unknown as SVGSVGElement;
+  for (const child of Array.from(doc.documentElement.childNodes)) {
+    svg.appendChild(activeDocument.importNode(child, true));
+  }
+  return svg;
 }
 
 /** Convert a data URL to a Blob without using fetch(). */

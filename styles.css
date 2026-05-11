@@ -691,14 +691,18 @@
   background: var(--background-modifier-hover);
 }
 
-/* SVG icons inside plugin buttons — CSS properties override both SVG presentation
-   attributes AND Obsidian's base SVG rules (which may set fill/stroke). */
+/* SVG icons inside plugin buttons — shared sizing and stroke styling. */
 .ai3d-inline-btn svg,
 .ai3d-annot-action-btn svg {
   width: 14px;
   height: 14px;
-  fill: none !important;
-  stroke: currentColor !important;
+  display: block;
+}
+
+.ai3d-inline-btn svg *,
+.ai3d-annot-action-btn svg * {
+  fill: none;
+  stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -1048,8 +1052,12 @@
 .ai3d-pin-color-swatch {
   width: 18px;
   height: 18px;
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
   border-radius: 50%;
-  background: var(--swatch-color);
+  background: var(--swatch-color, #4a9eff);
+  background-image: none;
   border: 2px solid transparent;
   cursor: pointer;
   padding: 0;
@@ -1367,12 +1375,29 @@
 .ai3d-heading-pin-badge {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   margin-left: 6px;
   font-size: 0.75em;
   cursor: pointer;
   opacity: 0.5;
   transition: opacity 0.15s, transform 0.15s;
   vertical-align: middle;
+}
+
+.ai3d-heading-pin-badge-swatch {
+  width: 0.8em;
+  height: 0.8em;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
+.ai3d-heading-pin-badge-count {
+  font-size: 0.95em;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-muted);
 }
 
 .ai3d-heading-pin-badge:hover {

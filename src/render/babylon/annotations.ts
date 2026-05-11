@@ -321,7 +321,10 @@ export class AnnotationManager {
     let selectedColor = existingPin?.color ?? DEFAULT_COLORS[0];
     for (const c of DEFAULT_COLORS) {
       const swatch = colorRow.createEl("button", { cls: "ai3d-pin-color-swatch" });
-      swatch.style.setProperty("--swatch-color", c);
+      swatch.type = "button";
+      swatch.title = c;
+      swatch.setAttribute("aria-label", `Select color ${c}`);
+      swatch.setCssProps({ "--swatch-color": c });
       if (c === selectedColor) swatch.classList.add("active");
       swatch.addEventListener("click", (e) => {
         e.stopPropagation();

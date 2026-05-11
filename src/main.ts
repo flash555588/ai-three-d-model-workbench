@@ -123,9 +123,20 @@ export default class AI3DModelWorkbench extends Plugin {
     // Track bound elements for cleanup
     const boundEntries: { el: Element; handler: () => void }[] = [];
 
-    // Build headingRef → [{ pinId, modelPath }] map from stored annotations.
+    // Build headingRef → [{ pinId, modelPath, color }] map from stored annotations.
     // Supports multiple pins/models per heading.
-    type PinEntry = { pinId: string; modelPath: string };
+    type PinEntry = { pinId: string; modelPath: string; color: string };
+    const buildBadgeSwatchBackground = (colors: string[]): string => {
+      if (colors.length === 0) return "var(--interactive-accent)";
+      if (colors.length === 1) return colors[0];
+      const step = 100 / colors.length;
+      return `linear-gradient(135deg, ${colors.map((color, index) => {
+        const start = Math.round(index * step);
+        const end = Math.round((index + 1) * step);
+        return `${color} ${start}% ${end}%`;
+      }).join(", ")})`;
+    };
+
     const buildHeadingMap = (): Map<string, PinEntry[]> => {
       const map = new Map<string, PinEntry[]>();
       const profiles = this.ps.store.getState().modelAssetProfiles;
@@ -134,7 +145,7 @@ export default class AI3DModelWorkbench extends Plugin {
           if (pin.headingRef && pin.id) {
             let arr = map.get(pin.headingRef);
             if (!arr) { arr = []; map.set(pin.headingRef, arr); }
-            arr.push({ pinId: pin.id, modelPath });
+            arr.push({ pinId: pin.id, modelPath, color: pin.color });
           }
         }
       }
@@ -163,7 +174,13 @@ export default class AI3DModelWorkbench extends Plugin {
       // Add pin badge: shows count if multiple, tooltip lists model sources
       // Create on heading element (in DOM) to inherit Obsidian CSS variables
       const badge = (el as HTMLElement).createSpan({ cls: "ai3d-heading-pin-badge" });
-      badge.textContent = entries.length > 1 ? `\ud83d\udccd\u00d7${entries.length}` : "\ud83d\udccd";
+      const distinctColors = [...new Set(entries.map((entry) => entry.color).filter(Boolean))];
+      const swatch = badge.createSpan({ cls: "ai3d-heading-pin-badge-swatch" });
+      swatch.style.background = buildBadgeSwatchBackground(distinctColors);
+      if (entries.length > 1) {
+        const count = badge.createSpan({ cls: "ai3d-heading-pin-badge-count" });
+        count.textContent = `\u00d7${entries.length}`;
+      }
       const uniqueModels = [...new Set(entries.map(e => e.modelPath.replace(/^.*\//, "").replace(/\.[^.]+$/, "")))];
       badge.title = `Pin linked to: ${uniqueModels.join(", ")}`;
       badge.addEventListener("click", (e) => {

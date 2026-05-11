@@ -4,9 +4,9 @@ export const en = {
   "settings.folders": "Folders",
   "settings.behavior": "Behavior",
   "settings.converters": "Converters",
-  "settings.paths": "Converter Paths",
+  "settings.paths": "Converter paths",
   "settings.diagnostics": "Converter command diagnostics",
-  "settings.performance": "Performance & Display",
+  "settings.performance": "Performance & display",
 
   // Folders
   "settings.sourceModelFolder": "Source model folder",
@@ -46,15 +46,15 @@ export const en = {
 
   // Converter paths
   "settings.pythonCmd": "Python command path (for CAD conversion)",
-  "settings.pythonCmd.desc": "Optional path to Python executable for CAD conversion. Overrides auto-discovery and AI3D_FREECAD_CMD when set.",
-  "settings.freecadCmd": "FreeCADCmd path (for SLDPRT conversion)",
-  "settings.freecadCmd.desc": "Optional path to FreeCADCmd.exe for SolidWorks file conversion. Overrides auto-discovery and AI3D_FREECMDCMD when set.",
+  "settings.pythonCmd.desc": "Optional path to the Python command used for CAD conversion. Windows usually uses py. macOS and Linux usually use python3. Overrides auto-discovery and AI3D_FREECAD_CMD when set.",
+  "settings.freecadCmd": "FreeCAD command path (for SLDPRT conversion)",
+  "settings.freecadCmd.desc": "Optional path to the FreeCAD command used for SolidWorks file conversion. Windows usually uses FreeCADCmd.exe. macOS usually uses FreeCADCmd. Linux usually uses freecadcmd. Overrides auto-discovery and AI3D_FREECMDCMD when set.",
   "settings.obj2gltfCmd": "obj2gltf command path",
-  "settings.obj2gltfCmd.desc": "Optional path to obj2gltf CLI. Overrides auto-discovery and AI3D_OBJ2GLTF_CMD when set.",
+  "settings.obj2gltfCmd.desc": "Optional path to the obj2gltf command. Windows usually uses obj2gltf.cmd. macOS and Linux usually use obj2gltf. Overrides auto-discovery and AI3D_OBJ2GLTF_CMD when set.",
   "settings.fbx2gltfCmd": "FBX2glTF command path",
-  "settings.fbx2gltfCmd.desc": "Optional path to FBX2glTF CLI. Overrides auto-discovery and AI3D_FBX2GLTF_CMD when set.",
+  "settings.fbx2gltfCmd.desc": "Optional path to the FBX2glTF command. Windows usually uses FBX2glTF.exe. macOS and Linux usually use FBX2glTF. Overrides auto-discovery and AI3D_FBX2GLTF_CMD when set.",
   "settings.assimpCmd": "Python command path (for 3MF/DAE conversion)",
-  "settings.assimpCmd.desc": "Optional path to Python executable. Overrides auto-discovery and AI3D_ASSIMP_CMD when set.",
+  "settings.assimpCmd.desc": "Optional path to the Python command used for 3MF and DAE conversion. Windows usually uses py. macOS and Linux usually use python3. Overrides auto-discovery and AI3D_ASSIMP_CMD when set.",
 
   // Diagnostics
   "settings.diagnostics.desc": "Shows the exact executable path the plugin would use right now. This is the same discovery chain used by runtime conversion and cache identity.",

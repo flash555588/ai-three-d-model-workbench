@@ -35,7 +35,8 @@
 - **Knowledge notes**: generate structured Markdown from loaded models
 - **Snapshots**: copy, save, or download rendered previews as PNG
 - **i18n**: English and Simplified Chinese with auto-detect system locale
-- **Mobile support**: Obsidian Mobile with adaptive hardware scaling
+- **Desktop support**: Obsidian Desktop on Windows, macOS, and Linux
+- **Mobile support**: Direct preview on Obsidian Mobile with adaptive hardware scaling
 
 ---
 
@@ -78,6 +79,7 @@ Use [Quick Start](#quick-start) if you only want the fastest setup.
 ### Requirements
 
 - Obsidian 1.5.0 or later
+- Obsidian Desktop on Windows, macOS, or Linux for local tool-based conversion
 - A local Obsidian vault folder on your computer
 - This plugin folder inside the vault:
 
@@ -92,6 +94,8 @@ All install methods place the same three files in that folder:
 | `main.js` | ~1.7 MB | Plugin runtime (Babylon.js core) |
 | `manifest.json` | ~1 KB | Obsidian plugin manifest |
 | `styles.css` | ~10 KB | Plugin styles |
+
+Direct rendering works on desktop and mobile. Local converter tools for CAD, FBX, 3MF, and DAE require desktop OS access.
 
 ### Option A: Build from Source
 
@@ -352,18 +356,24 @@ Only needed for CAD, FBX, and mesh conversion. Direct formats work without any e
 ```bash
 # Install
 pip install cadquery trimesh
-
-# Verify
-python -c "import cadquery; print('OK')"
 ```
+
+Verify with the Python command your OS uses:
+
+- Windows: `py -c "import cadquery; print('OK')"`
+- macOS / Linux: `python3 -c "import cadquery; print('OK')"`
 
 ### FreeCAD (SLDPRT)
 
-Download from [freecad.org/downloads](https://www.freecad.org/downloads.php).
+Install FreeCAD for your platform:
+
+- Windows: install from [freecad.org/downloads](https://www.freecad.org/downloads.php)
+- macOS: install the app bundle or use `brew install --cask freecad`
+- Linux: install your distro's FreeCAD package and make sure `freecadcmd` is available
 
 Auto-discovery paths:
 - Windows: `%LOCALAPPDATA%\Programs\FreeCAD*\bin\FreeCADCmd.exe`
-- macOS: `/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd`
+- macOS: `/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd`, `/usr/local/bin/FreeCADCmd`, `/opt/homebrew/bin/FreeCADCmd`
 - Linux: `/usr/bin/freecadcmd`
 
 ### Python + trimesh (3MF, DAE)
@@ -386,7 +396,7 @@ The plugin already has a built-in OBJ loader. obj2gltf is an optional alternativ
 npm install -g obj2gltf
 ```
 
-**Auto-discovery**: The plugin looks for `obj2gltf.cmd` (Windows) or `obj2gltf` (Unix) on PATH.
+**Auto-discovery**: The plugin looks for `obj2gltf.cmd` on Windows, and `obj2gltf` in standard macOS/Linux locations such as `/usr/local/bin/obj2gltf` and `/opt/homebrew/bin/obj2gltf`.
 
 **Enable**: Settings > Enable OBJ2GLTF converter, or set "obj2gltf path".
 
@@ -396,13 +406,16 @@ FBX files are converted to GLB through the local FBX2glTF binary. The older comm
 
 **Install**:
 
-Download from [github.com/godotengine/FBX2glTF](https://github.com/godotengine/FBX2glTF) and place the binary in a known location.
+Download or build [FBX2glTF](https://github.com/godotengine/FBX2glTF) for your platform and place the binary in a known location.
 
-**Auto-discovery** (Windows):
+**Auto-discovery**:
 
-```
+```text
 C:\Program Files\FBX2glTF\FBX2glTF-windows-x64.exe
 C:\Program Files\FBX2glTF\FBX2glTF.exe
+/usr/local/bin/FBX2glTF
+/opt/homebrew/bin/FBX2glTF
+/usr/local/bin/fbx2gltf
 ```
 
 **Enable**: Settings > Enable FBX2glTF converter, or set "FBX2glTF path".

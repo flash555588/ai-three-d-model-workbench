@@ -37,10 +37,25 @@ export interface ConverterCommandStatus {
 const WINDOWS_PATHEXT_FALLBACK = [".exe", ".cmd", ".bat", ".com"];
 
 /**
- * Resolve FreeCADCmd.exe candidates dynamically using environment variables.
+ * Resolve FreeCAD command candidates dynamically using environment variables.
  * Skips user-specific hardcoded paths — only uses platform-standard locations.
  */
+function resolvePosixCommandCandidates(...commands: string[]): readonly string[] {
+  const baseDirs = proc?.platform === "darwin"
+    ? ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]
+    : ["/usr/bin", "/usr/local/bin", "/opt/homebrew/bin"];
+
+  return Array.from(new Set(baseDirs.flatMap((dir) => commands.map((command) => `${dir}/${command}`))));
+}
+
 function resolveFreeCadCandidates(): readonly string[] {
+  if (proc?.platform === "darwin") {
+    return [
+      "/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd",
+      ...resolvePosixCommandCandidates("FreeCADCmd", "freecadcmd"),
+    ];
+  }
+
   if (proc?.platform !== "win32") {
     return [
       "/usr/bin/freecadcmd",
@@ -94,7 +109,7 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     fallbackCommand: proc?.platform === "win32" ? "obj2gltf.cmd" : "obj2gltf",
     knownCandidates: proc?.platform === "win32"
       ? ["C:/Users/Public/AppData/Roaming/npm/obj2gltf.cmd"]
-      : [],
+      : resolvePosixCommandCandidates("obj2gltf"),
   },
   {
     id: "fbx2gltf",
@@ -107,7 +122,7 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
         "C:/Program Files/FBX2glTF/FBX2glTF-windows-x64.exe",
         "C:/Program Files/FBX2glTF/FBX2glTF.exe",
       ]
-      : [],
+      : resolvePosixCommandCandidates("FBX2glTF", "fbx2gltf"),
   },
   {
     id: "assimp",
