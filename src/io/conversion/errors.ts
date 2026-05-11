@@ -1,4 +1,4 @@
-import { t } from "../../i18n";
+import { formatT, t } from "../../i18n";
 
 const CONVERTER_DISPLAY_NAMES: Record<string, string> = {
   freecad: "FreeCAD",
@@ -13,10 +13,6 @@ export interface ModelLoadFailureDetails {
   title: string;
   message: string;
   hint: string;
-}
-
-function fillTemplate(template: string, values: Record<string, string>): string {
-  return template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
 }
 
 function formatSourceExt(sourceExt: string): string {
@@ -44,13 +40,13 @@ export function isMissingConverterError(err: unknown): err is MissingConverterEr
 export function formatModelLoadFailure(err: unknown): string {
   if (err instanceof MissingConverterError) {
     const converterName = CONVERTER_DISPLAY_NAMES[err.converterId] ?? err.converterId;
-    return fillTemplate(t("modelLoad.warningMessage"), {
+    return formatT("modelLoad.warningMessage", {
       ext: formatSourceExt(err.sourceExt),
       converterName,
     });
   }
 
-  return fillTemplate(t("modelLoad.errorMessage"), {
+  return formatT("modelLoad.errorMessage", {
     reason: err instanceof Error ? err.message : String(err),
   });
 }

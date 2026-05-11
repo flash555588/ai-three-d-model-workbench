@@ -5,7 +5,7 @@ import { Vector3, Matrix } from "@babylonjs/core/Maths/math.vector.js";
 import { Ray } from "@babylonjs/core/Culling/ray.core.js";
 import type { AnnotationPin } from "../../domain/models";
 import type { HeadingSearchResult } from "../../utils/note-reader";
-import { t } from "../../i18n";
+import { formatT, t } from "../../i18n";
 
 const DEFAULT_COLORS = ["#4a9eff", "#ff6b6b", "#51cf66", "#ffd43b"];
 let globalNextId = 1;
@@ -324,7 +324,7 @@ export class AnnotationManager {
       const swatch = colorRow.createEl("button", { cls: "ai3d-pin-color-swatch" });
       swatch.type = "button";
       swatch.title = c;
-      swatch.setAttribute("aria-label", t("annotation.selectColor").replace("{color}", c));
+      swatch.setAttribute("aria-label", formatT("annotation.selectColor", { color: c }));
       swatch.setCssProps({ "--swatch-color": c });
       if (c === selectedColor) swatch.classList.add("active");
       swatch.addEventListener("click", (e) => {

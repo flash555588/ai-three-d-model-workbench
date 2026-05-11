@@ -16,7 +16,7 @@ import { listPreferredConversionExts } from "../../io/formats/route-preferences"
 import { createLoadingOverlay } from "./loading-overlay";
 import { createNoteReader } from "../../utils/note-reader";
 import { describeModelLoadFailure, isMissingConverterError } from "../../io/conversion/errors";
-import { t } from "../../i18n";
+import { formatT, t } from "../../i18n";
 import { renderModelLoadFailure } from "../model-load-feedback";
 
 interface PreparedInlineModel {
@@ -25,10 +25,6 @@ interface PreparedInlineModel {
   effectiveExt: string;
   model: ModelConfig;
   warnings: string[];
-}
-
-function fillTemplate(template: string, values: Record<string, string>): string {
-  return template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
 }
 
 async function prepareInlineModel(
@@ -40,12 +36,12 @@ async function prepareInlineModel(
   const inputModel = typeof entry === "string" ? { path: entry } : entry;
   const sourcePath = resolveVaultPath(app, inputModel.path);
   if (!sourcePath) {
-    throw new Error(fillTemplate(t("workbench.fileNotFound"), { path: inputModel.path }));
+    throw new Error(formatT("workbench.fileNotFound", { path: inputModel.path }));
   }
 
   const sourceExt = sourcePath.split(".").pop()?.toLowerCase() ?? "";
   if (!isSupportedModelExtension(sourceExt)) {
-    throw new Error(fillTemplate(t("codeBlock.unsupportedFormat"), {
+    throw new Error(formatT("codeBlock.unsupportedFormat", {
       ext: `.${sourceExt}`,
       formats: listSupportedModelExtensions().join(", "),
     }));
@@ -132,11 +128,11 @@ export function registerCodeBlockProcessor(
         } catch (err) {
           const errorEl = el.createDiv({ cls: "ai3d-json-error" });
           const lineMatch = String(err).match(/position\s+(\d+)/);
-          let errorMsg = fillTemplate(t("codeBlock.jsonParseError"), { error: String(err) });
+          let errorMsg = formatT("codeBlock.jsonParseError", { error: String(err) });
           if (lineMatch) {
             const pos = parseInt(lineMatch[1], 10);
             const lines = trimmed.substring(0, pos).split("\n");
-            errorMsg += fillTemplate(t("codeBlock.jsonParseLine"), { line: String(lines.length) });
+            errorMsg += formatT("codeBlock.jsonParseLine", { line: String(lines.length) });
           }
           errorEl.createEl("pre", { text: errorMsg });
           return;
@@ -160,7 +156,7 @@ export function registerCodeBlockProcessor(
       if (!modelPath) {
         el.createDiv({
           cls: "ai3d-inline-empty",
-          text: fillTemplate(t("workbench.fileNotFound"), { path: modelCfg.path }),
+          text: formatT("workbench.fileNotFound", { path: modelCfg.path }),
         });
         return;
       }
@@ -169,7 +165,7 @@ export function registerCodeBlockProcessor(
       if (!isSupportedModelExtension(ext)) {
         el.createDiv({
           cls: "ai3d-inline-empty",
-          text: fillTemplate(t("codeBlock.unsupportedFormat"), {
+          text: formatT("codeBlock.unsupportedFormat", {
             ext: `.${ext}`,
             formats: listSupportedModelExtensions().join(", "),
           }),
@@ -567,7 +563,7 @@ export function registerGridCodeBlockProcessor(
               gridLoading.hide();
               gridHost.createDiv({
                 cls: "ai3d-inline-empty",
-                text: fillTemplate(t("codeBlock.unknownPreset"), { preset: config.preset }),
+                text: formatT("codeBlock.unknownPreset", { preset: config.preset }),
               });
               activeRenderer.destroy();
               renderer = null;
@@ -578,7 +574,7 @@ export function registerGridCodeBlockProcessor(
               gridLoading.hide();
               gridHost.createDiv({
                 cls: "ai3d-inline-empty",
-                text: fillTemplate(t("codeBlock.presetRequiresModels"), {
+                text: formatT("codeBlock.presetRequiresModels", {
                   preset: config.preset,
                   min: String(preset.minModels),
                   max: String(preset.maxModels),
@@ -604,7 +600,7 @@ export function registerGridCodeBlockProcessor(
           renderer?.destroy();
           renderer = null;
           console.error("[AI3D Grid] Failed:", err);
-          gridHost.createDiv({ cls: "ai3d-inline-empty", text: fillTemplate(t("codeBlock.gridFailed"), { reason: String(err) }) });
+          gridHost.createDiv({ cls: "ai3d-inline-empty", text: formatT("codeBlock.gridFailed", { reason: String(err) }) });
         }
       }
 

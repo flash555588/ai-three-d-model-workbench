@@ -1,6 +1,6 @@
 import type { App } from "obsidian";
 import type { PluginSettings } from "../../domain/models";
-import { t } from "../../i18n";
+import { formatT, t } from "../../i18n";
 
 /** Create an SVG icon that follows its button color via currentColor. */
 function createSvgIcon(inner: string): SVGSVGElement {
@@ -167,7 +167,7 @@ export function createHelperButtons(
     resIndex = (resIndex + 1) % RES_PRESETS.length;
     const applied = preview.setRenderScale(RES_PRESETS[resIndex]);
     resBtn.textContent = `${applied}x`;
-    showTooltip(resBtn, t("helper.resolutionValue").replace("{value}", `${applied}x`));
+    showTooltip(resBtn, formatT("helper.resolutionValue", { value: `${applied}x` }));
   });
 
   // Animation play/pause button (play triangle — hidden until animations detected)

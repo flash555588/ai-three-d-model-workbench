@@ -18,7 +18,7 @@ import { readBinaryPath, resolveVaultAbsolutePath } from "../../utils/resolve-pa
 import { listPreferredConversionExts } from "../../io/formats/route-preferences";
 import { createNoteReader, createHeadingSearch } from "../../utils/note-reader";
 import { describeModelLoadFailure, type ModelLoadFailureDetails, isMissingConverterError } from "../../io/conversion/errors";
-import { t } from "../../i18n";
+import { formatT, t } from "../../i18n";
 import { renderModelLoadFailure } from "../model-load-feedback";
 
 const log = createLogger("workbench");
@@ -278,7 +278,7 @@ export function mountWorkbench(
                 <button class=${`ai3d-axis-btn ${annotationMode ? "is-active" : ""}`} data-action="toggle-annot">
                   ${annotationMode ? t("workbench.exitAnnotate") : t("workbench.annotate")}
                 </button>
-                <span class="ai3d-annot-hint">${annotationMode ? t("workbench.annotateHintActive") : t("workbench.pinCount").replace("{count}", String(annotations.length))}</span>
+                <span class="ai3d-annot-hint">${annotationMode ? t("workbench.annotateHintActive") : formatT("workbench.pinCount", { count: String(annotations.length) })}</span>
               </div>
               ${annotations.length > 0 ? html`
                 <div class="ai3d-annot-list">
@@ -420,7 +420,7 @@ export function mountWorkbench(
 
         const file = app.vault.getAbstractFileByPath(path);
         if (!(file instanceof TFile)) {
-          showEmptyPreview(t("workbench.fileNotFound").replace("{path}", path));
+          showEmptyPreview(formatT("workbench.fileNotFound", { path }));
           if (state.modelPreview !== null) {
             ps.store.setState({ modelPreview: null });
           }

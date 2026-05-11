@@ -9,7 +9,7 @@ import { ModelFileSuggestModal } from "./view/model-file-suggest-modal";
 import { AI3DSettingTab } from "./settings";
 import { inspectAllConverterCommands } from "./io/conversion/command-discovery";
 import { setLogLevel } from "./utils/log";
-import { setLocale, t, type Locale } from "./i18n";
+import { formatT, setLocale, t, type Locale } from "./i18n";
 import { normalizeHeadingText } from "./utils/note-reader";
 
 export default class AI3DModelWorkbench extends Plugin {
@@ -185,7 +185,7 @@ export default class AI3DModelWorkbench extends Plugin {
         count.textContent = `\u00d7${entries.length}`;
       }
       const uniqueModels = [...new Set(entries.map(e => e.modelPath.replace(/^.*\//, "").replace(/\.[^.]+$/, "")))];
-      badge.title = t("headingPin.linkedTo").replace("{models}", uniqueModels.join(", "));
+      badge.title = formatT("headingPin.linkedTo", { models: uniqueModels.join(", ") });
       const highlightLinkedPins = (e?: Event) => {
         e?.stopPropagation();
         e?.preventDefault();
