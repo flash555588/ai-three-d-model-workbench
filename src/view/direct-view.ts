@@ -142,7 +142,7 @@ export class DirectModelView extends FileView {
       const settings = this.getSettings();
       const conversionManager = createConversionManager(settings);
       const absolutePath = resolveVaultAbsolutePath(this.app, file.path) ?? undefined;
-      loading.setPhase("Preparing model...");
+      loading.setPhaseKey("loading.preparingModel");
       const prepared = await prepareModelInput({
         path: file.path,
         absolutePath,
@@ -154,7 +154,7 @@ export class DirectModelView extends FileView {
       const source = toPreviewSource(prepared);
 
       this.preview = new BabylonModelPreview(canvas);
-      loading.setPhase("Loading model...");
+      loading.setPhaseKey("loading.loadingModel");
       const data = await readBinaryPath(this.app, source.path);
       if (gen !== this.loadGeneration) { this.preview.destroy(); this.preview = null; return; }
       console.debug(`[AI3D] DirectView loading: ${file.path} via ${source.path} (${source.ext}, ${data.byteLength} bytes)`);

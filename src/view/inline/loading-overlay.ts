@@ -1,4 +1,4 @@
-import { t } from "../../i18n";
+import { onLocaleChange, t, type TranslationKey } from "../../i18n";
 
 /**
  * Reusable loading overlay for 3D model preview hosts.
@@ -11,6 +11,8 @@ import { t } from "../../i18n";
 export interface LoadingOverlay {
   /** Update the phase description (e.g. "Converting CAD...", "Loading model..."). */
   setPhase(text: string): void;
+  /** Update the phase description from a translation key. */
+  setPhaseKey(key: TranslationKey): void;
   /** Set determinate progress (0–100). Pass -1 for indeterminate mode. */
   setProgress(percent: number): void;
   /** Fade out and remove the overlay from DOM. Safe to call multiple times. */
@@ -25,18 +27,35 @@ export function createLoadingOverlay(host: HTMLElement): LoadingOverlay {
   overlay.createDiv({ cls: "ai3d-loading-spinner" });
 
   const text = overlay.createDiv({ cls: "ai3d-loading-text" });
-  text.textContent = t("loading.default");
+  let currentPhaseKey: TranslationKey | null = "loading.default";
+  let currentPhaseText = "";
+  const renderPhase = () => {
+    text.textContent = currentPhaseKey ? t(currentPhaseKey) : currentPhaseText;
+  };
+  renderPhase();
 
   const track = overlay.createDiv({ cls: "ai3d-loading-bar-track" });
   const fill = track.createDiv({ cls: "ai3d-loading-bar-fill is-indeterminate" });
 
   let hidden = false;
+  const stopListening = onLocaleChange(() => {
+    if (!hidden && currentPhaseKey) {
+      renderPhase();
+    }
+  });
 
   return {
     el: overlay,
 
-    setPhase(t: string) {
-      if (!hidden) text.textContent = t;
+    setPhase(phaseText: string) {
+      currentPhaseKey = null;
+      currentPhaseText = phaseText;
+      if (!hidden) renderPhase();
+    },
+
+    setPhaseKey(phaseKey: TranslationKey) {
+      currentPhaseKey = phaseKey;
+      if (!hidden) renderPhase();
     },
 
     setProgress(pct: number) {
@@ -53,6 +72,7 @@ export function createLoadingOverlay(host: HTMLElement): LoadingOverlay {
     hide() {
       if (hidden) return;
       hidden = true;
+      stopListening();
       overlay.classList.add("is-hiding");
       activeWindow.setTimeout(() => overlay.remove(), 300);
     },

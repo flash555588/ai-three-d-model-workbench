@@ -109,7 +109,7 @@ class ModelEmbedWidget extends WidgetType {
         fbx2gltfCommand: this.fbx2gltfCommand,
         freecadcmdCommand: this.freecadcmdCommand,
       });
-      loading.setPhase("Preparing model...");
+      loading.setPhaseKey("loading.preparingModel");
       const prepared = await prepareModelInput({
         path: this.modelPath,
         absolutePath,
@@ -120,7 +120,7 @@ class ModelEmbedWidget extends WidgetType {
         conversionManager,
         convertedAssetCache: this.convertedAssetCache,
       });
-      loading.setPhase("Loading model...");
+      loading.setPhaseKey("loading.loadingModel");
       const data = await readBinaryPath(this.app, prepared.effectivePath);
       await this.preview.loadModel(
         data,

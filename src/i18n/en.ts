@@ -176,6 +176,8 @@ export const en = {
   "codeBlock.presetRequiresModels": "Preset \"{preset}\" requires {min}-{max} models, got {count}.",
   "codeBlock.gridFailed": "Grid failed: {reason}",
   "loading.default": "Loading...",
+  "loading.preparingModel": "Preparing model...",
+  "loading.loadingModel": "Loading model...",
 } as const;
 
 export type TranslationKey = keyof typeof en;
