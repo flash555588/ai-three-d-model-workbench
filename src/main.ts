@@ -46,35 +46,35 @@ export default class AI3DModelWorkbench extends Plugin {
 
     this.registerView(VIEW_TYPE, (leaf) => new AnalysisView(leaf, this.ps, this.convertedAssetCache));
 
-    this.addRibbonIcon("box", "Open 3d workbench", () => this.activateView());
+    this.addRibbonIcon("box", t("main.ribbonOpenWorkbench"), () => this.activateView());
 
     this.addCommand({
       id: "import-model",
-      name: "Import 3d model",
+      name: t("main.commandImportModel"),
       callback: () => this.importModel(),
     });
 
     this.addCommand({
       id: "open-workbench",
-      name: "Open 3d workbench",
+      name: t("main.commandOpenWorkbench"),
       callback: () => this.activateView(),
     });
 
     this.addCommand({
       id: "generate-note",
-      name: "Generate knowledge note",
+      name: t("main.commandGenerateNote"),
       callback: () => this.generateNote(),
     });
 
     this.addCommand({
       id: "clear-conversion-cache",
-      name: "Clear conversion cache",
+      name: t("main.commandClearConversionCache"),
       callback: () => this.clearConversionCache(),
     });
 
     this.addCommand({
       id: "check-converters",
-      name: "Check converters",
+      name: t("main.commandCheckConverters"),
       callback: () => void this.checkConverterCommands(),
     });
 

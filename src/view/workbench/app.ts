@@ -18,6 +18,7 @@ import { readBinaryPath, resolveVaultAbsolutePath } from "../../utils/resolve-pa
 import { listPreferredConversionExts } from "../../io/formats/route-preferences";
 import { createNoteReader, createHeadingSearch } from "../../utils/note-reader";
 import { describeModelLoadFailure, type ModelLoadFailureDetails, isMissingConverterError } from "../../io/conversion/errors";
+import { t } from "../../i18n";
 import { renderModelLoadFailure } from "../model-load-feedback";
 
 const log = createLogger("workbench");
@@ -71,8 +72,8 @@ export function mountWorkbench(
   const emptyState = html`
     <div class="ai3d-empty-state">
       <div class="ai3d-empty-icon">3D</div>
-      <div class="ai3d-empty-title">No model</div>
-      <div class="ai3d-empty-text">Use the "Import 3D model" command to load a GLB, GLTF, or STL file.</div>
+      <div class="ai3d-empty-title">${t("workbench.emptyTitle")}</div>
+      <div class="ai3d-empty-text">${t("workbench.emptyText")}</div>
     </div>
   ` as HTMLElement;
   previewHost.appendChild(emptyState);
@@ -128,14 +129,14 @@ export function mountWorkbench(
       <div class="ai3d-section">
         <div class="ai3d-section-header">
           <div>
-            <div class="ai3d-section-title">3D model</div>
+            <div class="ai3d-section-title">${t("workbench.modelTitle")}</div>
             <div class="ai3d-section-subtitle">Babylon.js</div>
           </div>
         </div>
         <div class="ai3d-section-body">
           <div class="ai3d-model-status">
             <span class=${`ai3d-status-dot ${state.currentModelPath ? "is-active" : ""}`}></span>
-            <span class="ai3d-model-name">${state.currentModelPath ?? "No model loaded"}</span>
+            <span class="ai3d-model-name">${state.currentModelPath ?? t("workbench.noModelLoaded")}</span>
           </div>
         </div>
       </div>
@@ -146,12 +147,12 @@ export function mountWorkbench(
       const controlsEl = html`
         <div class="ai3d-section">
           <div class="ai3d-section-header">
-            <div class="ai3d-section-title">Disassembly</div>
+            <div class="ai3d-section-title">${t("workbench.disassemblyTitle")}</div>
           </div>
           <div class="ai3d-section-body">
             <div class="ai3d-disassemble-controls">
               <div class="ai3d-slider-row">
-                <span class="ai3d-slider-label">Explode</span>
+                <span class="ai3d-slider-label">${t("workbench.explodeLabel")}</span>
                 <input type="range" class="ai3d-slider" min="0" max="100" value="0" />
                 <span class="ai3d-slider-value">0%</span>
               </div>
@@ -195,20 +196,20 @@ export function mountWorkbench(
       panelsEl.appendChild(html`
         <div class="ai3d-section">
           <div class="ai3d-section-header">
-            <div class="ai3d-section-title">Summary</div>
+            <div class="ai3d-section-title">${t("workbench.summaryTitle")}</div>
           </div>
           <div class="ai3d-section-body">
             <div class="ai3d-summary-grid">
               <div class="ai3d-summary-item">
-                <div class="ai3d-summary-label">Meshes</div>
+                <div class="ai3d-summary-label">${t("workbench.meshesLabel")}</div>
                 <div class="ai3d-summary-value">${sp.meshCount}</div>
               </div>
               <div class="ai3d-summary-item">
-                <div class="ai3d-summary-label">${sp.splatCount ? "Splats" : "Triangles"}</div>
+                <div class="ai3d-summary-label">${sp.splatCount ? t("workbench.splatsLabel") : t("workbench.trianglesLabel")}</div>
                 <div class="ai3d-summary-value">${(sp.splatCount ?? sp.triangleCount).toLocaleString()}</div>
               </div>
               <div class="ai3d-summary-item">
-                <div class="ai3d-summary-label">Materials</div>
+                <div class="ai3d-summary-label">${t("workbench.materialsLabel")}</div>
                 <div class="ai3d-summary-value">${sp.materialCount}</div>
               </div>
             </div>
@@ -224,18 +225,18 @@ export function mountWorkbench(
       const tagsEl = html`
         <div class="ai3d-section">
           <div class="ai3d-section-header">
-            <div class="ai3d-section-title">Tags</div>
+            <div class="ai3d-section-title">${t("workbench.tagsTitle")}</div>
           </div>
           <div class="ai3d-section-body">
             <div class="ai3d-tag-section">
               <div class="ai3d-tag-list">
                 ${tags.length > 0
                   ? tags.map((t: string) => html`<span class="ai3d-tag-chip">${t}</span>`)
-                  : html`<span class="ai3d-tag-empty">No tags yet</span>`}
+                  : html`<span class="ai3d-tag-empty">${t("workbench.noTagsYet")}</span>`}
               </div>
               <div style=${{ display: "flex", gap: "8px" }}>
-                <input class="ai3d-input" placeholder="Add tag..." style=${{ flex: "1" }} />
-                <button class="ai3d-axis-btn">Add</button>
+                <input class="ai3d-input" placeholder=${t("workbench.addTagPlaceholder")} style=${{ flex: "1" }} />
+                <button class="ai3d-axis-btn">${t("workbench.addTagAction")}</button>
               </div>
             </div>
           </div>
@@ -269,15 +270,15 @@ export function mountWorkbench(
       const annotEl = html`
         <div class="ai3d-section">
           <div class="ai3d-section-header">
-            <div class="ai3d-section-title">Annotations</div>
+            <div class="ai3d-section-title">${t("workbench.annotationsTitle")}</div>
           </div>
           <div class="ai3d-section-body">
             <div class="ai3d-annot-section">
               <div class="ai3d-annot-toggle-row">
                 <button class=${`ai3d-axis-btn ${annotationMode ? "is-active" : ""}`} data-action="toggle-annot">
-                  ${annotationMode ? "Exit annotate" : "Annotate"}
+                  ${annotationMode ? t("workbench.exitAnnotate") : t("workbench.annotate")}
                 </button>
-                <span class="ai3d-annot-hint">${annotationMode ? "Click model to add label · ESC to exit" : `${annotations.length} pin(s)`}</span>
+                <span class="ai3d-annot-hint">${annotationMode ? t("workbench.annotateHintActive") : t("workbench.pinCount").replace("{count}", String(annotations.length))}</span>
               </div>
               ${annotations.length > 0 ? html`
                 <div class="ai3d-annot-list">
@@ -286,10 +287,10 @@ export function mountWorkbench(
                       <span class="ai3d-annot-dot" style=${{ background: a.color }}></span>
                       <span class="ai3d-annot-label" data-action="focus-pin" data-pin-id=${a.id}>${a.label}</span>
                       <span class="ai3d-annot-actions">
-                        <button class="ai3d-annot-action-btn" data-action="edit-pin" data-pin-id=${a.id} title="Edit">
+                        <button class="ai3d-annot-action-btn" data-action="edit-pin" data-pin-id=${a.id} title=${t("workbench.editAction")}>
                           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
-                        <button class="ai3d-annot-action-btn is-delete" data-action="delete-pin" data-pin-id=${a.id} title="Delete">
+                        <button class="ai3d-annot-action-btn is-delete" data-action="delete-pin" data-pin-id=${a.id} title=${t("workbench.deleteAction")}>
                           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
                         </button>
                       </span>
@@ -342,11 +343,11 @@ export function mountWorkbench(
         <div class="ai3d-section">
           <div class="ai3d-section-body">
             <div class="ai3d-actions">
-              ${preview ? html`<button class="ai3d-axis-btn" data-action="reset">Reset view</button>` : ""}
-              ${preview ? html`<button class="ai3d-axis-btn" data-action="info">Insert info</button>` : ""}
-              ${preview?.hasAnimations() ? html`<button class="ai3d-axis-btn" data-action="anim">Play</button>` : ""}
-              <button class="ai3d-axis-btn" data-action="save">Save profile</button>
-              <button class="ai3d-axis-btn" data-action="note">Generate note</button>
+              ${preview ? html`<button class="ai3d-axis-btn" data-action="reset">${t("workbench.resetViewAction")}</button>` : ""}
+              ${preview ? html`<button class="ai3d-axis-btn" data-action="info">${t("workbench.insertInfoAction")}</button>` : ""}
+              ${preview?.hasAnimations() ? html`<button class="ai3d-axis-btn" data-action="anim">${t("workbench.playAction")}</button>` : ""}
+              <button class="ai3d-axis-btn" data-action="save">${t("workbench.saveProfileAction")}</button>
+              <button class="ai3d-axis-btn" data-action="note">${t("workbench.generateNoteAction")}</button>
             </div>
           </div>
         </div>
@@ -385,7 +386,7 @@ export function mountWorkbench(
         animAction.addEventListener("click", () => {
           if (!preview?.toggleAnimation) return;
           const playing = preview.toggleAnimation();
-          animAction.textContent = playing ? "Pause" : "Play";
+          animAction.textContent = playing ? t("workbench.pauseAction") : t("workbench.playAction");
         });
       }
 
@@ -419,7 +420,7 @@ export function mountWorkbench(
 
         const file = app.vault.getAbstractFileByPath(path);
         if (!(file instanceof TFile)) {
-          showEmptyPreview(`File not found: ${path}`);
+          showEmptyPreview(t("workbench.fileNotFound").replace("{path}", path));
           if (state.modelPreview !== null) {
             ps.store.setState({ modelPreview: null });
           }

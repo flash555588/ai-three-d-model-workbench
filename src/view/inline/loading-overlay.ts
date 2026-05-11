@@ -1,3 +1,5 @@
+import { t } from "../../i18n";
+
 /**
  * Reusable loading overlay for 3D model preview hosts.
  *
@@ -23,7 +25,7 @@ export function createLoadingOverlay(host: HTMLElement): LoadingOverlay {
   overlay.createDiv({ cls: "ai3d-loading-spinner" });
 
   const text = overlay.createDiv({ cls: "ai3d-loading-text" });
-  text.textContent = "Loading...";
+  text.textContent = t("loading.default");
 
   const track = overlay.createDiv({ cls: "ai3d-loading-bar-track" });
   const fill = track.createDiv({ cls: "ai3d-loading-bar-fill is-indeterminate" });
