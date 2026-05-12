@@ -6,6 +6,10 @@ export const zhCN: Record<TranslationKey, string> = {
   "settings.folders": "文件夹",
   "settings.behavior": "行为",
   "settings.converters": "转换器",
+  "settings.converterMenu": "模型转换器",
+  "settings.converterMenu.desc": "默认收起。仅在你需要手动启用某条本地转换路线时再展开。",
+  "settings.environmentInspector": "环境检查器",
+  "settings.environmentInspector.desc": "默认收起。仅在需要配置命令路径或手动执行环境检查时再展开。",
   "settings.paths": "转换器路径",
   "settings.diagnostics": "转换器命令诊断",
   "settings.performance": "性能与显示",
@@ -66,6 +70,7 @@ export const zhCN: Record<TranslationKey, string> = {
 
   // 诊断
   "settings.diagnostics.desc": "显示插件当前实际使用的可执行文件路径，并为 Python 环境和转换器命令执行轻量自检。",
+  "settings.diagnostics.idle": "环境检查默认关闭。点击“立即检查”后才会执行。",
   "settings.diagnostics.checkNow": "立即检查",
   "settings.diagnostics.checking": "检查中...",
   "settings.diagnostics.refreshed": "AI 3D 转换器命令诊断已刷新。",

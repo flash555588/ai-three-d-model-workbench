@@ -1,6 +1,6 @@
 {
   "name": "obsidian-ai-3d-model-workbench",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "description": "Obsidian plugin for turning 3D models into linked knowledge assets.",
   "scripts": {

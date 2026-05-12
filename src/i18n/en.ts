@@ -4,6 +4,10 @@ export const en = {
   "settings.folders": "Folders",
   "settings.behavior": "Behavior",
   "settings.converters": "Converters",
+  "settings.converterMenu": "Model converters",
+  "settings.converterMenu.desc": "Closed by default. Open this section only when you want to manually enable an optional local conversion route.",
+  "settings.environmentInspector": "Environment inspector",
+  "settings.environmentInspector.desc": "Closed by default. Open this section when you need to configure command paths or run environment checks.",
   "settings.paths": "Converter paths",
   "settings.diagnostics": "Converter command diagnostics",
   "settings.performance": "Performance & display",
@@ -64,6 +68,7 @@ export const en = {
 
   // Diagnostics
   "settings.diagnostics.desc": "Shows the exact executable path the plugin would use right now and runs lightweight self-checks for Python environments and converter CLIs.",
+  "settings.diagnostics.idle": "Diagnostics are off by default. Click Check now to run them manually.",
   "settings.diagnostics.checkNow": "Check now",
   "settings.diagnostics.checking": "Checking...",
   "settings.diagnostics.refreshed": "Converter command diagnostics refreshed.",

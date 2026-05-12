@@ -30,7 +30,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   snapshotFolder: "Media/3D Previews",
   snapshotNaming: "model-name",
   // Conversion channel
-  enabledConverterIds: ["freecad", "sldprt"],
+  enabledConverterIds: [],
   freecadCommand: "",
   obj2gltfCommand: "",
   fbx2gltfCommand: "",
