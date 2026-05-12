@@ -4,7 +4,12 @@ on:
   push:
     tags:
       - "v*"
+      - "*.*.*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish, for example 0.1.7 or v0.1.7"
+        required: false
 
 permissions:
   contents: write
@@ -56,10 +61,14 @@ jobs:
           VERSION="$(node -p "require('./manifest.json').version")"
           TAG="${GITHUB_REF_NAME}"
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            TAG="v${VERSION}"
+            TAG="${{ inputs.tag }}"
+            if [[ -z "${TAG}" ]]; then
+              TAG="${VERSION}"
+            fi
           fi
-          if [[ "${TAG}" != "v${VERSION}" ]]; then
-            echo "Tag ${TAG} does not match manifest version v${VERSION}" >&2
+          TAG_VERSION="${TAG#v}"
+          if [[ "${TAG_VERSION}" != "${VERSION}" ]]; then
+            echo "Tag ${TAG} does not match manifest version ${VERSION}" >&2
             exit 1
           fi
           {
