@@ -69,7 +69,7 @@ npm run build
 3. Create this folder inside the vault:
 
 ```text
-<your-vault>/.obsidian/plugins/ai-3d-model-workbench/
+<your-vault>/.obsidian/plugins/ai-model-workbench/
 ```
 
 4. Copy `main.js`, `manifest.json`, and `styles.css` into that folder.
@@ -99,7 +99,7 @@ Use [Quick Start](#quick-start) if you only want the fastest setup.
 - This plugin folder inside the vault:
 
 ```text
-<vault>/.obsidian/plugins/ai-3d-model-workbench/
+<vault>/.obsidian/plugins/ai-model-workbench/
 ```
 
 All install methods place the same three files in that folder:
@@ -117,41 +117,41 @@ Direct rendering works on desktop and mobile. Local converter tools for CAD, FBX
 1. Clone the repository and build the plugin:
 
 ```bash
-git clone https://github.com/flash555588/ai-3d-model-workbench.git
-cd ai-3d-model-workbench
+git clone https://github.com/flash555588/ai-model-workbench.git
+cd ai-model-workbench
 npm install
 npm run build
 ```
 
-2. Create `<vault>/.obsidian/plugins/ai-3d-model-workbench/` if it does not exist.
+2. Create `<vault>/.obsidian/plugins/ai-model-workbench/` if it does not exist.
 3. Copy `main.js`, `manifest.json`, and `styles.css` into that folder.
 4. In Obsidian, enable `AI 3D Model Workbench` in `Settings > Community Plugins`.
 
 ### Option B: Download a Release
 
-1. Download `main.js`, `manifest.json`, and `styles.css` from [Releases](https://github.com/flash555588/ai-3d-model-workbench/releases).
-2. Create `<vault>/.obsidian/plugins/ai-3d-model-workbench/` if it does not exist.
+1. Download `main.js`, `manifest.json`, and `styles.css` from [Releases](https://github.com/flash555588/ai-model-workbench/releases).
+2. Create `<vault>/.obsidian/plugins/ai-model-workbench/` if it does not exist.
 3. Put the three files in that folder.
 4. In Obsidian, enable `AI 3D Model Workbench` in `Settings > Community Plugins`.
 
 ### Option C: Symlink for Development
 
 1. Make sure `<vault>/.obsidian/plugins/` already exists.
-2. Create a symlink named `ai-3d-model-workbench` that points to this repository.
+2. Create a symlink named `ai-model-workbench` that points to this repository.
 
 Windows (PowerShell):
 
 ```powershell
 New-Item -ItemType SymbolicLink `
-  -Path "C:\path\to\your-vault\.obsidian\plugins\ai-3d-model-workbench" `
-  -Target "C:\path\to\ai-3d-model-workbench"
+  -Path "C:\path\to\your-vault\.obsidian\plugins\ai-model-workbench" `
+  -Target "C:\path\to\ai-model-workbench"
 ```
 
 macOS / Linux:
 
 ```bash
-ln -s /path/to/ai-3d-model-workbench \
-  /path/to/your-vault/.obsidian/plugins/ai-3d-model-workbench
+ln -s /path/to/ai-model-workbench \
+  /path/to/your-vault/.obsidian/plugins/ai-model-workbench
 ```
 
 3. In this repository, run `npm install` once if needed.
@@ -569,7 +569,7 @@ npm run typecheck     # TypeScript type check
 ### Build Output
 
 ```
-ai-3d-model-workbench/
+ai-model-workbench/
 ├── main.js           # 1.7 MB (minified, Babylon.js core)
 ├── manifest.json     # Plugin manifest
 ├── styles.css        # Plugin styles

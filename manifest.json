@@ -1,6 +1,6 @@
 {
-  "id": "ai-3d-model-workbench",
-  "name": "AI 3D Model Workbench",
+  "id": "ai-model-workbench",
+  "name": "AI Model Workbench",
   "version": "0.1.6",
   "minAppVersion": "1.5.0",
   "description": "Turn 3D models into linked knowledge assets.",

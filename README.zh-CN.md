@@ -69,7 +69,7 @@ npm run build
 3. 在该 vault 里创建这个文件夹：
 
 ```text
-<your-vault>/.obsidian/plugins/ai-3d-model-workbench/
+<your-vault>/.obsidian/plugins/ai-model-workbench/
 ```
 
 4. 把 `main.js`、`manifest.json`、`styles.css` 复制到这个文件夹里。
@@ -99,7 +99,7 @@ npm run build
 - vault 里的插件目录：
 
 ```text
-<vault>/.obsidian/plugins/ai-3d-model-workbench/
+<vault>/.obsidian/plugins/ai-model-workbench/
 ```
 
 无论用哪种方式安装，最终都要把下面这三个文件放进这个目录：
@@ -117,41 +117,41 @@ npm run build
 1. 克隆仓库并构建插件：
 
 ```bash
-git clone https://github.com/flash555588/ai-3d-model-workbench.git
-cd ai-3d-model-workbench
+git clone https://github.com/flash555588/ai-model-workbench.git
+cd ai-model-workbench
 npm install
 npm run build
 ```
 
-2. 如果 `<vault>/.obsidian/plugins/ai-3d-model-workbench/` 还不存在，先创建它。
+2. 如果 `<vault>/.obsidian/plugins/ai-model-workbench/` 还不存在，先创建它。
 3. 把 `main.js`、`manifest.json`、`styles.css` 复制到这个文件夹里。
 4. 在 Obsidian 的“设置 > 社区插件”中启用 `AI 3D Model Workbench`。
 
 ### 方式 B：下载发布版
 
-1. 从 [Releases](https://github.com/flash555588/ai-3d-model-workbench/releases) 下载 `main.js`、`manifest.json` 和 `styles.css`。
-2. 如果 `<vault>/.obsidian/plugins/ai-3d-model-workbench/` 还不存在，先创建它。
+1. 从 [Releases](https://github.com/flash555588/ai-model-workbench/releases) 下载 `main.js`、`manifest.json` 和 `styles.css`。
+2. 如果 `<vault>/.obsidian/plugins/ai-model-workbench/` 还不存在，先创建它。
 3. 把这三个文件放进这个文件夹里。
 4. 在 Obsidian 的“设置 > 社区插件”中启用 `AI 3D Model Workbench`。
 
 ### 方式 C：开发用符号链接
 
 1. 先确认 `<vault>/.obsidian/plugins/` 已经存在。
-2. 创建一个名为 `ai-3d-model-workbench` 的符号链接，指向当前仓库。
+2. 创建一个名为 `ai-model-workbench` 的符号链接，指向当前仓库。
 
 Windows（PowerShell）：
 
 ```powershell
 New-Item -ItemType SymbolicLink `
-  -Path "C:\path\to\your-vault\.obsidian\plugins\ai-3d-model-workbench" `
-  -Target "C:\path\to\ai-3d-model-workbench"
+  -Path "C:\path\to\your-vault\.obsidian\plugins\ai-model-workbench" `
+  -Target "C:\path\to\ai-model-workbench"
 ```
 
 macOS / Linux：
 
 ```bash
-ln -s /path/to/ai-3d-model-workbench \
-  /path/to/your-vault/.obsidian/plugins/ai-3d-model-workbench
+ln -s /path/to/ai-model-workbench \
+  /path/to/your-vault/.obsidian/plugins/ai-model-workbench
 ```
 
 3. 如果还没装依赖，先在当前仓库运行一次 `npm install`。
@@ -228,7 +228,7 @@ ln -s /path/to/ai-3d-model-workbench \
 ```3d model.glb
 ```
 ````
-ai-3d-model-workbench/
+ai-model-workbench/
 **完整配置** — 相机、灯光、场景、多模型：
 
 ````markdown
@@ -567,7 +567,7 @@ npm run typecheck     # TypeScript 类型检查
 ### 构建输出
 
 ```
-ai-3d-model-workbench/
+ai-model-workbench/
 ├── main.js           # 1.7 MB（压缩后，Babylon.js 核心）
 ├── manifest.json     # 插件清单
 ├── styles.css        # 插件样式
