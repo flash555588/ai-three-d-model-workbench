@@ -140,6 +140,19 @@ export class AI3DSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName(t("settings.annotationPreviewMode"))
+      .setDesc(t("settings.annotationPreviewMode.desc"))
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("plain-text", t("settings.annotationPreviewMode.plainText"))
+          .addOption("markdown", t("settings.annotationPreviewMode.markdown"))
+          .setValue(this.plugin.getSettings().annotationPreviewMode)
+          .onChange((val: string) => {
+            this.plugin.updateSettings({ annotationPreviewMode: val as "plain-text" | "markdown" });
+          }),
+      );
+
+    new Setting(containerEl)
       .setName(t("settings.autoRotateDefault"))
       .setDesc(t("settings.autoRotateDefault.desc"))
       .addToggle((toggle) =>

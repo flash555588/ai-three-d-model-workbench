@@ -16,7 +16,7 @@ export interface ConverterCommandSpec {
   label: string;
   settingsKey: ConverterCommandSettingKey;
   envVar: string;
-  fallbackCommand: string;
+  fallbackCommands: readonly string[];
   knownCandidates: readonly string[];
 }
 
@@ -27,6 +27,8 @@ export interface ConverterCommandStatus {
   settingsKey: ConverterCommandSettingKey;
   configuredCommand?: string;
   command: string;
+  executable: string;
+  args: readonly string[];
   resolvedPath?: string;
   available: boolean;
   source: ConverterCommandSource;
@@ -49,8 +51,8 @@ const WINDOWS_PATHEXT_FALLBACK = [".exe", ".cmd", ".bat", ".com"];
  */
 function resolvePosixCommandCandidates(...commands: string[]): readonly string[] {
   const baseDirs = proc?.platform === "darwin"
-    ? ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]
-    : ["/usr/bin", "/usr/local/bin", "/opt/homebrew/bin"];
+    ? ["/opt/homebrew/bin", "/usr/local/bin", "/opt/local/bin", "/usr/bin"]
+    : ["/usr/bin", "/usr/local/bin", "/opt/homebrew/bin", "/opt/local/bin"];
 
   return Array.from(new Set(baseDirs.flatMap((dir) => commands.map((command) => `${dir}/${command}`))));
 }
@@ -59,6 +61,8 @@ function resolveFreeCadCandidates(): readonly string[] {
   if (proc?.platform === "darwin") {
     return [
       "/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd",
+      "/Applications/FreeCAD.app/Contents/Resources/bin/FreeCADCmd",
+      "/Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd",
       ...resolvePosixCommandCandidates("FreeCADCmd", "freecadcmd"),
     ];
   }
@@ -101,19 +105,19 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     label: "Python (CadQuery/OCCT)",
     settingsKey: "freecadCommand",
     envVar: "AI3D_FREECAD_CMD",
-    fallbackCommand: proc?.platform === "win32" ? "py" : "python3",
+    fallbackCommands: proc?.platform === "win32" ? ["py"] : ["python3", "python"],
     // Python is discoverable via `py` launcher (Windows) or `python3` (Linux/macOS).
     // No user-specific paths — use settings/env if Python is not on PATH.
     knownCandidates: proc?.platform === "win32"
       ? ["py"]
-      : ["/usr/bin/python3", "/usr/local/bin/python3", "/opt/homebrew/bin/python3", "python3"],
+      : ["/usr/bin/python3", "/usr/local/bin/python3", "/opt/homebrew/bin/python3", "/opt/local/bin/python3"],
   },
   {
     id: "obj2gltf",
     label: "obj2gltf",
     settingsKey: "obj2gltfCommand",
     envVar: "AI3D_OBJ2GLTF_CMD",
-    fallbackCommand: proc?.platform === "win32" ? "obj2gltf.cmd" : "obj2gltf",
+    fallbackCommands: proc?.platform === "win32" ? ["obj2gltf.cmd"] : ["obj2gltf"],
     knownCandidates: proc?.platform === "win32"
       ? ["C:/Users/Public/AppData/Roaming/npm/obj2gltf.cmd"]
       : resolvePosixCommandCandidates("obj2gltf"),
@@ -123,7 +127,7 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     label: "FBX2glTF",
     settingsKey: "fbx2gltfCommand",
     envVar: "AI3D_FBX2GLTF_CMD",
-    fallbackCommand: proc?.platform === "win32" ? "FBX2glTF.exe" : "FBX2glTF",
+    fallbackCommands: proc?.platform === "win32" ? ["FBX2glTF.exe"] : ["FBX2glTF", "fbx2gltf"],
     knownCandidates: proc?.platform === "win32"
       ? [
         "C:/Program Files/FBX2glTF/FBX2glTF-windows-x64.exe",
@@ -136,29 +140,20 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     label: "Python (trimesh)",
     settingsKey: "assimpCommand",
     envVar: "AI3D_ASSIMP_CMD",
-    fallbackCommand: proc?.platform === "win32" ? "py" : "python3",
+    fallbackCommands: proc?.platform === "win32" ? ["py"] : ["python3", "python"],
     knownCandidates: proc?.platform === "win32"
       ? ["py"]
-      : ["/usr/bin/python3", "/usr/local/bin/python3", "/opt/homebrew/bin/python3", "python3"],
+      : ["/usr/bin/python3", "/usr/local/bin/python3", "/opt/homebrew/bin/python3", "/opt/local/bin/python3"],
   },
   {
     id: "freecadcmd",
     label: "FreeCAD (SLDPRT)",
     settingsKey: "freecadcmdCommand",
     envVar: "AI3D_FREECMDCMD",
-    fallbackCommand: proc?.platform === "win32" ? "FreeCADCmd.exe" : "freecadcmd",
+    fallbackCommands: proc?.platform === "win32" ? ["FreeCADCmd.exe"] : ["freecadcmd", "FreeCADCmd"],
     knownCandidates: resolveFreeCadCandidates(),
   },
 ];
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await access(path, F_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 async function isExecutable(path: string): Promise<boolean> {
   try {
@@ -171,7 +166,89 @@ async function isExecutable(path: string): Promise<boolean> {
 
 function normalizeCommandValue(value?: string): string | undefined {
   const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
+  if (!trimmed) {
+    return undefined;
+  }
+  return trimmed;
+}
+
+function splitCommandLine(command: string): string[] {
+  const parts: string[] = [];
+  let current = "";
+  let quote: "\"" | "'" | null = null;
+  let escaping = false;
+
+  for (const ch of command) {
+    if (escaping) {
+      current += ch;
+      escaping = false;
+      continue;
+    }
+
+    if (quote === "'") {
+      if (ch === "'") {
+        quote = null;
+      } else {
+        current += ch;
+      }
+      continue;
+    }
+
+    if (ch === "\\") {
+      escaping = true;
+      continue;
+    }
+
+    if (quote === "\"") {
+      if (ch === "\"") {
+        quote = null;
+      } else {
+        current += ch;
+      }
+      continue;
+    }
+
+    if (ch === "'" || ch === "\"") {
+      quote = ch;
+      continue;
+    }
+
+    if (/\s/.test(ch)) {
+      if (current) {
+        parts.push(current);
+        current = "";
+      }
+      continue;
+    }
+
+    current += ch;
+  }
+
+  if (escaping) {
+    current += "\\";
+  }
+
+  if (quote) {
+    return [command];
+  }
+
+  if (current) {
+    parts.push(current);
+  }
+
+  return parts;
+}
+
+function parseCommandValue(command: string): { executable: string; args: string[] } {
+  const parts = splitCommandLine(command).filter(Boolean);
+  if (parts.length === 0) {
+    return { executable: command, args: [] };
+  }
+
+  return {
+    executable: parts[0],
+    args: parts.slice(1),
+  };
 }
 
 function hasPathHint(command: string): boolean {
@@ -241,11 +318,12 @@ async function inspectDependencyChecks(status: ConverterCommandStatus): Promise<
     return [];
   }
 
-  const command = status.resolvedPath ?? status.command;
+  const command = status.resolvedPath ?? status.executable;
+  const args = [...status.args];
 
   if (status.id === "freecad") {
     try {
-      await execFileAsync(command, ["-c", "import cadquery, trimesh; print('ok')"]);
+      await execFileAsync(command, [...args, "-c", "import cadquery, trimesh; print('ok')"]);
       return [{ kind: "cad-python", ok: true, detail: "" }];
     } catch (err) {
       return [{ kind: "cad-python", ok: false, detail: compactProcessError(err) }];
@@ -254,7 +332,7 @@ async function inspectDependencyChecks(status: ConverterCommandStatus): Promise<
 
   if (status.id === "assimp") {
     try {
-      await execFileAsync(command, ["-c", "import trimesh, numpy, networkx, collada; print('ok')"]);
+      await execFileAsync(command, [...args, "-c", "import trimesh, numpy, networkx, collada; print('ok')"]);
       return [{ kind: "mesh-python", ok: true, detail: "" }];
     } catch (err) {
       return [{ kind: "mesh-python", ok: false, detail: compactProcessError(err) }];
@@ -278,8 +356,10 @@ async function inspectCommandReference(
   source: ConverterCommandSource,
   configuredCommand?: string,
 ): Promise<ConverterCommandStatus> {
-  if (hasPathHint(command)) {
-    const available = await fileExists(command);
+  const parsed = parseCommandValue(command);
+
+  if (hasPathHint(parsed.executable)) {
+    const available = await isExecutable(parsed.executable);
     return {
       id: spec.id,
       label: spec.label,
@@ -287,17 +367,19 @@ async function inspectCommandReference(
       settingsKey: spec.settingsKey,
       configuredCommand,
       command,
-      resolvedPath: available ? command : undefined,
+      executable: parsed.executable,
+      args: parsed.args,
+      resolvedPath: available ? parsed.executable : undefined,
       available,
       source,
       detail: available
         ? `Using ${describeConverterCommandSource(source)} path.`
-        : `Configured path was not found on disk.`,
-      checkedCandidates: [command],
+        : `Configured path was not found or is not executable.`,
+      checkedCandidates: [parsed.executable],
     };
   }
 
-  const resolvedPath = await resolveCommandOnPath(command);
+  const resolvedPath = await resolveCommandOnPath(parsed.executable);
   return {
     id: spec.id,
     label: spec.label,
@@ -305,13 +387,15 @@ async function inspectCommandReference(
     settingsKey: spec.settingsKey,
     configuredCommand,
     command,
+    executable: parsed.executable,
+    args: parsed.args,
     resolvedPath,
     available: !!resolvedPath,
     source,
     detail: resolvedPath
       ? `Resolved from ${describeConverterCommandSource(source)} via PATH lookup.`
       : `Command name was not found on PATH.`,
-    checkedCandidates: [command],
+    checkedCandidates: [parsed.executable],
   };
 }
 
@@ -348,13 +432,15 @@ export async function inspectConverterCommand(
   }
 
   for (const candidate of spec.knownCandidates) {
-    if (await fileExists(candidate)) {
+    if (await isExecutable(candidate)) {
       return {
         id: spec.id,
         label: spec.label,
         envVar: spec.envVar,
         settingsKey: spec.settingsKey,
         command: candidate,
+        executable: candidate,
+        args: [],
         resolvedPath: candidate,
         available: true,
         source: "candidate",
@@ -364,17 +450,22 @@ export async function inspectConverterCommand(
     }
   }
 
-  const fallbackStatus = await inspectCommandReference(spec, spec.fallbackCommand, "path");
-  if (fallbackStatus.available) {
-    return fallbackStatus;
+  const fallbackStatuses: ConverterCommandStatus[] = [];
+  for (const fallbackCommand of spec.fallbackCommands) {
+    const fallbackStatus = await inspectCommandReference(spec, fallbackCommand, "path");
+    fallbackStatuses.push(fallbackStatus);
+    if (fallbackStatus.available) {
+      return fallbackStatus;
+    }
   }
 
+  const checkedFallbackCandidates = fallbackStatuses.flatMap((status) => status.checkedCandidates);
   return {
-    ...fallbackStatus,
+    ...fallbackStatuses[0],
     detail: spec.knownCandidates.length
       ? `Not found on PATH. Checked known locations: ${spec.knownCandidates.join("; ")}`
-      : fallbackStatus.detail,
-    checkedCandidates: [...spec.knownCandidates, ...fallbackStatus.checkedCandidates],
+      : "Command name was not found on PATH.",
+    checkedCandidates: [...spec.knownCandidates, ...checkedFallbackCandidates],
   };
 }
 
@@ -392,6 +483,22 @@ export async function inspectAllConverterCommands(settings: ConverterCommandSett
 }
 
 export async function resolveConverterCommand(id: ConverterCommandId, configuredCommand?: string): Promise<string> {
+  const invocation = await resolveConverterInvocation(id, configuredCommand);
+  return invocation.command;
+}
+
+export interface ResolvedConverterInvocation {
+  command: string;
+  args: readonly string[];
+}
+
+export async function resolveConverterInvocation(
+  id: ConverterCommandId,
+  configuredCommand?: string,
+): Promise<ResolvedConverterInvocation> {
   const status = await inspectConverterCommand(id, configuredCommand);
-  return status.resolvedPath ?? status.command;
+  return {
+    command: status.resolvedPath ?? status.executable,
+    args: [...status.args],
+  };
 }

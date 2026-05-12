@@ -40,6 +40,7 @@ class ModelEmbedWidget extends WidgetType {
     private freecadcmdCommand: string,
     private preferObj2gltfForObj: boolean,
     private preferFbx2gltfForFbx: boolean,
+    private annotationPreviewMode: PluginSettings["annotationPreviewMode"],
     private convertedAssetCache: ConvertedAssetCache,
     private getAnnotations?: (modelPath: string) => AnnotationPin[],
   ) {
@@ -59,6 +60,7 @@ class ModelEmbedWidget extends WidgetType {
       this.freecadcmdCommand === other.freecadcmdCommand &&
       this.preferObj2gltfForObj === other.preferObj2gltfForObj &&
       this.preferFbx2gltfForFbx === other.preferFbx2gltfForFbx &&
+      this.annotationPreviewMode === other.annotationPreviewMode &&
       this.convertedAssetCache === other.convertedAssetCache
     );
   }
@@ -149,6 +151,8 @@ class ModelEmbedWidget extends WidgetType {
               pins,
               undefined,
               createNoteReader(this.app),
+              undefined,
+              { app: this.app, previewMode: this.annotationPreviewMode },
             );
           }
         }
@@ -195,6 +199,7 @@ function findEmbeds(
   freecadcmdCommand: string,
   preferObj2gltfForObj: boolean,
   preferFbx2gltfForFbx: boolean,
+  annotationPreviewMode: PluginSettings["annotationPreviewMode"],
   convertedAssetCache: ConvertedAssetCache,
   getAnnotations?: (modelPath: string) => AnnotationPin[],
 ): Range<Decoration>[] {
@@ -266,6 +271,7 @@ function findEmbeds(
             freecadcmdCommand,
             preferObj2gltfForObj,
             preferFbx2gltfForFbx,
+            annotationPreviewMode,
             convertedAssetCache,
             getAnnotations,
           ),
@@ -316,6 +322,7 @@ export function registerLivePreviewExtension(
         s.freecadcmdCommand,
         s.preferObj2gltfForObj,
         s.preferFbx2gltfForFbx,
+        s.annotationPreviewMode,
         convertedAssetCache,
         getAnnotations,
       );
@@ -335,6 +342,7 @@ export function registerLivePreviewExtension(
           s.freecadcmdCommand,
           s.preferObj2gltfForObj,
           s.preferFbx2gltfForFbx,
+          s.annotationPreviewMode,
           convertedAssetCache,
           getAnnotations,
         );

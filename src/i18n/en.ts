@@ -19,6 +19,10 @@ export const en = {
   // Behavior
   "settings.autoGenerateKnowledgeNotes": "Auto-generate knowledge notes",
   "settings.autoGenerateKnowledgeNotes.desc": "Reserved for a future automation flow. For now, generate notes manually from the command or the workbench button.",
+  "settings.annotationPreviewMode": "Annotation preview mode",
+  "settings.annotationPreviewMode.desc": "Choose how bound note previews render in annotation popovers and the editor.",
+  "settings.annotationPreviewMode.plainText": "Plain text",
+  "settings.annotationPreviewMode.markdown": "Markdown",
   "settings.autoRotateDefault": "Auto-rotate by default",
   "settings.autoRotateDefault.desc": "Start model previews with auto-rotation enabled.",
   "settings.snapshotNaming": "Snapshot naming",

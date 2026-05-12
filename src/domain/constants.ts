@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   previewFolder: "Media/3D Previews",
   maxFileSizeMb: 50,
   autoGenerateKnowledgeNotes: true,
+  annotationPreviewMode: "plain-text",
   sendRawModelToRemote: false,
   sendPreviewImagesToRemote: false,
   sendGeometrySummaryToRemote: false,

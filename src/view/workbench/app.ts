@@ -489,6 +489,7 @@ export function mountWorkbench(
               },
               noteReader,
               headingSearch,
+              { app, previewMode: s.annotationPreviewMode },
             );
             preview.onPick((result) => {
               if (!annotationMode || !annotationMgr) return;

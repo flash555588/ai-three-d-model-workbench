@@ -21,6 +21,10 @@ export const zhCN: Record<TranslationKey, string> = {
   // 行为
   "settings.autoGenerateKnowledgeNotes": "自动生成知识笔记",
   "settings.autoGenerateKnowledgeNotes.desc": "预留给后续自动化流程。当前请通过命令或工作台按钮手动生成知识笔记。",
+  "settings.annotationPreviewMode": "标注预览模式",
+  "settings.annotationPreviewMode.desc": "选择标注绑定笔记在悬浮预览和编辑器中的显示方式。",
+  "settings.annotationPreviewMode.plainText": "纯文本",
+  "settings.annotationPreviewMode.markdown": "Markdown",
   "settings.autoRotateDefault": "默认自动旋转",
   "settings.autoRotateDefault.desc": "启动 3D 预览时默认开启自动旋转。",
   "settings.snapshotNaming": "快照命名",

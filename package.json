@@ -2,7 +2,7 @@
   "name": "obsidian-ai-3d-model-workbench",
   "version": "0.1.2",
   "private": true,
-  "description": "Obsidian plugin for viewing 3D assets, annotating them, and linking them to knowledge notes.",
+  "description": "Obsidian plugin for turning 3D models into linked knowledge assets.",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",

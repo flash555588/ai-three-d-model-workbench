@@ -284,6 +284,8 @@ export function registerCodeBlockProcessor(
                   pins,
                   undefined,
                   createNoteReader(app),
+                  undefined,
+                  { app, previewMode: settings.annotationPreviewMode },
                 );
                 toolbar.showAnnotateButton();
                 toolbar.updateAnnotationBadge(pins.length);

@@ -3,7 +3,7 @@ import { F_OK, access, readFile } from "../../../utils/node-shim";
 import { pathDirname as dirname, pathBasename as basename, pathExtname as extname, pathJoin as join, pathIsAbsolute as isAbsolute } from "../../../utils/node-shim";
 import { execFile } from "../../../utils/node-shim";
 import { createLogger } from "../../../utils/log";
-import { resolveConverterCommand } from "../command-discovery";
+import { resolveConverterInvocation } from "../command-discovery";
 
 const log = createLogger("obj2gltf-converter");
 const DEFAULT_TIMEOUT_MS = 3 * 60 * 1000;
@@ -45,7 +45,8 @@ export class Obj2GltfConverter implements ModelConverter {
   constructor(private configuredCommand?: string) {}
 
   async getCacheKey(): Promise<string> {
-    return `${this.id}:${await resolveConverterCommand(this.id, this.configuredCommand)}`;
+    const invocation = await resolveConverterInvocation(this.id, this.configuredCommand);
+    return `${this.id}:${invocation.command} ${invocation.args.join(" ")}`.trim();
   }
 
   async convert(req: ConversionRequest): Promise<ConversionResult> {
@@ -56,7 +57,7 @@ export class Obj2GltfConverter implements ModelConverter {
       );
     }
 
-    const command = await resolveConverterCommand(this.id, this.configuredCommand);
+    const invocation = await resolveConverterInvocation(this.id, this.configuredCommand);
     const sourceDir = dirname(req.sourcePath);
     const name = basename(req.sourcePath, extname(req.sourcePath));
     const outputPath = join(sourceDir, `${name}.ai3d-converted.glb`);
@@ -64,11 +65,12 @@ export class Obj2GltfConverter implements ModelConverter {
     log.info("run obj2gltf conversion", {
       sourcePath: req.sourcePath,
       outputPath,
-      command,
+      command: invocation.command,
+      args: invocation.args,
     });
 
     try {
-      await execFileAsync(command, ["-i", req.sourcePath, "-o", outputPath, "-b"], DEFAULT_TIMEOUT_MS);
+      await execFileAsync(invocation.command, [...invocation.args, "-i", req.sourcePath, "-o", outputPath, "-b"], DEFAULT_TIMEOUT_MS);
     } catch (error) {
       throw new Error(
         `obj2gltf conversion failed for '${req.sourcePath}'. ` +

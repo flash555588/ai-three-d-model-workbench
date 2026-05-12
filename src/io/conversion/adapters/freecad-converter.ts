@@ -4,7 +4,7 @@ import { pathJoin as join, pathDirname as dirname, pathBasename as basename, pat
 import { osTmpdir as tmpdir } from "../../../utils/node-shim";
 import { execFile } from "../../../utils/node-shim";
 import { createLogger } from "../../../utils/log";
-import { resolveConverterCommand } from "../command-discovery";
+import { resolveConverterInvocation } from "../command-discovery";
 
 const log = createLogger("freecad-converter");
 
@@ -343,7 +343,8 @@ export class FreecadConverter implements ModelConverter {
   constructor(private configuredCommand?: string) {}
 
   async getCacheKey(): Promise<string> {
-    return `${this.id}:${await resolveConverterCommand(this.id, this.configuredCommand)}`;
+    const invocation = await resolveConverterInvocation(this.id, this.configuredCommand);
+    return `${this.id}:${invocation.command} ${invocation.args.join(" ")}`.trim();
   }
 
   async convert(req: ConversionRequest): Promise<ConversionResult> {
@@ -354,7 +355,7 @@ export class FreecadConverter implements ModelConverter {
       );
     }
 
-    const command = await resolveConverterCommand(this.id, this.configuredCommand);
+    const invocation = await resolveConverterInvocation(this.id, this.configuredCommand);
     const sourceDir = dirname(req.sourcePath);
     const name = basename(req.sourcePath, extname(req.sourcePath));
     const outputPath = join(sourceDir, `${name}.ai3d-converted.glb`);
@@ -367,11 +368,12 @@ export class FreecadConverter implements ModelConverter {
     log.info("run CAD conversion (CadQuery/OCCT)", {
       sourcePath: req.sourcePath,
       outputPath,
-      command,
+      command: invocation.command,
+      args: invocation.args,
     });
 
     try {
-      await execFileAsync(command, [scriptPath], DEFAULT_TIMEOUT_MS);
+      await execFileAsync(invocation.command, [...invocation.args, scriptPath], DEFAULT_TIMEOUT_MS);
     } catch (error) {
       throw new Error(
         `CAD conversion failed for '${req.sourcePath}'. ` +

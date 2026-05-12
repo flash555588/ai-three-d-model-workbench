@@ -4,7 +4,7 @@ import { pathJoin as join, pathDirname as dirname, pathBasename as basename, pat
 import { osTmpdir as tmpdir } from "../../../utils/node-shim";
 import { execFile } from "../../../utils/node-shim";
 import { createLogger } from "../../../utils/log";
-import { resolveConverterCommand } from "../command-discovery";
+import { resolveConverterInvocation } from "../command-discovery";
 
 const log = createLogger("sldprt-converter");
 
@@ -222,7 +222,8 @@ export class SldprtConverter implements ModelConverter {
   constructor(private configuredCommand?: string) {}
 
   async getCacheKey(): Promise<string> {
-    return `${this.id}:${await resolveConverterCommand("freecadcmd", this.configuredCommand)}`;
+    const invocation = await resolveConverterInvocation("freecadcmd", this.configuredCommand);
+    return `${this.id}:${invocation.command} ${invocation.args.join(" ")}`.trim();
   }
 
   async convert(req: ConversionRequest): Promise<ConversionResult> {
@@ -233,7 +234,7 @@ export class SldprtConverter implements ModelConverter {
       );
     }
 
-    const command = await resolveConverterCommand("freecadcmd", this.configuredCommand);
+    const invocation = await resolveConverterInvocation("freecadcmd", this.configuredCommand);
     const sourceDir = dirname(req.sourcePath);
     const name = basename(req.sourcePath, extname(req.sourcePath));
     const outputPath = join(sourceDir, `${name}.ai3d-converted.glb`);
@@ -246,11 +247,12 @@ export class SldprtConverter implements ModelConverter {
     log.info("run SLDPRT conversion (FreeCAD + OCP)", {
       sourcePath: req.sourcePath,
       outputPath,
-      command,
+      command: invocation.command,
+      args: invocation.args,
     });
 
     try {
-      const { stdout, stderr } = await execFileAsync(command, [scriptPath], DEFAULT_TIMEOUT_MS);
+      const { stdout, stderr } = await execFileAsync(invocation.command, [...invocation.args, scriptPath], DEFAULT_TIMEOUT_MS);
       if (stdout) log.info("FreeCAD stdout", { stdout: stdout.trim().slice(0, 500) });
       if (stderr) log.warn("FreeCAD stderr", { stderr: stderr.trim().slice(0, 500) });
     } catch (error) {

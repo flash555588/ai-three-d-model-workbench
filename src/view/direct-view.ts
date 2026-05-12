@@ -187,6 +187,7 @@ export class DirectModelView extends FileView {
           },
           noteReader,
           headingSearch,
+          { app: this.app, previewMode: this.getSettings().annotationPreviewMode },
         );
 
         // Show annotate button with badge

@@ -15,6 +15,7 @@ export interface PluginSettings {
   previewFolder: string;
   maxFileSizeMb: number;
   autoGenerateKnowledgeNotes: boolean;
+  annotationPreviewMode: "plain-text" | "markdown";
   sendRawModelToRemote: boolean;
   sendPreviewImagesToRemote: boolean;
   sendGeometrySummaryToRemote: boolean;

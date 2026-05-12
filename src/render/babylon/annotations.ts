@@ -1,13 +1,25 @@
+import { App, Component, MarkdownRenderer } from "obsidian";
 import type { Scene } from "@babylonjs/core/scene.js";
 import type { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera.js";
 import type { Engine } from "@babylonjs/core/Engines/engine.js";
 import { Vector3, Matrix } from "@babylonjs/core/Maths/math.vector.js";
 import { Ray } from "@babylonjs/core/Culling/ray.core.js";
-import type { AnnotationPin } from "../../domain/models";
+import type { AnnotationPin, PluginSettings } from "../../domain/models";
 import type { HeadingSearchResult } from "../../utils/note-reader";
 import { formatT, t } from "../../i18n";
 
-const DEFAULT_COLORS = ["#4a9eff", "#ff6b6b", "#51cf66", "#ffd43b"];
+const DEFAULT_COLORS = [
+  "#4a9eff",
+  "#ff6b6b",
+  "#51cf66",
+  "#ffd43b",
+  "#845ef7",
+  "#ff922b",
+  "#22b8cf",
+  "#f06595",
+  "#94d82d",
+  "#ffa8a8",
+];
 let globalNextId = 1;
 
 function generateId(): string {
@@ -23,6 +35,11 @@ export interface AnnotationSceneProvider {
 }
 
 export type AnnotationMode = "edit" | "readonly";
+
+export interface AnnotationPreviewOptions {
+  app?: App;
+  previewMode?: PluginSettings["annotationPreviewMode"];
+}
 
 export class AnnotationManager {
   private overlay: HTMLDivElement;
@@ -49,6 +66,10 @@ export class AnnotationManager {
   private _headingDropdown: HTMLDivElement | null = null;
   private _headingDebounce: ReturnType<typeof activeWindow.setTimeout> | null = null;
   private _selectedHeading: HeadingSearchResult | null = null;
+  private readonly previewRenderRoot = new Component();
+  private readonly previewRenderChildren = new WeakMap<HTMLElement, Component>();
+  private readonly previewApp?: App;
+  private readonly previewMode: PluginSettings["annotationPreviewMode"];
 
   constructor(
     private provider: AnnotationSceneProvider,
@@ -58,7 +79,12 @@ export class AnnotationManager {
     private onChange?: (pins: AnnotationPin[]) => void,
     private noteReader?: (notePath: string, heading: string) => Promise<string | null>,
     private headingSearch?: (query: string) => HeadingSearchResult[],
+    previewOptions: AnnotationPreviewOptions = {},
   ) {
+    this.previewApp = previewOptions.app;
+    this.previewMode = previewOptions.previewMode ?? "plain-text";
+    this.previewRenderRoot.load();
+
     // Create overlay container on hostEl (in DOM) to inherit Obsidian CSS variables
     this.overlay = this.hostEl.createDiv({ cls: "ai3d-annotation-overlay" });
 
@@ -75,6 +101,7 @@ export class AnnotationManager {
     this.disposeCallbacks.push(() =>
       activeDocument.removeEventListener("ai3d-pin-highlight", this._highlightHandler!),
     );
+    this.disposeCallbacks.push(() => this.previewRenderRoot.unload());
 
     // Start projection update loop
     this.startProjectionLoop();
@@ -319,19 +346,24 @@ export class AnnotationManager {
 
     // ── Color swatches ──
     const colorRow = editor.createDiv({ cls: "ai3d-annotation-editor-colors" });
-    let selectedColor = existingPin?.color ?? DEFAULT_COLORS[0];
-    for (const c of DEFAULT_COLORS) {
+    const initialColor = existingPin?.color?.trim();
+    let selectedColor = initialColor || DEFAULT_COLORS[0];
+    const paletteColors = initialColor && !DEFAULT_COLORS.includes(initialColor)
+      ? [initialColor, ...DEFAULT_COLORS]
+      : DEFAULT_COLORS;
+    for (const c of paletteColors) {
       const swatch = colorRow.createEl("button", { cls: "ai3d-pin-color-swatch" });
       swatch.type = "button";
       swatch.title = c;
       swatch.setAttribute("aria-label", formatT("annotation.selectColor", { color: c }));
-      swatch.setCssProps({ "--swatch-color": c });
-      if (c === selectedColor) swatch.classList.add("active");
+      swatch.style.setProperty("--swatch-color", c);
+      swatch.style.backgroundColor = c;
+      if (c === selectedColor) swatch.classList.add("is-selected");
       swatch.addEventListener("click", (e) => {
         e.stopPropagation();
         selectedColor = c;
-        colorRow.querySelectorAll(".ai3d-pin-color-swatch").forEach(s => s.classList.remove("active"));
-        swatch.classList.add("active");
+        colorRow.querySelectorAll(".ai3d-pin-color-swatch").forEach(s => s.classList.remove("is-selected"));
+        swatch.classList.add("is-selected");
       });
     }
 
@@ -415,6 +447,10 @@ export class AnnotationManager {
     this._headingDropdown = null;
     this._selectedHeading = null;
     if (this.editorEl) {
+      const previewEl = this.editorEl.querySelector<HTMLDivElement>(".ai3d-editor-content-preview");
+      if (previewEl) {
+        this.clearRenderedPreview(previewEl);
+      }
       this.editorEl.remove();
       this.editorEl = null;
     }
@@ -422,7 +458,7 @@ export class AnnotationManager {
 
   private async loadContentPreview(el: HTMLDivElement, notePath: string, heading: string): Promise<void> {
     if (!this.noteReader) return;
-    el.textContent = "";
+    this.clearRenderedPreview(el);
     el.classList.add("is-hidden");
     const content = await this.noteReader(notePath, heading);
     if (!content) {
@@ -431,11 +467,7 @@ export class AnnotationManager {
       el.classList.remove("is-hidden");
       return;
     }
-    // Truncate long content
-    const truncated = content.length > 300 ? content.slice(0, 300) + "..." : content;
-    el.textContent = truncated;
-    el.className = "ai3d-editor-content-preview";
-    el.classList.remove("is-hidden");
+    await this.renderPreviewContent(el, content, notePath, "editor");
   }
 
   private async showHoverPopover(pinEl: HTMLDivElement, pin: AnnotationPin): Promise<void> {
@@ -452,7 +484,7 @@ export class AnnotationManager {
     title.textContent = pin.headingRef;
 
     const body = popover.createDiv({ cls: "ai3d-pin-popover-body" });
-    body.textContent = content;
+    await this.renderPreviewContent(body, content, pin.notePath, "popover");
 
     // Position relative to pin
     const rect = pinEl.getBoundingClientRect();
@@ -466,8 +498,64 @@ export class AnnotationManager {
   private hideHoverPopover(): void {
     if (this.hoverTimeout) { activeWindow.clearTimeout(this.hoverTimeout); this.hoverTimeout = null; }
     if (this.hoverPopover) {
+      const body = this.hoverPopover.querySelector<HTMLDivElement>(".ai3d-pin-popover-body");
+      if (body) {
+        this.clearRenderedPreview(body);
+      }
       this.hoverPopover.remove();
       this.hoverPopover = null;
+    }
+  }
+
+  private clearRenderedPreview(el: HTMLElement): void {
+    const child = this.previewRenderChildren.get(el);
+    if (child) {
+      this.previewRenderRoot.removeChild(child);
+      this.previewRenderChildren.delete(el);
+    }
+    el.replaceChildren();
+  }
+
+  private async renderPreviewContent(
+    el: HTMLDivElement,
+    content: string,
+    notePath: string,
+    target: "editor" | "popover",
+  ): Promise<void> {
+    const shouldRenderMarkdown = this.previewMode === "markdown" && !!this.previewApp;
+    const isEditor = target === "editor";
+
+    if (!shouldRenderMarkdown) {
+      const truncated = isEditor && content.length > 300 ? content.slice(0, 300) + "..." : content;
+      el.textContent = truncated;
+      el.className = isEditor ? "ai3d-editor-content-preview" : "ai3d-pin-popover-body";
+      if (isEditor) {
+        el.classList.remove("is-hidden");
+      }
+      return;
+    }
+
+    el.className = isEditor
+      ? "ai3d-editor-content-preview ai3d-editor-content-preview--markdown markdown-rendered"
+      : "ai3d-pin-popover-body ai3d-pin-popover-body--markdown markdown-rendered";
+    if (isEditor) {
+      el.classList.remove("is-hidden");
+    }
+
+    const renderChild = this.previewRenderRoot.addChild(new Component());
+    this.previewRenderChildren.set(el, renderChild);
+
+    try {
+      await MarkdownRenderer.render(this.previewApp, content, el, notePath, renderChild);
+    } catch (error) {
+      this.previewRenderRoot.removeChild(renderChild);
+      this.previewRenderChildren.delete(el);
+      el.textContent = isEditor && content.length > 300 ? content.slice(0, 300) + "..." : content;
+      el.className = isEditor ? "ai3d-editor-content-preview" : "ai3d-pin-popover-body";
+      if (isEditor) {
+        el.classList.remove("is-hidden");
+      }
+      console.warn("[AI3D] Annotation markdown preview fallback:", error);
     }
   }
 
