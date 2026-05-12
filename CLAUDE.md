@@ -19,7 +19,7 @@ No test runner is configured. The only verification gate is `typecheck`.
 
 ## Architecture
 
-Entry point: `src/main.ts` → esbuild bundles to `main.js` (CJS, ES2018). `main.js` + `manifest.json` + `styles.css` are deployed to the Obsidian vault's `.obsidian/plugins/ai-3d-model-workbench/`.
+Entry point: `src/main.ts` → esbuild bundles to `main.js` (CJS, ES2018). `main.js` + `manifest.json` + `styles.css` are deployed to the Obsidian vault's `.obsidian/plugins/ai-three-d-model-workbench/`.
 
 ### Layer Layout
 

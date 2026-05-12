@@ -123,8 +123,12 @@ export default class AI3DModelWorkbench extends Plugin {
       ".cm-header-4", ".cm-header-5", ".cm-header-6",
     ].join(", ");
 
-    // Track bound elements for cleanup
-    const boundEntries: { el: Element; handler: () => void }[] = [];
+    type BoundHeadingEntry = {
+      badge: HTMLSpanElement;
+      handler: () => void;
+      signature: string;
+    };
+    const boundEntries = new Map<Element, BoundHeadingEntry>();
 
     // Build headingRef → [{ pinId, modelPath, color }] map from stored annotations.
     // Supports multiple pins/models per heading.
@@ -146,8 +150,10 @@ export default class AI3DModelWorkbench extends Plugin {
       for (const [modelPath, profile] of Object.entries(profiles)) {
         for (const pin of profile.annotations) {
           if (pin.headingRef && pin.id) {
-            let arr = map.get(pin.headingRef);
-            if (!arr) { arr = []; map.set(pin.headingRef, arr); }
+            const headingKey = normalizeHeadingText(pin.headingRef);
+            if (!headingKey) continue;
+            let arr = map.get(headingKey);
+            if (!arr) { arr = []; map.set(headingKey, arr); }
             arr.push({ pinId: pin.id, modelPath, color: pin.color });
           }
         }
@@ -155,24 +161,51 @@ export default class AI3DModelWorkbench extends Plugin {
       return map;
     };
 
-    // Normalize all headingRef keys for robust matching
-    const normalizedMap = new Map<string, PinEntry[]>();
-    const buildNormalizedMap = (headingMap: Map<string, PinEntry[]>): void => {
-      normalizedMap.clear();
-      for (const [key, entries] of headingMap) {
-        normalizedMap.set(normalizeHeadingText(key), entries);
-      }
+    const buildEntriesSignature = (entries: PinEntry[]): string => entries
+      .map((entry) => `${entry.pinId}:${entry.modelPath}:${entry.color}`)
+      .sort()
+      .join("|");
+
+    const buildHeadingMapSignature = (headingMap: Map<string, PinEntry[]>): string => Array
+      .from(headingMap.entries())
+      .map(([key, entries]) => `${key}=>${buildEntriesSignature(entries)}`)
+      .sort()
+      .join("||");
+
+    const getHeadingText = (el: Element): string => normalizeHeadingText(
+      Array.from(el.childNodes)
+        .map((node) => {
+          if (node.instanceOf(Element) && node.classList.contains("ai3d-heading-pin-badge")) {
+            return "";
+          }
+          return node.textContent ?? "";
+        })
+        .join(" "),
+    );
+
+    const unbindHeading = (el: Element): void => {
+      const existing = boundEntries.get(el);
+      if (!existing) return;
+      el.removeEventListener("mouseover", existing.handler);
+      existing.badge.remove();
+      delete (el as HTMLElement).dataset.pinBound;
+      boundEntries.delete(el);
     };
 
-    const bindHeading = (el: Element) => {
-      if ((el as HTMLElement).dataset.pinBound) return;
+    const bindHeading = (el: Element, entries: PinEntry[]): void => {
+      if (entries.length === 0) {
+        unbindHeading(el);
+        return;
+      }
 
-      const text = el.textContent ?? "";
-      const headingText = normalizeHeadingText(text);
-      const entries = normalizedMap.get(headingText);
+      const signature = buildEntriesSignature(entries);
+      const existing = boundEntries.get(el);
+      if (existing?.signature === signature) return;
+      if (existing) {
+        unbindHeading(el);
+      }
 
-      if (!entries || entries.length === 0) return;
-      (el as HTMLElement).dataset.pinBound = entries[0].pinId;
+      (el as HTMLElement).dataset.pinBound = signature;
 
       // Add pin badge: shows count if multiple, tooltip lists model sources
       // Create on heading element (in DOM) to inherit Obsidian CSS variables
@@ -216,31 +249,71 @@ export default class AI3DModelWorkbench extends Plugin {
         }
       };
       el.addEventListener("mouseover", handler);
-      boundEntries.push({ el, handler });
+      boundEntries.set(el, { badge, handler, signature });
     };
 
-    const processHeadings = (container: Element) => {
+    const syncHeadingElement = (el: Element, headingMap: Map<string, PinEntry[]>): void => {
+      const headingText = getHeadingText(el);
+      bindHeading(el, headingMap.get(headingText) ?? []);
+    };
+
+    const reconcileBoundHeadings = (headingMap: Map<string, PinEntry[]>): void => {
+      for (const [el, entry] of Array.from(boundEntries.entries())) {
+        if (!el.isConnected) {
+          unbindHeading(el);
+          continue;
+        }
+        const nextEntries = headingMap.get(getHeadingText(el)) ?? [];
+        const nextSignature = buildEntriesSignature(nextEntries);
+        if (nextEntries.length === 0 || entry.signature !== nextSignature) {
+          bindHeading(el, nextEntries);
+        }
+      }
+    };
+
+    const processHeadings = (container: Element, headingMap: Map<string, PinEntry[]>): void => {
+      container.querySelectorAll(headingSelector).forEach((el) => syncHeadingElement(el, headingMap));
+    };
+
+    const scanAll = (): void => {
       const headingMap = buildHeadingMap();
-      if (headingMap.size === 0) return;
-      buildNormalizedMap(headingMap);
-      container.querySelectorAll(headingSelector).forEach((el) => bindHeading(el));
+      reconcileBoundHeadings(headingMap);
+      const containers = activeDocument.querySelectorAll(markdownContainerSelector);
+      containers.forEach((container) => processHeadings(container, headingMap));
     };
 
-    const scanAll = () => {
-      const containers = activeDocument.querySelectorAll(markdownContainerSelector);
-      containers.forEach(processHeadings);
+    let lastHeadingMapSignature = buildHeadingMapSignature(buildHeadingMap());
+    let scanTimer = 0;
+    const scheduleScan = (delay = 0): void => {
+      if (scanTimer) {
+        activeWindow.clearTimeout(scanTimer);
+      }
+      scanTimer = activeWindow.setTimeout(() => {
+        scanTimer = 0;
+        scanAll();
+      }, delay);
     };
+
+    const unsubscribeStore = this.ps.store.subscribe(() => {
+      const nextHeadingMap = buildHeadingMap();
+      const nextSignature = buildHeadingMapSignature(nextHeadingMap);
+      if (nextSignature === lastHeadingMapSignature) return;
+      lastHeadingMapSignature = nextSignature;
+      scheduleScan();
+    });
 
     this.registerEvent(this.app.workspace.on("layout-change", () => {
-      activeWindow.setTimeout(scanAll, 200);
+      scheduleScan(200);
     }));
 
     // Debounced MutationObserver: coalesce rapid DOM changes into a single scan
-    const isRelevantAddedNode = (node: HTMLElement): boolean => {
-      if (!node.isConnected) return false;
+    const matchesRelevantNode = (node: HTMLElement): boolean => {
       if (node.matches(markdownContainerSelector) || node.matches(headingSelector)) return true;
       return !!node.querySelector(markdownContainerSelector) || !!node.querySelector(headingSelector);
     };
+
+    const isRelevantAddedNode = (node: HTMLElement): boolean => node.isConnected && matchesRelevantNode(node);
+    const isRelevantRemovedNode = (node: HTMLElement): boolean => matchesRelevantNode(node);
 
     let pendingNodes = new Set<HTMLElement>();
     let debounceTimer = 0;
@@ -249,24 +322,35 @@ export default class AI3DModelWorkbench extends Plugin {
       pendingNodes.clear();
       debounceTimer = 0;
       const headingMap = buildHeadingMap();
-      if (headingMap.size === 0) return;
-      buildNormalizedMap(headingMap);
+      reconcileBoundHeadings(headingMap);
       for (const node of nodes) {
         if (!node.isConnected) continue;
-        if (node.matches?.(headingSelector)) bindHeading(node);
-        node.querySelectorAll?.(headingSelector)?.forEach((el: Element) => bindHeading(el));
+        if (node.matches?.(headingSelector)) syncHeadingElement(node, headingMap);
+        node.querySelectorAll?.(headingSelector)?.forEach((el: Element) => syncHeadingElement(el, headingMap));
+        if (node.matches?.(markdownContainerSelector)) {
+          processHeadings(node, headingMap);
+        }
+        node.querySelectorAll?.(markdownContainerSelector)?.forEach((el: Element) => processHeadings(el, headingMap));
       }
+      lastHeadingMapSignature = buildHeadingMapSignature(headingMap);
     };
 
     const observer = new MutationObserver((mutations) => {
+      let shouldFlush = false;
       for (const m of mutations) {
         for (const node of Array.from(m.addedNodes)) {
           if (!node.instanceOf(HTMLElement)) continue;
           if (!isRelevantAddedNode(node)) continue;
           pendingNodes.add(node);
+          shouldFlush = true;
+        }
+        for (const node of Array.from(m.removedNodes)) {
+          if (!node.instanceOf(HTMLElement)) continue;
+          if (!isRelevantRemovedNode(node)) continue;
+          shouldFlush = true;
         }
       }
-      if (pendingNodes.size > 0 && !debounceTimer) {
+      if (shouldFlush && !debounceTimer) {
         debounceTimer = activeWindow.setTimeout(flushPending, 100);
       }
     });
@@ -274,17 +358,17 @@ export default class AI3DModelWorkbench extends Plugin {
 
     // Cleanup: disconnect observer, remove all heading listeners
     this.register(() => {
+      unsubscribeStore();
       observer.disconnect();
       if (debounceTimer) { activeWindow.clearTimeout(debounceTimer); debounceTimer = 0; }
-      for (const { el, handler } of boundEntries) {
-        el.removeEventListener("mouseover", handler);
-        el.removeEventListener("click", handler);
+      if (scanTimer) { activeWindow.clearTimeout(scanTimer); scanTimer = 0; }
+      for (const el of Array.from(boundEntries.keys())) {
+        unbindHeading(el);
       }
-      boundEntries.length = 0;
     });
 
     // Initial scan
-    activeWindow.setTimeout(scanAll, 500);
+    scheduleScan(500);
   }
 
   private async activateView() {

@@ -62,6 +62,7 @@ export class AnnotationManager {
   private static readonly _scratchRay = new Ray(Vector3.Zero(), Vector3.Zero(), 1);
   private hoverPopover: HTMLDivElement | null = null;
   private hoverTimeout: ReturnType<typeof activeWindow.setTimeout> | null = null;
+  private hoverRequestId = 0;
   private _highlightHandler: ((e: Event) => void) | null = null;
   private _pulseTimeout: ReturnType<typeof activeWindow.setTimeout> | null = null;
   private _headingDropdown: HTMLDivElement | null = null;
@@ -471,21 +472,30 @@ export class AnnotationManager {
     await this.renderPreviewContent(el, content, notePath, "editor");
   }
 
-  private async showHoverPopover(pinEl: HTMLDivElement, pin: AnnotationPin): Promise<void> {
+  private async showHoverPopover(requestId: number, pinEl: HTMLDivElement, pin: AnnotationPin): Promise<void> {
     if (!this.noteReader || !pin.notePath || !pin.headingRef) return;
     this.hideHoverPopover();
 
     const content = await this.noteReader(pin.notePath, pin.headingRef);
-    if (!content) return;
+    if (!content || requestId !== this.hoverRequestId || !pinEl.isConnected || !this.hostEl.isConnected) return;
 
-    // Create on hostEl (in DOM) to inherit Obsidian CSS variables
-    const popover = this.hostEl.createDiv({ cls: "ai3d-pin-popover" });
+    const popover = activeDocument.createElement("div");
+    popover.className = "ai3d-pin-popover";
 
-    const title = popover.createDiv({ cls: "ai3d-pin-popover-title" });
+    const title = activeDocument.createElement("div");
+    title.className = "ai3d-pin-popover-title";
     title.textContent = pin.headingRef;
+    popover.appendChild(title);
 
-    const body = popover.createDiv({ cls: "ai3d-pin-popover-body" });
+    const body = activeDocument.createElement("div");
+    body.className = "ai3d-pin-popover-body";
+    popover.appendChild(body);
     await this.renderPreviewContent(body, content, pin.notePath, "popover");
+
+    if (requestId !== this.hoverRequestId || !pinEl.isConnected || !this.hostEl.isConnected) {
+      this.clearRenderedPreview(body);
+      return;
+    }
 
     // Position relative to pin
     const rect = pinEl.getBoundingClientRect();
@@ -576,6 +586,7 @@ export class AnnotationManager {
   }
 
   destroy(): void {
+    this.hoverRequestId++;
     this.hideHoverPopover();
     if (this._pulseTimeout) { activeWindow.clearTimeout(this._pulseTimeout); this._pulseTimeout = null; }
     if (this._headingDebounce) { activeWindow.clearTimeout(this._headingDebounce); this._headingDebounce = null; }
@@ -629,12 +640,17 @@ export class AnnotationManager {
     // Hover popover for linked notes
     if (pin.notePath && pin.headingRef && this.noteReader) {
       el.addEventListener("mouseenter", () => {
+        if (this.hoverTimeout) { activeWindow.clearTimeout(this.hoverTimeout); }
+        const requestId = ++this.hoverRequestId;
         this.hoverTimeout = activeWindow.setTimeout(() => {
-          void this.showHoverPopover(el, pin);
+          this.hoverTimeout = null;
+          if (requestId !== this.hoverRequestId) return;
+          void this.showHoverPopover(requestId, el, pin);
         }, 300);
       });
       el.addEventListener("mouseleave", () => {
         if (this.hoverTimeout) { activeWindow.clearTimeout(this.hoverTimeout); this.hoverTimeout = null; }
+        this.hoverRequestId++;
         this.hideHoverPopover();
       });
     }
