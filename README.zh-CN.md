@@ -18,6 +18,7 @@
 - [使用方法](#使用方法)
 - [设置选项](#设置选项)
 - [外部依赖](#外部依赖)
+- [安全与隐私](#安全与隐私)
 - [技术细节](#技术细节)
 - [已知限制](#已知限制)
 - [部署指南](#部署指南)
@@ -167,6 +168,16 @@ ln -s /path/to/ai-model-workbench \
 ![[model.glb]]
 ![[model.glb|400x300]]
 ```
+
+---
+
+## 安全与隐私
+
+AI Model Workbench 不收集遥测数据，不会主动回传，也不会运行后台网络同步。模型预览读取的是已经存在于 Obsidian vault 中的本地文件；OBJ 的 MTL 材质和纹理引用会从 vault 内解析，而不是从网络下载。
+
+打包后的 Babylon.js 运行时包含面向 Web 应用的通用 URL 加载工具。该插件会把 vault 文件字节以 data URL 传给 Babylon，并覆盖 OBJ MTL 加载逻辑以避免远程请求。可选的转换器诊断和格式转换只会在用户主动操作后运行，并且只在桌面端调用本地工具。
+
+发布资产仅限 Obsidian 会下载的三个文件：`main.js`、`manifest.json` 和 `styles.css`。GitHub Actions 会从源码构建这些文件，并为它们发布 artifact attestation，便于验证来源。
 
 ---
 
@@ -573,6 +584,10 @@ ai-model-workbench/
 ├── styles.css        # 插件样式
 └── src/              # 源代码
 ```
+
+### 发布流程
+
+发布由 GitHub Actions 的 `Release` workflow 完成。推送一个与 `manifest.json` 版本匹配的 tag，例如 `v0.1.7`，或手动运行该 workflow。它只上传 `main.js`、`manifest.json` 和 `styles.css`，会删除不受支持的 release asset，并为发布文件生成 GitHub artifact attestation。
 
 ### 平台支持
 

@@ -18,6 +18,7 @@
 - [Usage](#usage)
 - [Settings](#settings)
 - [External Dependencies](#external-dependencies)
+- [Security & Privacy](#security--privacy)
 - [Technical Details](#technical-details)
 - [Known Limitations](#known-limitations)
 - [Deployment](#deployment)
@@ -167,6 +168,16 @@ ln -s /path/to/ai-model-workbench \
 ![[model.glb]]
 ![[model.glb|400x300]]
 ```
+
+---
+
+## Security & Privacy
+
+AI Model Workbench does not collect telemetry, phone home, or run background network sync. Model previews are loaded from files already present in the Obsidian vault, and OBJ material/texture references are resolved from the vault instead of being fetched from the network.
+
+The bundled Babylon.js runtime contains generic loader utilities that are capable of loading URLs for web applications. This plugin passes vault file bytes to Babylon as data URLs and overrides OBJ MTL loading to avoid remote fetches. Optional converter diagnostics and conversions run only after a user action and execute local tools on desktop platforms.
+
+Release assets are limited to the three files Obsidian downloads: `main.js`, `manifest.json`, and `styles.css`. GitHub Actions builds these files from source and publishes artifact attestations for provenance verification.
 
 ---
 
@@ -575,6 +586,10 @@ ai-model-workbench/
 ├── styles.css        # Plugin styles
 └── src/              # Source code
 ```
+
+### Release Publishing
+
+Releases are published by the GitHub Actions `Release` workflow. Push a tag that matches `manifest.json`, for example `v0.1.7`, or run the workflow manually. The workflow uploads only `main.js`, `manifest.json`, and `styles.css`, removes unsupported release assets, and generates GitHub artifact attestations for the published files.
 
 ### Platform Support
 
