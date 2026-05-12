@@ -38,7 +38,7 @@ export interface ConverterCommandStatus {
 }
 
 export interface ConverterDependencyCheck {
-  kind: "cad-python" | "mesh-python";
+  kind: "cad-python" | "mesh-python" | "freecadcmd-cli" | "obj2gltf-cli" | "fbx2gltf-cli";
   ok: boolean;
   detail: string;
 }
@@ -52,7 +52,7 @@ const WINDOWS_PATHEXT_FALLBACK = [".exe", ".cmd", ".bat", ".com"];
 function resolvePosixCommandCandidates(...commands: string[]): readonly string[] {
   const baseDirs = proc?.platform === "darwin"
     ? ["/opt/homebrew/bin", "/usr/local/bin", "/opt/local/bin", "/usr/bin"]
-    : ["/usr/bin", "/usr/local/bin", "/opt/homebrew/bin", "/opt/local/bin"];
+    : ["/usr/local/bin", "/opt/homebrew/bin", "/opt/local/bin", "/usr/bin"];
 
   return Array.from(new Set(baseDirs.flatMap((dir) => commands.map((command) => `${dir}/${command}`))));
 }
@@ -69,10 +69,11 @@ function resolveFreeCadCandidates(): readonly string[] {
 
   if (proc?.platform !== "win32") {
     return [
-      "/usr/bin/freecadcmd",
       "/usr/local/bin/freecadcmd",
       "/opt/homebrew/bin/freecadcmd",
+      "/opt/local/bin/freecadcmd",
       "/snap/freecad/current/usr/bin/freecadcmd",
+      "/usr/bin/freecadcmd",
     ];
   }
 
@@ -110,7 +111,7 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     // No user-specific paths — use settings/env if Python is not on PATH.
     knownCandidates: proc?.platform === "win32"
       ? ["py"]
-      : ["/usr/bin/python3", "/usr/local/bin/python3", "/opt/homebrew/bin/python3", "/opt/local/bin/python3"],
+      : ["/usr/local/bin/python3", "/opt/homebrew/bin/python3", "/opt/local/bin/python3", "/usr/bin/python3"],
   },
   {
     id: "obj2gltf",
@@ -143,7 +144,7 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     fallbackCommands: proc?.platform === "win32" ? ["py"] : ["python3", "python"],
     knownCandidates: proc?.platform === "win32"
       ? ["py"]
-      : ["/usr/bin/python3", "/usr/local/bin/python3", "/opt/homebrew/bin/python3", "/opt/local/bin/python3"],
+      : ["/usr/local/bin/python3", "/opt/homebrew/bin/python3", "/opt/local/bin/python3", "/usr/bin/python3"],
   },
   {
     id: "freecadcmd",
@@ -313,6 +314,33 @@ function compactProcessError(err: unknown): string {
   return oneLine.length > 180 ? `${oneLine.slice(0, 177)}...` : oneLine;
 }
 
+async function runCommandSmokeCheck(
+  command: string,
+  baseArgs: readonly string[],
+  probes: readonly (readonly string[])[],
+  okPattern: RegExp,
+): Promise<{ ok: boolean; detail: string }> {
+  let lastDetail = "";
+
+  for (const probeArgs of probes) {
+    try {
+      await execFileAsync(command, [...baseArgs, ...probeArgs]);
+      return { ok: true, detail: "" };
+    } catch (err) {
+      const detail = compactProcessError(err);
+      if (okPattern.test(detail)) {
+        return { ok: true, detail: "" };
+      }
+      lastDetail = detail;
+    }
+  }
+
+  return {
+    ok: false,
+    detail: lastDetail || "Command probe failed.",
+  };
+}
+
 async function inspectDependencyChecks(status: ConverterCommandStatus): Promise<readonly ConverterDependencyCheck[]> {
   if (!status.available) {
     return [];
@@ -337,6 +365,36 @@ async function inspectDependencyChecks(status: ConverterCommandStatus): Promise<
     } catch (err) {
       return [{ kind: "mesh-python", ok: false, detail: compactProcessError(err) }];
     }
+  }
+
+  if (status.id === "freecadcmd") {
+    const probe = await runCommandSmokeCheck(
+      command,
+      args,
+      [["--version"], ["--help"]],
+      /freecad|usage|help|version/i,
+    );
+    return [{ kind: "freecadcmd-cli", ok: probe.ok, detail: probe.detail }];
+  }
+
+  if (status.id === "obj2gltf") {
+    const probe = await runCommandSmokeCheck(
+      command,
+      args,
+      [["--version"], ["--help"]],
+      /obj2gltf|usage|help|version/i,
+    );
+    return [{ kind: "obj2gltf-cli", ok: probe.ok, detail: probe.detail }];
+  }
+
+  if (status.id === "fbx2gltf") {
+    const probe = await runCommandSmokeCheck(
+      command,
+      args,
+      [["--version"], ["--help"]],
+      /fbx2gltf|usage|help|version/i,
+    );
+    return [{ kind: "fbx2gltf-cli", ok: probe.ok, detail: probe.detail }];
   }
 
   return [];

@@ -466,9 +466,20 @@ export class AI3DSettingTab extends PluginSettingTab {
   }
 
   private renderDependencyCheck(containerEl: HTMLElement, check: ConverterDependencyCheck): void {
-    const label = check.kind === "cad-python"
-      ? t("settings.diagnostics.cadPythonCheck")
-      : t("settings.diagnostics.meshPythonCheck");
+    const label = (() => {
+      switch (check.kind) {
+        case "cad-python":
+          return t("settings.diagnostics.cadPythonCheck");
+        case "mesh-python":
+          return t("settings.diagnostics.meshPythonCheck");
+        case "freecadcmd-cli":
+          return t("settings.diagnostics.freecadCmdCheck");
+        case "obj2gltf-cli":
+          return t("settings.diagnostics.obj2gltfCheck");
+        case "fbx2gltf-cli":
+          return t("settings.diagnostics.fbx2gltfCheck");
+      }
+    })();
     const summary = check.ok ? t("settings.diagnostics.selfCheckOk") : t("settings.diagnostics.selfCheckFailed");
     containerEl.createDiv({ text: `${t("settings.diagnostics.selfCheckLabel")}: ${label} - ${summary}` });
     if (check.detail) {

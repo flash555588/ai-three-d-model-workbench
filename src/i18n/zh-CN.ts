@@ -63,7 +63,7 @@ export const zhCN: Record<TranslationKey, string> = {
   "settings.assimpCmd.desc": "可选的 Python 命令路径，用于 3MF 和 DAE 转换。Windows 通常用 py，macOS 和 Linux 通常用 python3。设置后覆盖自动发现和 AI3D_ASSIMP_CMD。",
 
   // 诊断
-  "settings.diagnostics.desc": "显示插件当前实际使用的可执行文件路径，并为基于 Python 的转换器执行轻量自检。",
+  "settings.diagnostics.desc": "显示插件当前实际使用的可执行文件路径，并为 Python 环境和转换器命令执行轻量自检。",
   "settings.diagnostics.checkNow": "立即检查",
   "settings.diagnostics.checking": "检查中...",
   "settings.diagnostics.refreshed": "AI 3D 转换器命令诊断已刷新。",
@@ -78,6 +78,9 @@ export const zhCN: Record<TranslationKey, string> = {
   "settings.diagnostics.selfCheckFailed": "失败",
   "settings.diagnostics.cadPythonCheck": "Python 包（cadquery、trimesh）",
   "settings.diagnostics.meshPythonCheck": "Python 包（trimesh、numpy、networkx、collada）",
+  "settings.diagnostics.freecadCmdCheck": "FreeCADCmd 启动探测",
+  "settings.diagnostics.obj2gltfCheck": "obj2gltf 启动探测",
+  "settings.diagnostics.fbx2gltfCheck": "FBX2glTF 启动探测",
 
   // 性能
   "settings.canvasHeight": "默认画布高度",

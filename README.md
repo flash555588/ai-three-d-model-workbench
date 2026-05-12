@@ -343,13 +343,13 @@ Add labeled bookmarks directly on model surfaces. Annotations persist per model 
 | obj2gltf command path | Override the obj2gltf CLI path |
 | FBX2glTF command path | Override the FBX2glTF CLI path |
 | Python command path (for 3MF/DAE conversion) | Override the Python executable used for 3MF/DAE conversion |
-| Converter command diagnostics | Show which executable path the plugin will actually use and run lightweight dependency self-checks |
+| Converter command diagnostics | Show which executable path the plugin will actually use and run lightweight self-checks for Python environments and converter CLIs |
 
 ### Portability and diagnostics
 
 The rendering layer is cross-platform: direct formats like GLB, OBJ, STL, PLY, SPLAT, and already-converted `.ai3d-converted.glb` assets can render anywhere Obsidian Desktop can provide WebGL.
 
-The conversion layer is less portable because it depends on local tools and Python environments that vary by machine. Use the converter diagnostics panel in plugin settings as the first check when a CAD or mesh format fails. It verifies both the executable path the plugin resolved and whether the selected Python environment can import the required packages.
+The conversion layer is less portable because it depends on local tools and Python environments that vary by machine. Use the converter diagnostics panel in plugin settings as the first check when a CAD or mesh format fails. It verifies both the executable path the plugin resolved and whether the selected Python environment can import the required packages or the native converter CLI can launch.
 
 On macOS in particular, the system Python at `/usr/bin/python3` often exists but does not include CAD packages. If diagnostics show that path and the self-check fails, install a separate Python environment and point the plugin setting to that interpreter explicitly.
 
