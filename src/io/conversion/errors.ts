@@ -33,6 +33,16 @@ export class MissingConverterError extends Error {
   }
 }
 
+export class MobileConversionUnavailableError extends Error {
+  readonly name = "MobileConversionUnavailableError";
+
+  constructor(readonly sourceExt: string) {
+    super(
+      `Format ${formatSourceExt(sourceExt)} requires local conversion tools that are unavailable on iOS, iPadOS, and Android.`,
+    );
+  }
+}
+
 export function isMissingConverterError(err: unknown): err is MissingConverterError {
   return err instanceof MissingConverterError;
 }
@@ -43,6 +53,12 @@ export function formatModelLoadFailure(err: unknown): string {
     return formatT("modelLoad.warningMessage", {
       ext: formatSourceExt(err.sourceExt),
       converterName,
+    });
+  }
+
+  if (err instanceof MobileConversionUnavailableError) {
+    return formatT("modelLoad.mobileWarningMessage", {
+      ext: formatSourceExt(err.sourceExt),
     });
   }
 
@@ -58,6 +74,15 @@ export function describeModelLoadFailure(err: unknown): ModelLoadFailureDetails 
       title: t("modelLoad.warningTitle"),
       message: formatModelLoadFailure(err),
       hint: t("modelLoad.warningHint"),
+    };
+  }
+
+  if (err instanceof MobileConversionUnavailableError) {
+    return {
+      level: "warning",
+      title: t("modelLoad.warningTitle"),
+      message: formatModelLoadFailure(err),
+      hint: t("modelLoad.mobileWarningHint"),
     };
   }
 

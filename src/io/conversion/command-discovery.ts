@@ -16,6 +16,7 @@ export interface ConverterCommandSpec {
   label: string;
   settingsKey: ConverterCommandSettingKey;
   envVar: string;
+  envVarAliases?: readonly string[];
   fallbackCommands: readonly string[];
   knownCandidates: readonly string[];
 }
@@ -82,15 +83,22 @@ function resolveFreeCadCandidates(): readonly string[] {
   const programFiles = proc?.env?.ProgramFiles;
   const programFilesX86 = proc?.env?.["ProgramFiles(x86)"];
 
+  if (localAppData) {
+    candidates.push(join(localAppData, "Programs", "FreeCAD", "bin", "FreeCADCmd.exe"));
+  }
+  if (programFiles) {
+    candidates.push(join(programFiles, "FreeCAD", "bin", "FreeCADCmd.exe"));
+  }
+
   // User-level install: %LOCALAPPDATA%\Programs\FreeCAD*\bin\FreeCADCmd.exe
   if (localAppData) {
-    for (const ver of ["1.1", "1.0", "0.21", "0.20"]) {
+    for (const ver of ["1.2", "1.1", "1.0", "0.22", "0.21", "0.20"]) {
       candidates.push(`${localAppData}/Programs/FreeCAD ${ver}/bin/FreeCADCmd.exe`);
     }
   }
   // System-level install: %ProgramFiles%\FreeCAD*\bin\FreeCADCmd.exe
   if (programFiles) {
-    for (const ver of ["1.1", "1.0", "0.21", "0.20"]) {
+    for (const ver of ["1.2", "1.1", "1.0", "0.22", "0.21", "0.20"]) {
       candidates.push(`${programFiles}/FreeCAD ${ver}/bin/FreeCADCmd.exe`);
     }
   }
@@ -100,17 +108,55 @@ function resolveFreeCadCandidates(): readonly string[] {
   return candidates;
 }
 
+function resolveWindowsNpmCommandCandidates(command: string): readonly string[] {
+  if (proc?.platform !== "win32") {
+    return [];
+  }
+
+  const appData = proc?.env?.APPDATA;
+  const localAppData = proc?.env?.LOCALAPPDATA;
+  const npmPrefix = proc?.env?.npm_config_prefix;
+  const userProfile = proc?.env?.USERPROFILE;
+  const candidateDirs = [
+    npmPrefix,
+    appData ? join(appData, "npm") : undefined,
+    localAppData ? join(localAppData, "npm") : undefined,
+    userProfile ? join(userProfile, "AppData", "Roaming", "npm") : undefined,
+  ].filter((value): value is string => !!value);
+
+  return Array.from(new Set(candidateDirs.map((dir) => join(dir, command))));
+}
+
+function resolveWindowsProgramCandidates(...relativePaths: string[]): readonly string[] {
+  if (proc?.platform !== "win32") {
+    return [];
+  }
+
+  const programFiles = proc?.env?.ProgramFiles;
+  const programFilesX86 = proc?.env?.["ProgramFiles(x86)"];
+  const localAppData = proc?.env?.LOCALAPPDATA;
+  const roots = [
+    programFiles,
+    programFilesX86,
+    localAppData ? join(localAppData, "Programs") : undefined,
+  ].filter((value): value is string => !!value);
+
+  return Array.from(new Set(
+    roots.flatMap((root) => relativePaths.map((relativePath) => join(root, relativePath))),
+  ));
+}
+
 const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
   {
     id: "freecad",
     label: "Python (CadQuery/OCCT)",
     settingsKey: "freecadCommand",
     envVar: "AI3D_FREECAD_CMD",
-    fallbackCommands: proc?.platform === "win32" ? ["py"] : ["python3", "python"],
+    fallbackCommands: proc?.platform === "win32" ? ["py", "python"] : ["python3", "python"],
     // Python is discoverable via `py` launcher (Windows) or `python3` (Linux/macOS).
     // No user-specific paths — use settings/env if Python is not on PATH.
     knownCandidates: proc?.platform === "win32"
-      ? ["py"]
+      ? []
       : ["/usr/local/bin/python3", "/opt/homebrew/bin/python3", "/opt/local/bin/python3", "/usr/bin/python3"],
   },
   {
@@ -120,7 +166,7 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     envVar: "AI3D_OBJ2GLTF_CMD",
     fallbackCommands: proc?.platform === "win32" ? ["obj2gltf.cmd"] : ["obj2gltf"],
     knownCandidates: proc?.platform === "win32"
-      ? ["C:/Users/Public/AppData/Roaming/npm/obj2gltf.cmd"]
+      ? resolveWindowsNpmCommandCandidates("obj2gltf.cmd")
       : resolvePosixCommandCandidates("obj2gltf"),
   },
   {
@@ -130,10 +176,10 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     envVar: "AI3D_FBX2GLTF_CMD",
     fallbackCommands: proc?.platform === "win32" ? ["FBX2glTF.exe"] : ["FBX2glTF", "fbx2gltf"],
     knownCandidates: proc?.platform === "win32"
-      ? [
-        "C:/Program Files/FBX2glTF/FBX2glTF-windows-x64.exe",
-        "C:/Program Files/FBX2glTF/FBX2glTF.exe",
-      ]
+      ? resolveWindowsProgramCandidates(
+        join("FBX2glTF", "FBX2glTF-windows-x64.exe"),
+        join("FBX2glTF", "FBX2glTF.exe"),
+      )
       : resolvePosixCommandCandidates("FBX2glTF", "fbx2gltf"),
   },
   {
@@ -141,16 +187,17 @@ const CONVERTER_COMMAND_SPECS: readonly ConverterCommandSpec[] = [
     label: "Python (trimesh)",
     settingsKey: "assimpCommand",
     envVar: "AI3D_ASSIMP_CMD",
-    fallbackCommands: proc?.platform === "win32" ? ["py"] : ["python3", "python"],
+    fallbackCommands: proc?.platform === "win32" ? ["py", "python"] : ["python3", "python"],
     knownCandidates: proc?.platform === "win32"
-      ? ["py"]
+      ? []
       : ["/usr/local/bin/python3", "/opt/homebrew/bin/python3", "/opt/local/bin/python3", "/usr/bin/python3"],
   },
   {
     id: "freecadcmd",
     label: "FreeCAD (SLDPRT)",
     settingsKey: "freecadcmdCommand",
-    envVar: "AI3D_FREECMDCMD",
+    envVar: "AI3D_FREECADCMD",
+    envVarAliases: ["AI3D_FREECMDCMD"],
     fallbackCommands: proc?.platform === "win32" ? ["FreeCADCmd.exe"] : ["freecadcmd", "FreeCADCmd"],
     knownCandidates: resolveFreeCadCandidates(),
   },
@@ -177,14 +224,8 @@ function splitCommandLine(command: string): string[] {
   const parts: string[] = [];
   let current = "";
   let quote: "\"" | "'" | null = null;
-  let escaping = false;
-
-  for (const ch of command) {
-    if (escaping) {
-      current += ch;
-      escaping = false;
-      continue;
-    }
+  for (let index = 0; index < command.length; index++) {
+    const ch = command[index];
 
     if (quote === "'") {
       if (ch === "'") {
@@ -195,12 +236,16 @@ function splitCommandLine(command: string): string[] {
       continue;
     }
 
-    if (ch === "\\") {
-      escaping = true;
-      continue;
-    }
-
     if (quote === "\"") {
+      if (ch === "\\") {
+        const next = command[index + 1];
+        if (next === "\\" || next === "\"") {
+          current += next;
+          index++;
+          continue;
+        }
+      }
+
       if (ch === "\"") {
         quote = null;
       } else {
@@ -214,6 +259,18 @@ function splitCommandLine(command: string): string[] {
       continue;
     }
 
+    if (ch === "\\") {
+      const next = command[index + 1];
+      if (next && (/\s|"|'|\\/.test(next))) {
+        current += next;
+        index++;
+        continue;
+      }
+
+      current += ch;
+      continue;
+    }
+
     if (/\s/.test(ch)) {
       if (current) {
         parts.push(current);
@@ -223,10 +280,6 @@ function splitCommandLine(command: string): string[] {
     }
 
     current += ch;
-  }
-
-  if (escaping) {
-    current += "\\";
   }
 
   if (quote) {
@@ -408,6 +461,73 @@ function getSpec(id: ConverterCommandId): ConverterCommandSpec {
   return spec;
 }
 
+function splitKnownCandidates(spec: ConverterCommandSpec): {
+  userCandidates: readonly string[];
+  systemCandidates: readonly string[];
+} {
+  const programFiles = proc?.env?.ProgramFiles?.toLowerCase();
+  const programFilesX86 = proc?.env?.["ProgramFiles(x86)"]?.toLowerCase();
+  const userCandidates: string[] = [];
+  const systemCandidates: string[] = [];
+
+  for (const candidate of spec.knownCandidates) {
+    const normalizedCandidate = candidate.toLowerCase();
+    const isWindowsSystemCandidate = proc?.platform === "win32"
+      && (
+        (programFiles ? normalizedCandidate.startsWith(programFiles) : false)
+        || (programFilesX86 ? normalizedCandidate.startsWith(programFilesX86) : false)
+      );
+    const isPosixSystemCandidate = proc?.platform !== "win32"
+      && (candidate.startsWith("/usr/bin/") || candidate.startsWith("/snap/freecad/current/usr/bin/"));
+
+    if (isWindowsSystemCandidate || isPosixSystemCandidate) {
+      systemCandidates.push(candidate);
+    } else {
+      userCandidates.push(candidate);
+    }
+  }
+
+  return { userCandidates, systemCandidates };
+}
+
+async function inspectCandidateReference(
+  spec: ConverterCommandSpec,
+  candidates: readonly string[],
+  detail: string,
+): Promise<ConverterCommandStatus | undefined> {
+  for (const candidate of candidates) {
+    if (await isExecutable(candidate)) {
+      return {
+        id: spec.id,
+        label: spec.label,
+        envVar: spec.envVar,
+        settingsKey: spec.settingsKey,
+        command: candidate,
+        executable: candidate,
+        args: [],
+        resolvedPath: candidate,
+        available: true,
+        source: "candidate",
+        detail,
+        checkedCandidates: [candidate],
+      };
+    }
+  }
+
+  return undefined;
+}
+
+function formatCheckedCandidateDetail(userCandidates: readonly string[], systemCandidates: readonly string[]): string {
+  const details: string[] = [];
+  if (userCandidates.length) {
+    details.push(`Checked common user locations: ${userCandidates.join("; ")}`);
+  }
+  if (systemCandidates.length) {
+    details.push(`Checked system fallback locations: ${systemCandidates.join("; ")}`);
+  }
+  return details.join(". ");
+}
+
 async function inspectCommandReference(
   spec: ConverterCommandSpec,
   command: string,
@@ -479,6 +599,7 @@ export async function inspectConverterCommand(
   configuredCommand?: string,
 ): Promise<ConverterCommandStatus> {
   const spec = getSpec(id);
+  const { userCandidates, systemCandidates } = splitKnownCandidates(spec);
   const configured = normalizeCommandValue(configuredCommand);
   if (configured) {
     return inspectCommandReference(spec, configured, "settings", configured);
@@ -489,23 +610,20 @@ export async function inspectConverterCommand(
     return inspectCommandReference(spec, envCommand, "env");
   }
 
-  for (const candidate of spec.knownCandidates) {
-    if (await isExecutable(candidate)) {
-      return {
-        id: spec.id,
-        label: spec.label,
-        envVar: spec.envVar,
-        settingsKey: spec.settingsKey,
-        command: candidate,
-        executable: candidate,
-        args: [],
-        resolvedPath: candidate,
-        available: true,
-        source: "candidate",
-        detail: "Detected at a known install location.",
-        checkedCandidates: [candidate],
-      };
+  for (const envVarAlias of spec.envVarAliases ?? []) {
+    const aliasCommand = normalizeCommandValue(proc?.env?.[envVarAlias]);
+    if (aliasCommand) {
+      return inspectCommandReference(spec, aliasCommand, "env");
     }
+  }
+
+  const userCandidateStatus = await inspectCandidateReference(
+    spec,
+    userCandidates,
+    "Detected at a common user-managed install location.",
+  );
+  if (userCandidateStatus) {
+    return userCandidateStatus;
   }
 
   const fallbackStatuses: ConverterCommandStatus[] = [];
@@ -517,13 +635,23 @@ export async function inspectConverterCommand(
     }
   }
 
+  const systemCandidateStatus = await inspectCandidateReference(
+    spec,
+    systemCandidates,
+    "Detected at a system fallback install location.",
+  );
+  if (systemCandidateStatus) {
+    return systemCandidateStatus;
+  }
+
   const checkedFallbackCandidates = fallbackStatuses.flatMap((status) => status.checkedCandidates);
+  const checkedCandidateDetail = formatCheckedCandidateDetail(userCandidates, systemCandidates);
   return {
     ...fallbackStatuses[0],
-    detail: spec.knownCandidates.length
-      ? `Not found on PATH. Checked known locations: ${spec.knownCandidates.join("; ")}`
+    detail: checkedCandidateDetail
+      ? `Command name was not found on PATH. ${checkedCandidateDetail}`
       : "Command name was not found on PATH.",
-    checkedCandidates: [...spec.knownCandidates, ...checkedFallbackCandidates],
+    checkedCandidates: [...userCandidates, ...checkedFallbackCandidates, ...systemCandidates],
   };
 }
 

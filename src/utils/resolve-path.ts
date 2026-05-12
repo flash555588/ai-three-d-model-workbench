@@ -3,6 +3,26 @@ import { TFile } from "obsidian";
 import { readFile } from "./node-shim";
 import { pathIsAbsolute as isAbsolute, pathJoin as join, pathNormalize as normalize } from "./node-shim";
 
+export function normalizePortablePath(path: string): string {
+  return path.replace(/\\/g, "/");
+}
+
+export function getPortableDirname(path: string): string {
+  const normalized = normalizePortablePath(path).replace(/\/+$/, "");
+  const sepIdx = normalized.lastIndexOf("/");
+  return sepIdx > 0 ? normalized.slice(0, sepIdx) : "";
+}
+
+export function getPortableBasename(path: string): string {
+  const normalized = normalizePortablePath(path).replace(/\/+$/, "");
+  const sepIdx = normalized.lastIndexOf("/");
+  return sepIdx >= 0 ? normalized.slice(sepIdx + 1) : normalized;
+}
+
+export function getPortableStem(path: string): string {
+  return getPortableBasename(path).replace(/\.[^.]+$/, "");
+}
+
 function toArrayBuffer(buf: Uint8Array): ArrayBuffer {
   return Uint8Array.from(buf).buffer;
 }

@@ -1,11 +1,14 @@
 import type { App } from "obsidian";
 import type { PluginSettings } from "../../domain/models";
 import { formatT, t } from "../../i18n";
+import type { TranslationKey } from "../../i18n";
+import { isMobile } from "../../utils/device";
+import { getPortableStem } from "../../utils/resolve-path";
 
 /** Create an SVG icon that follows its button color via currentColor. */
 function createSvgIcon(inner: string): SVGSVGElement {
-  // eslint-disable-next-line obsidianmd/prefer-create-el, obsidianmd/prefer-active-doc -- detached SVG root must avoid Document.createSvg because it appends to document and triggers HierarchyRequestError
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  // eslint-disable-next-line obsidianmd/prefer-create-el -- detached SVG root must avoid Document.createSvg because it appends to document and triggers HierarchyRequestError
+  const svg = activeDocument.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("width", "16");
   svg.setAttribute("height", "16");
@@ -50,6 +53,18 @@ export interface HelperToolbar {
   showAnimButton(): void;
   showAnnotateButton(): void;
   updateAnnotationBadge(count: number): void;
+  setMobileInteractionMode(active: boolean): void;
+}
+
+interface AnnotationToggleCopy {
+  labelKey: TranslationKey;
+  activeTooltipKey: TranslationKey;
+  inactiveTooltipKey: TranslationKey;
+}
+
+function setMobileInteractionMode(previewHost: HTMLElement, active: boolean): void {
+  previewHost.classList.toggle("is-mobile-interactive", active);
+  previewHost.classList.toggle("is-mobile-scroll-mode", !active);
 }
 
 /**
@@ -67,9 +82,66 @@ export function createHelperButtons(
   onRemove: () => void,
   getSettings?: () => PluginSettings,
   onToggleAnnotate?: () => boolean,
+  onMobileInteractionModeChange?: (active: boolean) => void,
+  annotationCopy?: AnnotationToggleCopy,
 ): HelperToolbar {
+  const mobile = isMobile();
+  const resolvedAnnotationCopy: AnnotationToggleCopy = annotationCopy ?? {
+    labelKey: "helper.toggleAnnotationLabel",
+    activeTooltipKey: "helper.annotateOn",
+    inactiveTooltipKey: "helper.annotateOff",
+  };
+
   // Create on parentEl (in DOM) so Obsidian's createEl inherits CSS variables
   const toolbar = parentEl.createDiv({ cls: "ai3d-helper-toolbar" });
+  if (mobile) {
+    toolbar.classList.add("is-mobile");
+    setMobileInteractionMode(previewHost, false);
+  }
+
+  const markSecondary = <T extends HTMLButtonElement>(button: T): T => {
+    if (mobile) {
+      button.classList.add("is-secondary");
+    }
+    return button;
+  };
+
+  let mobileInteractive = false;
+  let mobileExpanded = false;
+
+  const interactBtn = mobile
+    ? toolbar.createEl("button", {
+      cls: "ai3d-inline-btn ai3d-mobile-mode-btn",
+      attr: { "aria-label": t("helper.enableInteractionLabel") },
+    })
+    : null;
+  interactBtn?.appendChild(createSvgIcon(`<path d="M12 2v8"/><path d="M8 6l4-4 4 4"/><path d="M6 14a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3z"/>`));
+  const interactLabel = interactBtn?.createSpan({ cls: "ai3d-mobile-mode-btn-label" }) ?? null;
+
+  const renderMobileButtons = (): void => {
+    if (!mobile || !interactBtn) return;
+    setMobileInteractionMode(previewHost, mobileInteractive);
+    interactBtn.classList.toggle("ai3d-btn-active", mobileInteractive);
+    interactLabel?.setText(mobileInteractive ? t("helper.scrollAction") : t("helper.interactAction"));
+    interactBtn.setAttribute(
+      "aria-label",
+      mobileInteractive ? t("helper.disableInteractionLabel") : t("helper.enableInteractionLabel"),
+    );
+    showMoreBtn?.classList.toggle("ai3d-btn-active", mobileExpanded);
+    toolbar.classList.toggle("show-secondary", mobileExpanded);
+  };
+
+  const applyMobileInteractionMode = (active: boolean): void => {
+    mobileInteractive = active;
+    renderMobileButtons();
+  };
+
+  interactBtn?.addEventListener("click", () => {
+    const nextInteractive = !mobileInteractive;
+    onMobileInteractionModeChange?.(nextInteractive);
+    applyMobileInteractionMode(nextInteractive);
+    showTooltip(interactBtn, nextInteractive ? t("helper.interactionOn") : t("helper.interactionOff"));
+  });
 
   // Reset view button (refresh arrow)
   const resetBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.resetViewLabel") } });
@@ -83,7 +155,7 @@ export function createHelperButtons(
   });
 
   // Export model info button (info circle)
-  const infoBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.copyModelInfoLabel") } });
+  const infoBtn = markSecondary(toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.copyModelInfoLabel") } }));
   infoBtn.appendChild(createSvgIcon(`<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>`));
   infoBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -114,7 +186,7 @@ export function createHelperButtons(
   });
 
   // Orientation gizmo toggle button (compass/axis icon)
-  const gizmoBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.toggleAxesLabel") } });
+  const gizmoBtn = markSecondary(toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.toggleAxesLabel") } }));
   gizmoBtn.appendChild(createSvgIcon(`<path d="M12 2v20"/><path d="M2 12h20"/><path d="M12 2l4 4"/><path d="M12 2l-4 4"/><path d="M22 12l-4-4"/><path d="M22 12l-4 4"/>`));
   gizmoBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -125,7 +197,7 @@ export function createHelperButtons(
   });
 
   // Bounding box toggle button (cube outline icon)
-  const bboxBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.toggleBoundingBoxLabel") } });
+  const bboxBtn = markSecondary(toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.toggleBoundingBoxLabel") } }));
   bboxBtn.appendChild(createSvgIcon(`<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>`));
   bboxBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -136,7 +208,7 @@ export function createHelperButtons(
   });
 
   // Disassembly mode toggle button (separate parts by dragging)
-  const disassembleBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.toggleDisassemblyLabel") } });
+  const disassembleBtn = markSecondary(toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.toggleDisassemblyLabel") } }));
   disassembleBtn.appendChild(createSvgIcon(`<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 17h6"/><path d="M17 14v6"/>`));
   disassembleBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -147,7 +219,7 @@ export function createHelperButtons(
   });
 
   // Reset disassembled parts button
-  const resetPartsBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.resetPartsLabel") } });
+  const resetPartsBtn = markSecondary(toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.resetPartsLabel") } }));
   resetPartsBtn.appendChild(createSvgIcon(`<path d="M3 12a9 9 0 109-9"/><path d="M3 4v8h8"/><rect x="14" y="14" width="5" height="5" rx="1"/>`));
   resetPartsBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -159,7 +231,7 @@ export function createHelperButtons(
   // Resolution scale cycle button (percentage display)
   const RES_PRESETS = [0.5, 0.75, 1.0, 1.5, 2.0];
   let resIndex = 2; // default 1.0x
-  const resBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn ai3d-res-btn", attr: { "aria-label": t("helper.changeResolutionLabel") } });
+  const resBtn = markSecondary(toolbar.createEl("button", { cls: "ai3d-inline-btn ai3d-res-btn", attr: { "aria-label": t("helper.changeResolutionLabel") } }));
   resBtn.textContent = "1.0x";
   resBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -171,7 +243,7 @@ export function createHelperButtons(
   });
 
   // Animation play/pause button (play triangle — hidden until animations detected)
-  const animBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn is-hidden", attr: { "aria-label": t("helper.toggleAnimationLabel") } });
+  const animBtn = markSecondary(toolbar.createEl("button", { cls: "ai3d-inline-btn is-hidden", attr: { "aria-label": t("helper.toggleAnimationLabel") } }));
   animBtn.appendChild(createSvgIcon(`<polygon points="5 3 19 12 5 21 5 3"/>`));
   animBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -212,7 +284,7 @@ export function createHelperButtons(
   });
 
   // Save to vault button (disk)
-  const saveBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.saveSnapshotLabel") } });
+  const saveBtn = markSecondary(toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.saveSnapshotLabel") } }));
   saveBtn.appendChild(createSvgIcon(`<path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>`));
   saveBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -221,7 +293,7 @@ export function createHelperButtons(
       const dataUrl = preview.captureSnapshot();
       if (!dataUrl) return;
       const modelPath = getModelPath();
-      const baseName = modelPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") ?? "model";
+      const baseName = getPortableStem(modelPath) || "model";
       const settings = getSettings?.();
       const folder = settings?.snapshotFolder ?? "Media/3D Previews";
       const naming = settings?.snapshotNaming ?? "model-name";
@@ -262,7 +334,7 @@ export function createHelperButtons(
   });
 
   // Download snapshot button (download arrow)
-  const downloadBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.downloadSnapshotLabel") } });
+  const downloadBtn = markSecondary(toolbar.createEl("button", { cls: "ai3d-inline-btn", attr: { "aria-label": t("helper.downloadSnapshotLabel") } }));
   downloadBtn.appendChild(createSvgIcon(`<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>`));
   downloadBtn.addEventListener("click", () => {
     const preview = getPreview();
@@ -271,7 +343,7 @@ export function createHelperButtons(
       const dataUrl = preview.captureSnapshot();
       if (!dataUrl) return;
       const modelPath = getModelPath();
-      const baseName = modelPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") ?? "model";
+      const baseName = getPortableStem(modelPath) || "model";
       const fileName = `${baseName}_snapshot_${Date.now()}.png`;
 
       // eslint-disable-next-line obsidianmd/prefer-create-el -- temporary <a> for download click, not styled
@@ -289,18 +361,40 @@ export function createHelperButtons(
   });
 
   // Annotation toggle button (tag/label icon — hidden until explicitly shown)
-  const annotBtn = toolbar.createEl("button", { cls: "ai3d-inline-btn is-hidden ai3d-annot-btn", attr: { "aria-label": t("helper.toggleAnnotationLabel") } });
+  const annotBtn = markSecondary(toolbar.createEl("button", {
+    cls: "ai3d-inline-btn is-hidden ai3d-annot-btn",
+    attr: { "aria-label": t(resolvedAnnotationCopy.labelKey) },
+  }));
   annotBtn.appendChild(createSvgIcon(`<path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>`));
   const annotBadge = annotBtn.createSpan({ cls: "ai3d-pin-badge is-hidden" });
   annotBtn.addEventListener("click", () => {
     if (!onToggleAnnotate) return;
     const active = onToggleAnnotate();
     annotBtn.classList.toggle("ai3d-btn-active", active);
-    showTooltip(annotBtn, active ? t("helper.annotateOn") : t("helper.annotateOff"));
+    showTooltip(
+      annotBtn,
+      active ? t(resolvedAnnotationCopy.activeTooltipKey) : t(resolvedAnnotationCopy.inactiveTooltipKey),
+    );
+  });
+
+  const showMoreBtn = mobile
+    ? toolbar.createEl("button", {
+      cls: "ai3d-inline-btn ai3d-mobile-more-toggle",
+      attr: { "aria-label": t("helper.showMoreActionsLabel") },
+    })
+    : null;
+  showMoreBtn?.appendChild(createSvgIcon(`<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>`));
+  showMoreBtn?.addEventListener("click", () => {
+    mobileExpanded = !mobileExpanded;
+    showMoreBtn.setAttribute("aria-label", mobileExpanded ? t("helper.hideMoreActionsLabel") : t("helper.showMoreActionsLabel"));
+    renderMobileButtons();
+    showTooltip(showMoreBtn, mobileExpanded ? t("helper.moreActionsShown") : t("helper.moreActionsHidden"));
   });
 
   // Move toolbar to sit right after previewHost
   parentEl.insertBefore(toolbar, previewHost.nextSibling);
+
+  renderMobileButtons();
 
   return {
     showAnimButton() { animBtn.classList.remove("is-hidden"); },
@@ -312,6 +406,10 @@ export function createHelperButtons(
       } else {
         annotBadge.classList.add("is-hidden");
       }
+    },
+    setMobileInteractionMode(active: boolean) {
+      if (!mobile) return;
+      applyMobileInteractionMode(active);
     },
   };
 }

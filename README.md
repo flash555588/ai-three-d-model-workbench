@@ -11,6 +11,7 @@
 ## Table of Contents
 
 - [Features](#features)
+- [Platform Support Matrix](#platform-support-matrix)
 - [Quick Start](#quick-start)
 - [Installation](#installation)
 - [Format Support](#format-support)
@@ -36,7 +37,21 @@
 - **Snapshots**: copy, save, or download rendered previews as PNG
 - **i18n**: English and Simplified Chinese with auto-detect system locale
 - **Desktop support**: Obsidian Desktop on Windows, macOS, and Linux
-- **Mobile support**: Direct preview on Obsidian Mobile with adaptive hardware scaling
+- **Mobile support**: iOS, iPadOS, and Android support direct formats and a simplified workbench layout
+
+---
+
+## Platform Support Matrix
+
+| Capability | Windows / macOS / Linux | iOS / iPadOS / Android |
+|------------|--------------------------|-------------------------|
+| Direct formats (GLB, GLTF, OBJ, STL, PLY, SPLAT) | Yes | Yes |
+| Direct file view | Yes | Yes |
+| Inline embed / Live Preview for direct formats | Yes | Yes |
+| Workbench layout | Full desktop layout | Simplified single-column mobile layout |
+| Local conversion (CAD, FBX, 3MF, DAE, SLDPRT) | Yes | No |
+| Converter diagnostics and local CLI checks | Yes | No |
+| Already converted `.ai3d-converted.glb` assets | Yes | Yes |
 
 ---
 
@@ -349,7 +364,11 @@ Add labeled bookmarks directly on model surfaces. Annotations persist per model 
 
 The rendering layer is cross-platform: direct formats like GLB, OBJ, STL, PLY, SPLAT, and already-converted `.ai3d-converted.glb` assets can render anywhere Obsidian Desktop can provide WebGL.
 
+On iOS, iPadOS, and Android, the plugin now supports direct formats such as GLB, GLTF, OBJ, STL, PLY, and SPLAT. Local conversion routes for CAD, FBX, 3MF, DAE, and SLDPRT remain desktop-only because they depend on external CLI tools and Python environments.
+
 The conversion layer is less portable because it depends on local tools and Python environments that vary by machine. Use the converter diagnostics panel in plugin settings as the first check when a CAD or mesh format fails. It verifies both the executable path the plugin resolved and whether the selected Python environment can import the required packages or the native converter CLI can launch.
+
+For repository-level implementation rules, see [docs/cross-platform-development.md](docs/cross-platform-development.md).
 
 On macOS in particular, the system Python at `/usr/bin/python3` often exists but does not include CAD packages. If diagnostics show that path and the self-check fails, install a separate Python environment and point the plugin setting to that interpreter explicitly.
 
@@ -381,7 +400,7 @@ Install FreeCAD for your platform:
 - macOS: install the app bundle or use `brew install --cask freecad`
 - Linux: install your distro's FreeCAD package and make sure `freecadcmd` is available
 
-Auto-discovery paths:
+The plugin prefers the explicit setting and environment variable first, then checks common user-managed install locations, then PATH, and finally system fallback hints such as:
 - Windows: `%LOCALAPPDATA%\Programs\FreeCAD*\bin\FreeCADCmd.exe`
 - macOS: `/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd`, `/usr/local/bin/FreeCADCmd`, `/opt/homebrew/bin/FreeCADCmd`
 - Linux: `/usr/bin/freecadcmd`
@@ -406,7 +425,7 @@ The plugin already has a built-in OBJ loader. obj2gltf is an optional alternativ
 npm install -g obj2gltf
 ```
 
-**Auto-discovery**: The plugin looks for `obj2gltf.cmd` on Windows, and `obj2gltf` in standard macOS/Linux locations such as `/usr/local/bin/obj2gltf` and `/opt/homebrew/bin/obj2gltf`.
+**Resolution order**: The plugin prefers the explicit setting and environment variable first, then checks common user-managed install locations, then PATH, and finally system fallback hints such as `obj2gltf.cmd` on Windows and `obj2gltf` in standard macOS/Linux locations like `/usr/local/bin/obj2gltf` and `/opt/homebrew/bin/obj2gltf`.
 
 **Enable**: Settings > Enable OBJ2GLTF converter, or set "obj2gltf path".
 
@@ -418,7 +437,7 @@ FBX files are converted to GLB through the local FBX2glTF binary. The older comm
 
 Download or build [FBX2glTF](https://github.com/godotengine/FBX2glTF) for your platform and place the binary in a known location.
 
-**Auto-discovery**:
+**Resolution order**: The plugin prefers the explicit setting and environment variable first, then checks common user-managed install locations, then PATH, and finally system fallback hints such as:
 
 ```text
 C:\Program Files\FBX2glTF\FBX2glTF-windows-x64.exe
@@ -435,10 +454,12 @@ C:\Program Files\FBX2glTF\FBX2glTF.exe
 | Variable | Purpose |
 |----------|---------|
 | `AI3D_FREECAD_CMD` | Python command for CadQuery |
-| `AI3D_FREECMDCMD` | FreeCADCmd path |
+| `AI3D_FREECADCMD` | FreeCADCmd path |
 | `AI3D_ASSIMP_CMD` | Python command for trimesh |
 | `AI3D_OBJ2GLTF_CMD` | obj2gltf command path |
 | `AI3D_FBX2GLTF_CMD` | FBX2glTF command path |
+
+The legacy alias `AI3D_FREECMDCMD` is still accepted for compatibility, but new setups should use `AI3D_FREECADCMD`.
 
 ---
 

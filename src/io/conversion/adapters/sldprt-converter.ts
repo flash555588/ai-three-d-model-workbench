@@ -5,21 +5,11 @@ import { osTmpdir as tmpdir } from "../../../utils/node-shim";
 import { execFile } from "../../../utils/node-shim";
 import { createLogger } from "../../../utils/log";
 import { resolveConverterInvocation } from "../command-discovery";
+import { toPythonPathLiteral } from "../python-path";
 
 const log = createLogger("sldprt-converter");
 
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000; // 10 min — FreeCAD import can be slow
-
-/** Normalize a path for embedding in a Python raw string (r"...").
- *  Python handles forward slashes on all platforms, so we only convert
- *  backslashes to forward slashes. No double-escaping is needed because
- *  the result is wrapped in a raw string literal. */
-function pyPath(s: string): string {
-  if (s.includes('"')) {
-    throw new Error(`File path contains double-quote character, not supported for Python conversion: ${s}`);
-  }
-  return s.replace(/\\/g, "/");
-}
 
 async function fileExists(path: string): Promise<boolean> {
   try {
@@ -58,8 +48,8 @@ function execFileAsync(command: string, args: string[], timeoutMs: number): Prom
  * 3. Uses OCP (OpenCASCADE) to triangulate and export GLB with vertex colors
  */
 function buildFreeCadScript(sourcePath: string, outputPath: string): string {
-  const src = pyPath(sourcePath);
-  const out = pyPath(outputPath);
+  const src = toPythonPathLiteral(sourcePath);
+  const out = toPythonPathLiteral(outputPath);
   // Intermediate STEP file in temp dir
   const stepOut = out.replace(/\.glb$/i, ".intermediate.step");
 
@@ -259,7 +249,7 @@ export class SldprtConverter implements ModelConverter {
       throw new Error(
         `SLDPRT conversion failed for '${req.sourcePath}'. ` +
         `Ensure FreeCAD is installed (https://www.freecad.org/downloads.php). ` +
-        `Set FreeCADCmd path in plugin settings or AI3D_FREECMDCMD env var. ` +
+        `Set FreeCADCmd path in plugin settings or AI3D_FREECADCMD env var. ` +
         `${error instanceof Error ? error.message : String(error)}`,
       );
     } finally {

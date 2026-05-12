@@ -11,6 +11,7 @@
 ## 目录
 
 - [功能特性](#功能特性)
+- [平台支持矩阵](#平台支持矩阵)
 - [快速入门](#快速入门)
 - [安装](#安装)
 - [格式支持](#格式支持)
@@ -36,7 +37,21 @@
 - **快照功能**：复制、保存或下载渲染预览为 PNG
 - **国际化**：英文和简体中文，自动检测系统语言
 - **桌面端支持**：Windows、macOS、Linux 上的 Obsidian Desktop
-- **移动端支持**：Obsidian Mobile 直接预览，自适应硬件缩放
+- **移动端支持**：iOS、iPadOS、Android 支持直读格式和简化后的工作台布局
+
+---
+
+## 平台支持矩阵
+
+| 能力 | Windows / macOS / Linux | iOS / iPadOS / Android |
+|------|--------------------------|-------------------------|
+| 直读格式（GLB、GLTF、OBJ、STL、PLY、SPLAT） | 支持 | 支持 |
+| 直接文件查看 | 支持 | 支持 |
+| 直读格式的内联嵌入 / 实时预览 | 支持 | 支持 |
+| 工作台布局 | 完整桌面布局 | 简化单列移动布局 |
+| 本地转换（CAD、FBX、3MF、DAE、SLDPRT） | 支持 | 不支持 |
+| 转换器诊断与本地 CLI 自检 | 支持 | 不支持 |
+| 已生成的 `.ai3d-converted.glb` 资产 | 支持 | 支持 |
 
 ---
 
@@ -349,7 +364,11 @@ ln -s /path/to/ai-3d-model-workbench \
 
 渲染层本身具备较好的跨平台可移植性：GLB、OBJ、STL、PLY、SPLAT 以及已经生成好的 `.ai3d-converted.glb`，只要 Obsidian Desktop 能提供 WebGL 就可以显示。
 
+在 iOS、iPadOS 和 Android 上，插件现已支持 GLB、GLTF、OBJ、STL、PLY、SPLAT 等直读格式。CAD、FBX、3MF、DAE、SLDPRT 这类需要本地转换器的路线仍然只支持桌面端，因为它们依赖外部 CLI 工具和 Python 环境。
+
 转换层的可移植性较弱，因为它依赖每台机器本地安装的工具和 Python 环境。当 CAD 或网格格式加载失败时，优先看插件设置里的转换器诊断面板。它会同时检查插件最终解析到的可执行文件路径，以及当前 Python 环境能否导入所需依赖，或原生命令行转换器是否能够启动。
+
+如果你是在这个仓库里继续开发，请先看 [docs/cross-platform-development.md](docs/cross-platform-development.md) 里的项目级实现准则。
 
 尤其在 macOS 上，系统自带的 `/usr/bin/python3` 往往存在，但并不包含 CAD 依赖。如果诊断面板显示使用的是这个路径且自检失败，应安装一个独立的 Python 环境，并在插件设置里显式填入那个解释器路径。
 
@@ -381,7 +400,7 @@ pip install cadquery trimesh
 - macOS：安装官方 app，或使用 `brew install --cask freecad`
 - Linux：安装发行版提供的 FreeCAD 包，并确保 `freecadcmd` 可用
 
-自动发现路径：
+插件会优先使用显式设置值和环境变量，其次检查常见的用户管理安装位置，再检查 PATH，最后再回退到下面这些系统级安装位置提示：
 - Windows：`%LOCALAPPDATA%\Programs\FreeCAD*\bin\FreeCADCmd.exe`
 - macOS：`/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd`、`/usr/local/bin/FreeCADCmd`、`/opt/homebrew/bin/FreeCADCmd`
 - Linux：`/usr/bin/freecadcmd`
@@ -406,7 +425,7 @@ pip install trimesh numpy networkx pycollada
 npm install -g obj2gltf
 ```
 
-**自动发现**：Windows 下查找 `obj2gltf.cmd`，macOS 和 Linux 下查找标准位置中的 `obj2gltf`，例如 `/usr/local/bin/obj2gltf`、`/opt/homebrew/bin/obj2gltf`。
+**解析顺序**：插件会优先使用显式设置值和环境变量，其次检查常见的用户管理安装位置，再检查 PATH，最后再回退到系统级提示位置，例如 Windows 下的 `obj2gltf.cmd`，以及 macOS / Linux 下标准位置中的 `obj2gltf`，如 `/usr/local/bin/obj2gltf`、`/opt/homebrew/bin/obj2gltf`。
 
 **启用**：设置 > 启用 OBJ2GLTF 转换器，或设置 obj2gltf 命令路径。
 
@@ -418,7 +437,7 @@ FBX 文件通过本地 FBX2glTF 二进制转换为 GLB。旧的社区 FBX 加载
 
 下载或自行构建适用于你平台的 [FBX2glTF](https://github.com/godotengine/FBX2glTF)，并将二进制文件放到可发现的位置。
 
-**自动发现路径**：
+**解析顺序**：插件会优先使用显式设置值和环境变量，其次检查常见的用户管理安装位置，再检查 PATH，最后再回退到下面这些系统级安装位置提示：
 
 ```text
 C:\Program Files\FBX2glTF\FBX2glTF-windows-x64.exe
@@ -435,10 +454,12 @@ C:\Program Files\FBX2glTF\FBX2glTF.exe
 | 变量 | 用途 |
 |------|------|
 | `AI3D_FREECAD_CMD` | CadQuery 的 Python 命令 |
-| `AI3D_FREECMDCMD` | FreeCADCmd 路径 |
+| `AI3D_FREECADCMD` | FreeCADCmd 路径 |
 | `AI3D_ASSIMP_CMD` | trimesh 的 Python 命令 |
 | `AI3D_OBJ2GLTF_CMD` | obj2gltf 命令路径 |
 | `AI3D_FBX2GLTF_CMD` | FBX2glTF 命令路径 |
+
+兼容旧配置时仍接受历史别名 `AI3D_FREECMDCMD`，但新配置应统一使用 `AI3D_FREECADCMD`。
 
 ---
 

@@ -14,12 +14,13 @@ import { createConversionManager } from "../../io/conversion/factory";
 import type { ConvertedAssetCache } from "../../io/cache/converted-asset-cache";
 import { toPreviewSource } from "../../io/preview/preview-source";
 import { createLogger } from "../../utils/log";
-import { readBinaryPath, resolveVaultAbsolutePath } from "../../utils/resolve-path";
+import { getPortableStem, readBinaryPath, resolveVaultAbsolutePath } from "../../utils/resolve-path";
 import { listPreferredConversionExts } from "../../io/formats/route-preferences";
 import { createNoteReader, createHeadingSearch } from "../../utils/note-reader";
 import { describeModelLoadFailure, type ModelLoadFailureDetails, isMissingConverterError } from "../../io/conversion/errors";
 import { formatT, t } from "../../i18n";
 import { renderModelLoadFailure } from "../model-load-feedback";
+import { isMobile } from "../../utils/device";
 
 const log = createLogger("workbench");
 
@@ -29,7 +30,9 @@ export function mountWorkbench(
   ps: PluginStore,
   convertedAssetCache: ConvertedAssetCache,
 ): () => void {
+  const mobile = isMobile();
   container.classList.add("ai3d-workbench");
+  container.classList.toggle("is-mobile", mobile);
 
   let preview: BabylonModelPreview | null = null;
   let annotationMgr: AnnotationManager | null = null;
@@ -69,6 +72,9 @@ export function mountWorkbench(
   // ── Stable preview host (never removed from DOM) ──
   // Create on container (in DOM) to inherit Obsidian CSS variables
   const previewHost = container.createDiv({ cls: "ai3d-preview-host" });
+  if (mobile) {
+    previewHost.classList.add("is-mobile-scroll-mode");
+  }
   const emptyState = html`
     <div class="ai3d-empty-state">
       <div class="ai3d-empty-icon">3D</div>
@@ -81,6 +87,41 @@ export function mountWorkbench(
   // Semi-transparent overlay for annotation mode
   const modeOverlay = previewHost.createDiv({ cls: "ai3d-annot-mode-overlay is-hidden" });
 
+  let mobilePreviewInteractive = false;
+  const mobilePreviewBar = mobile ? container.createDiv({ cls: "ai3d-mobile-mode-bar is-detached is-hidden" }) : null;
+  const mobilePreviewHint = mobilePreviewBar?.createDiv({ cls: "ai3d-mobile-mode-hint", text: t("workbench.mobileHint") }) ?? null;
+  const mobilePreviewModeBtn = mobilePreviewBar?.createEl("button", {
+    cls: "ai3d-mobile-mode-btn",
+    text: t("helper.interactAction"),
+    attr: { "aria-label": t("helper.enableInteractionLabel") },
+  }) ?? null;
+
+  function setMobilePreviewInteraction(active: boolean): void {
+    if (!mobile) return;
+    mobilePreviewInteractive = active;
+    previewHost.classList.toggle("is-mobile-interactive", active);
+    previewHost.classList.toggle("is-mobile-scroll-mode", !active);
+    if (mobilePreviewModeBtn) {
+      mobilePreviewModeBtn.textContent = active ? t("helper.scrollAction") : t("helper.interactAction");
+      mobilePreviewModeBtn.classList.toggle("ai3d-btn-active", active);
+      mobilePreviewModeBtn.setAttribute(
+        "aria-label",
+        active ? t("helper.disableInteractionLabel") : t("helper.enableInteractionLabel"),
+      );
+    }
+    if (mobilePreviewHint) {
+      mobilePreviewHint.textContent = active ? t("workbench.mobileHintInteractive") : t("workbench.mobileHint");
+    }
+  }
+
+  mobilePreviewModeBtn?.addEventListener("click", () => {
+    const nextInteractive = !mobilePreviewInteractive;
+    if (!nextInteractive && annotationMode) {
+      setAnnotationMode(false);
+    }
+    setMobilePreviewInteraction(nextInteractive);
+  });
+
   function clearInlineMessages(): void {
     previewHost.querySelectorAll(".ai3d-inline-empty:not(.ai3d-empty-state)").forEach((el) => el.remove());
   }
@@ -91,6 +132,8 @@ export function mountWorkbench(
     annotationMgr = null;
     annotationMode = false;
     modeOverlay.classList.add("is-hidden");
+    mobilePreviewBar?.classList.add("is-hidden");
+    setMobilePreviewInteraction(false);
     preview?.destroy();
     preview = null;
     previewHost.querySelectorAll(".ai3d-canvas-full").forEach((el) => el.remove());
@@ -112,6 +155,9 @@ export function mountWorkbench(
 
   function setAnnotationMode(active: boolean) {
     annotationMode = active;
+    if (mobile && active) {
+      setMobilePreviewInteraction(true);
+    }
     annotationMgr?.hideEditor();
     modeOverlay.classList.toggle("is-hidden", !active);
     renderPanels();
@@ -278,7 +324,7 @@ export function mountWorkbench(
                 <button class=${`ai3d-axis-btn ${annotationMode ? "is-active" : ""}`} data-action="toggle-annot">
                   ${annotationMode ? t("workbench.exitAnnotate") : t("workbench.annotate")}
                 </button>
-                <span class="ai3d-annot-hint">${annotationMode ? t("workbench.annotateHintActive") : formatT("workbench.pinCount", { count: String(annotations.length) })}</span>
+                <span class="ai3d-annot-hint">${annotationMode ? t(mobile ? "workbench.annotateHintActiveMobile" : "workbench.annotateHintActive") : formatT("workbench.pinCount", { count: String(annotations.length) })}</span>
               </div>
               ${annotations.length > 0 ? html`
                 <div class="ai3d-annot-list">
@@ -454,6 +500,7 @@ export function mountWorkbench(
           const readFile = async (p: string) => readBinaryPath(app, p);
 
           preview = new BabylonModelPreview(canvas);
+          mobilePreviewBar?.classList.remove("is-hidden");
           const summary = await preview.loadModel(data, source.ext, readFile, source.path);
           const latestPath = ps.store.getState().currentModelPath;
           if (latestPath !== path) {
@@ -580,8 +627,7 @@ export async function generateKnowledgeNote(app: App, state: PluginState) {
 
     const profile = state.modelAssetProfiles[path];
     const preview = state.modelPreview;
-    const fileName = path.split(/[\\/]/).pop() ?? "model";
-    const baseName = fileName.replace(/\.[^.]+$/, "");
+    const baseName = getPortableStem(path) || "model";
     const reportFolder = state.settings.reportFolder;
     const notePath = `${reportFolder}/${baseName} Report.md`;
     const content = buildNoteContent(baseName, path, profile, preview);

@@ -16,8 +16,8 @@
  * @param cls  Optional CSS class(es) to apply.
  */
 export function createStagedDiv(cls?: string): HTMLDivElement {
-  // eslint-disable-next-line obsidianmd/prefer-create-el, obsidianmd/prefer-active-doc -- staging container must use raw createElement to avoid HierarchyRequestError
-  const s = document.createElement("div");
+  // eslint-disable-next-line obsidianmd/prefer-create-el -- staging container must use raw createElement to avoid HierarchyRequestError
+  const s = activeDocument.createElement("div");
   return s.createDiv(cls ? { cls } : undefined);
 }
 
@@ -31,7 +31,7 @@ export function createStagedEl<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   cls?: string,
 ): HTMLElementTagNameMap[K] {
-  // eslint-disable-next-line obsidianmd/prefer-create-el, obsidianmd/prefer-active-doc -- staging container must use raw createElement to avoid HierarchyRequestError
-  const s = document.createElement("div");
+  // eslint-disable-next-line obsidianmd/prefer-create-el -- staging container must use raw createElement to avoid HierarchyRequestError
+  const s = activeDocument.createElement("div");
   return s.createEl(tag, cls ? { cls } : undefined);
 }

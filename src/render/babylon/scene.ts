@@ -32,6 +32,7 @@ import { setExplode, resetExplode } from "./explode";
 import { setupPicking, type PickResult } from "./picking";
 import { arrayBufferToBase64 } from "../../utils/base64";
 import { isMobile } from "../../utils/device";
+import { getPortableBasename, getPortableDirname, getPortableStem } from "../../utils/resolve-path";
 import { OrientationGizmo } from "./orientation-gizmo";
 import { DisassemblyController } from "./disassembly";
 
@@ -74,6 +75,11 @@ export class BabylonModelPreview {
     event.preventDefault();
     event.stopPropagation();
   };
+
+  private canRender(): boolean {
+    const canvas = this.engine.getRenderingCanvas();
+    return !!canvas?.isConnected && canvas.clientWidth > 0 && canvas.clientHeight > 0;
+  }
 
   constructor(canvas: HTMLCanvasElement) {
     this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true });
@@ -161,8 +167,7 @@ export class BabylonModelPreview {
         let texMissing = 0;
         if (mtlMatch && readFile && modelPath) {
           const mtlFilename = mtlMatch[1].trim().split(/\s+/)[0];
-          const sepIdx = Math.max(modelPath.lastIndexOf("/"), modelPath.lastIndexOf("\\"));
-          const modelDir = sepIdx > 0 ? modelPath.slice(0, sepIdx) : "";
+          const modelDir = getPortableDirname(modelPath);
           const mtlPath = modelDir ? `${modelDir}/${mtlFilename}` : mtlFilename;
           try {
             const mtlData = await readFile(mtlPath);
@@ -174,13 +179,13 @@ export class BabylonModelPreview {
             //      3) OBJ-name with image extensions (e.g. bat.jpeg),
             //      4) common basecolor/texture names in same dir
             const TEX_RE = /^\s*(map_Kd|map_Ka|map_Ks|map_Ns|map_d|map_bump|bump|disp|decal)\s+(.+)/i;
-            const objBasename = modelPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") ?? "";
+            const objBasename = getPortableStem(modelPath);
             const IMG_EXTS = ["jpg", "jpeg", "png", "bmp", "tga", "webp", "tif", "tiff"];
             for (let i = 0; i < lines.length; i++) {
               const m = lines[i].match(TEX_RE);
               if (!m) continue;
               const rawPath = m[2].trim();
-              const texFilename = rawPath.split(/[\\/]/).pop()!;
+              const texFilename = getPortableBasename(rawPath);
               const texBase = texFilename.replace(/\.[^.]+$/, "");
               // Build candidate paths
               const candidates: string[] = [
@@ -713,7 +718,7 @@ export class BabylonModelPreview {
     const isSplat = this.rootMesh instanceof GaussianSplattingMesh;
     const ext = this.loadedExt.toUpperCase();
 
-    const name = modelPath?.split(/[\\/]/).pop() ?? summary.rootName;
+    const name = modelPath ? getPortableBasename(modelPath) || summary.rootName : summary.rootName;
     const countLabel = isSplat ? "Splats" : "Triangles";
 
     const lines: string[] = [];
@@ -859,6 +864,7 @@ export class BabylonModelPreview {
     if (this.rendering) return;
     this.rendering = true;
     this.engine.runRenderLoop(() => {
+      if (!this.canRender()) return;
       this.scene.render();
       if (this.gizmo && this.gizmoEnabled) {
         this.gizmo.syncWith(this.camera);

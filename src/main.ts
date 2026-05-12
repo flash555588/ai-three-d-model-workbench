@@ -11,6 +11,8 @@ import { inspectAllConverterCommands } from "./io/conversion/command-discovery";
 import { setLogLevel } from "./utils/log";
 import { formatT, setLocale, t, type Locale } from "./i18n";
 import { normalizeHeadingText } from "./utils/note-reader";
+import { isMobile } from "./utils/device";
+import { getPortableStem } from "./utils/resolve-path";
 
 export default class AI3DModelWorkbench extends Plugin {
   private ps!: PluginStore;
@@ -111,6 +113,7 @@ export default class AI3DModelWorkbench extends Plugin {
   }
 
   private setupHeadingPinObserver(): void {
+    const markdownContainerSelector = ".markdown-preview-view, .markdown-source-view";
     const headingSelector = [
       ".markdown-preview-view h1", ".markdown-preview-view h2", ".markdown-preview-view h3",
       ".markdown-preview-view h4", ".markdown-preview-view h5", ".markdown-preview-view h6",
@@ -184,7 +187,7 @@ export default class AI3DModelWorkbench extends Plugin {
         const count = badge.createSpan({ cls: "ai3d-heading-pin-badge-count" });
         count.textContent = `\u00d7${entries.length}`;
       }
-      const uniqueModels = [...new Set(entries.map(e => e.modelPath.replace(/^.*\//, "").replace(/\.[^.]+$/, "")))];
+      const uniqueModels = [...new Set(entries.map((e) => getPortableStem(e.modelPath)))];
       badge.title = formatT("headingPin.linkedTo", { models: uniqueModels.join(", ") });
       const highlightLinkedPins = (e?: Event) => {
         e?.stopPropagation();
@@ -224,7 +227,7 @@ export default class AI3DModelWorkbench extends Plugin {
     };
 
     const scanAll = () => {
-      const containers = activeDocument.querySelectorAll(".markdown-preview-view, .markdown-source-view");
+      const containers = activeDocument.querySelectorAll(markdownContainerSelector);
       containers.forEach(processHeadings);
     };
 
@@ -233,16 +236,23 @@ export default class AI3DModelWorkbench extends Plugin {
     }));
 
     // Debounced MutationObserver: coalesce rapid DOM changes into a single scan
-    let pendingNodes: HTMLElement[] = [];
+    const isRelevantAddedNode = (node: HTMLElement): boolean => {
+      if (!node.isConnected) return false;
+      if (node.matches(markdownContainerSelector) || node.matches(headingSelector)) return true;
+      return !!node.querySelector(markdownContainerSelector) || !!node.querySelector(headingSelector);
+    };
+
+    let pendingNodes = new Set<HTMLElement>();
     let debounceTimer = 0;
     const flushPending = () => {
-      const nodes = pendingNodes;
-      pendingNodes = [];
+      const nodes = Array.from(pendingNodes);
+      pendingNodes.clear();
       debounceTimer = 0;
       const headingMap = buildHeadingMap();
       if (headingMap.size === 0) return;
       buildNormalizedMap(headingMap);
       for (const node of nodes) {
+        if (!node.isConnected) continue;
         if (node.matches?.(headingSelector)) bindHeading(node);
         node.querySelectorAll?.(headingSelector)?.forEach((el: Element) => bindHeading(el));
       }
@@ -251,11 +261,13 @@ export default class AI3DModelWorkbench extends Plugin {
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
         for (const node of Array.from(m.addedNodes)) {
-          if (node.instanceOf(HTMLElement)) pendingNodes.push(node);
+          if (!node.instanceOf(HTMLElement)) continue;
+          if (!isRelevantAddedNode(node)) continue;
+          pendingNodes.add(node);
         }
       }
-      if (pendingNodes.length > 0 && !debounceTimer) {
-        debounceTimer = window.setTimeout(flushPending, 100);
+      if (pendingNodes.size > 0 && !debounceTimer) {
+        debounceTimer = activeWindow.setTimeout(flushPending, 100);
       }
     });
     observer.observe(activeDocument.body, { childList: true, subtree: true });
@@ -332,6 +344,11 @@ export default class AI3DModelWorkbench extends Plugin {
   }
 
   private async checkConverterCommands() {
+    if (isMobile()) {
+      new Notice(t("main.converterDiagnosticsMobileUnavailable"), 8000);
+      return;
+    }
+
     const statuses = await inspectAllConverterCommands(this.getSettings());
     const available = statuses.filter((status) => status.available).map((status) => status.label);
     const missing = statuses.filter((status) => !status.available).map((status) => status.label);

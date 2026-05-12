@@ -8,6 +8,7 @@ import {
   type ConverterCommandStatus,
 } from "./io/conversion/command-discovery";
 import { t, setLocale, type Locale } from "./i18n";
+import { isMobile } from "./utils/device";
 import { getRuntimeProcess } from "./utils/node-shim";
 
 const proc = getRuntimeProcess();
@@ -65,6 +66,7 @@ export class AI3DSettingTab extends PluginSettingTab {
     setLocale(this.plugin.getSettings().locale);
     let refreshCommandDiagnostics: (() => Promise<void>) | undefined;
     const commandPlaceholders = getConverterCommandPlaceholders();
+    const mobile = isMobile();
 
     new Setting(containerEl).setName(t("settings.title")).setHeading();
 
@@ -194,6 +196,10 @@ export class AI3DSettingTab extends PluginSettingTab {
     // ── Converters ───────────────────────────────────────────────
 
     new Setting(containerEl).setName(t("settings.converters")).setHeading();
+
+    if (mobile) {
+      containerEl.createEl("p", { cls: "setting-item-description", text: t("settings.mobileSupport.desc") });
+    } else {
 
     new Setting(containerEl)
       .setName(t("settings.enableCad"))
@@ -367,6 +373,8 @@ export class AI3DSettingTab extends PluginSettingTab {
     const diagnosticsEl = containerEl.createDiv({ cls: "ai3d-settings-diagnostics" });
     refreshCommandDiagnostics = () => this.renderCommandDiagnostics(diagnosticsEl);
     void refreshCommandDiagnostics();
+
+    }
 
     // ── Performance ──────────────────────────────────────────────
 

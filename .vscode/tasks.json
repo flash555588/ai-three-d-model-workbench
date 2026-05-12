@@ -1,0 +1,99 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "ai3d-typecheck",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				".\\node_modules\\typescript\\lib\\tsc.js",
+				"--noEmit",
+				"--skipLibCheck"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "ai3d-inline-eslint",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				".\\node_modules\\eslint\\bin\\eslint.js",
+				"src\\view\\inline\\helper-buttons.ts",
+				"src\\view\\inline\\live-preview.ts",
+				"src\\view\\inline\\loading-overlay.ts",
+				"src\\view\\inline\\code-block.ts",
+				"src\\i18n\\en.ts",
+				"src\\i18n\\zh-CN.ts",
+				"--ext",
+				".ts"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "ai3d-typecheck-workbench",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				".\\node_modules\\typescript\\lib\\tsc.js",
+				"--noEmit",
+				"--skipLibCheck"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "ai3d-eslint-workbench-mobile",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				".\\node_modules\\eslint\\bin\\eslint.js",
+				"src\\view\\workbench\\app.ts",
+				"src\\i18n\\en.ts",
+				"src\\i18n\\zh-CN.ts",
+				"--ext",
+				".ts"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "ai3d-typecheck-mobile-unified",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				".\\node_modules\\typescript\\lib\\tsc.js",
+				"--noEmit",
+				"--skipLibCheck"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "ai3d-eslint-mobile-unified",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				".\\node_modules\\eslint\\bin\\eslint.js",
+				"src\\view\\direct-view.ts",
+				"src\\view\\workbench\\app.ts",
+				"src\\view\\inline\\live-preview.ts",
+				"src\\view\\inline\\code-block.ts",
+				"src\\view\\inline\\helper-buttons.ts",
+				"src\\i18n\\en.ts",
+				"src\\i18n\\zh-CN.ts",
+				"--ext",
+				".ts"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		}
+	]
+}

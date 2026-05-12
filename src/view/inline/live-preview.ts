@@ -5,7 +5,7 @@
 
 import type { App } from "obsidian";
 import { EditorView, Decoration, WidgetType } from "@codemirror/view";
-import { StateField, StateEffect, RangeSet, Range } from "@codemirror/state";
+import { StateField, RangeSet, Range } from "@codemirror/state";
 import { isSupportedModelExtension } from "../../io/formats/registry";
 import type { PluginSettings, AnnotationPin } from "../../domain/models";
 import type { BabylonModelPreview } from "../../render/babylon/scene";
@@ -18,6 +18,10 @@ import { listPreferredConversionExts } from "../../io/formats/route-preferences"
 import { createLoadingOverlay, type LoadingOverlay } from "./loading-overlay";
 import { createNoteReader } from "../../utils/note-reader";
 import { createStagedDiv, createStagedEl } from "../../utils/dom";
+import { describeModelLoadFailure, isMissingConverterError } from "../../io/conversion/errors";
+import { isMobile } from "../../utils/device";
+import { renderModelLoadFailure } from "../model-load-feedback";
+import { t } from "../../i18n";
 
 // ── Widget ────────────────────────────────────────────────────────
 
@@ -66,16 +70,50 @@ class ModelEmbedWidget extends WidgetType {
   }
 
   override toDOM(): HTMLElement {
+    const mobile = isMobile();
     const host = createStagedDiv("ai3d-embed-preview");
+    if (mobile) {
+      host.classList.add("is-mobile", "is-mobile-scroll-mode");
+    }
 
     const canvas = createStagedEl("canvas", "ai3d-embed-canvas");
-    canvas.style.setProperty("--ai3d-embed-height", `${this.height}px`);
+    const effectiveHeight = mobile ? Math.min(this.height, 220) : this.height;
+    canvas.style.setProperty("--ai3d-embed-height", `${effectiveHeight}px`);
     host.appendChild(canvas);
 
     const loading = createLoadingOverlay(host);
 
     const error = createStagedDiv("ai3d-embed-error is-hidden");
     host.appendChild(error);
+
+    if (mobile) {
+      let mobileInteractive = false;
+      const footer = createStagedDiv("ai3d-mobile-mode-bar");
+      const hint = createStagedDiv("ai3d-mobile-mode-hint");
+      hint.textContent = t("livePreview.mobileHint");
+      const modeBtn = createStagedEl("button", "ai3d-mobile-mode-btn");
+      modeBtn.type = "button";
+
+      const renderInteractionMode = () => {
+        host.classList.toggle("is-mobile-interactive", mobileInteractive);
+        host.classList.toggle("is-mobile-scroll-mode", !mobileInteractive);
+        modeBtn.textContent = mobileInteractive ? t("helper.scrollAction") : t("helper.interactAction");
+        modeBtn.classList.toggle("ai3d-btn-active", mobileInteractive);
+        modeBtn.setAttribute(
+          "aria-label",
+          mobileInteractive ? t("helper.disableInteractionLabel") : t("helper.enableInteractionLabel"),
+        );
+      };
+
+      modeBtn.addEventListener("click", () => {
+        mobileInteractive = !mobileInteractive;
+        renderInteractionMode();
+      });
+
+      renderInteractionMode();
+      footer.append(hint, modeBtn);
+      host.appendChild(footer);
+    }
 
     // Poll host.isConnected via rAF — avoids O(N*M) MutationObserver on document.body
     let attempts = 0;
@@ -164,8 +202,15 @@ class ModelEmbedWidget extends WidgetType {
       this.preview?.destroy();
       this.preview = null;
       loading.hide();
-      error.classList.remove("is-hidden");
-      error.textContent = `[AI3D] ${err instanceof Error ? err.message : String(err)}`;
+      error.remove();
+      host.replaceChildren();
+      const failure = describeModelLoadFailure(err);
+      if (isMissingConverterError(err)) {
+        console.warn("[AI3D] Live Preview blocked by converter settings:", failure.message);
+      } else {
+        console.error("[AI3D] Live Preview failed:", err);
+      }
+      renderModelLoadFailure(host, failure);
     }
   }
 
@@ -287,10 +332,6 @@ function findEmbeds(
   return ranges;
 }
 
-// ── StateEffect ───────────────────────────────────────────────────
-
-const updateEmbeds = StateEffect.define<void>();
-
 // ── StateField + ViewPlugin ───────────────────────────────────────
 
 type DecoSet = RangeSet<Decoration>;
@@ -329,7 +370,7 @@ export function registerLivePreviewExtension(
       return toDecoSet(ranges);
     },
     update(value, tr): DecoSet {
-      if (tr.docChanged || tr.effects.some((e) => e.is(updateEmbeds))) {
+      if (tr.docChanged) {
         const s = getSettings();
         const ranges = findEmbeds(
           tr.state,
@@ -353,11 +394,5 @@ export function registerLivePreviewExtension(
     provide: (f) => EditorView.decorations.from(f),
   });
 
-  const refreshPlugin = EditorView.updateListener.of((update) => {
-    if (update.docChanged) {
-      update.view.dispatch({ effects: updateEmbeds.of() });
-    }
-  });
-
-  return [embedField, refreshPlugin];
+  return [embedField];
 }

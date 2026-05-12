@@ -4,7 +4,9 @@ import type { ConversionManager } from "./conversion/manager";
 import type { ConvertedAssetCache } from "./cache/converted-asset-cache";
 import { prepareDirectLoad } from "./direct/direct-load-service";
 import { convertForPreview } from "./conversion/conversion-service";
+import { MobileConversionUnavailableError } from "./conversion/errors";
 import { createLogger } from "../utils/log";
+import { isMobile } from "../utils/device";
 
 const log = createLogger("model-pipeline");
 
@@ -44,6 +46,11 @@ export async function prepareModelInput(input: PrepareModelInput): Promise<Prepa
   const useConversion = cap.strategy === "convert" || (preferConversion && !!cap.converterId);
 
   if (useConversion) {
+    if (isMobile()) {
+      log.warn("conversion unavailable on mobile", { sourceExt, path: input.path });
+      throw new MobileConversionUnavailableError(sourceExt);
+    }
+
     if (!input.absolutePath) {
       log.error("filesystem path missing for conversion", { sourceExt, path: input.path });
       throw new Error(

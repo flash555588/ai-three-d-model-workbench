@@ -1,3 +1,5 @@
+/// <reference types="obsidian" />
+
 /**
  * Safe wrappers for Node.js built-in modules.
  *

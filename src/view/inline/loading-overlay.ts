@@ -23,6 +23,11 @@ export interface LoadingOverlay {
 
 export function createLoadingOverlay(host: HTMLElement): LoadingOverlay {
   const overlay = host.createDiv({ cls: "ai3d-loading-overlay" });
+  const skeleton = overlay.createDiv({ cls: "ai3d-loading-skeleton" });
+  skeleton.createDiv({ cls: "ai3d-loading-skeleton-canvas" });
+  const skeletonMeta = skeleton.createDiv({ cls: "ai3d-loading-skeleton-meta" });
+  skeletonMeta.createDiv({ cls: "ai3d-loading-skeleton-line" });
+  skeletonMeta.createDiv({ cls: "ai3d-loading-skeleton-line is-short" });
 
   overlay.createDiv({ cls: "ai3d-loading-spinner" });
 

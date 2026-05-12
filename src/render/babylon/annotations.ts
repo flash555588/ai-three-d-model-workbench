@@ -7,6 +7,7 @@ import { Ray } from "@babylonjs/core/Culling/ray.core.js";
 import type { AnnotationPin, PluginSettings } from "../../domain/models";
 import type { HeadingSearchResult } from "../../utils/note-reader";
 import { formatT, t } from "../../i18n";
+import { getPortableStem } from "../../utils/resolve-path";
 
 const DEFAULT_COLORS = [
   "#4a9eff",
@@ -246,7 +247,7 @@ export class AnnotationManager {
       this._selectedHeading = result;
       input.value = result.heading;
       // Show binding tag
-      const shortPath = result.notePath.replace(/^.*\//, "").replace(/\.[^.]+$/, "");
+      const shortPath = getPortableStem(result.notePath);
       bindingTag.querySelector(".ai3d-editor-binding-text")?.remove();
       const textSpan = bindingTag.createSpan({ cls: "ai3d-editor-binding-text" });
       textSpan.textContent = `\ud83d\udcc4 ${shortPath}`;
@@ -279,7 +280,7 @@ export class AnnotationManager {
         headingEl.textContent = `${"#".repeat(r.level)} ${r.heading}`;
 
         const noteEl = item.createSpan({ cls: "ai3d-heading-dropdown-note" });
-        noteEl.textContent = r.notePath.replace(/^.*\//, "").replace(/\.[^.]+$/, "");
+        noteEl.textContent = getPortableStem(r.notePath);
         item.addEventListener("mousedown", (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -426,7 +427,7 @@ export class AnnotationManager {
 
     // If editing existing pin with binding, show the tag and content
     if (existingPin?.notePath && existingPin?.headingRef) {
-      const shortPath = existingPin.notePath.replace(/^.*\//, "").replace(/\.[^.]+$/, "");
+      const shortPath = getPortableStem(existingPin.notePath);
       const textSpan = bindingTag.createSpan({ cls: "ai3d-editor-binding-text" });
       textSpan.textContent = `\ud83d\udcc4 ${shortPath}`;
       bindingTag.classList.remove("is-hidden");
@@ -662,6 +663,10 @@ export class AnnotationManager {
     if (this.pinEls.size === 0) return;
     const { scene, camera, engine, canvas } = this.provider;
 
+    if (!this.hostEl.isConnected || !canvas.isConnected || canvas.clientWidth === 0 || canvas.clientHeight === 0) {
+      return;
+    }
+
     // Guard: scene may have been disposed between frames
     if (scene.isDisposed) return;
 
@@ -691,9 +696,16 @@ export class AnnotationManager {
       this.cameraIdle = true;
     }
 
-    // Throttle occlusion check to every 6 frames
+    // While the camera is moving, pin overlay updates can become a noticeable
+    // JS/DOM hotspot. Lower the overlay refresh rate in motion and only do
+    // occlusion raycasts once the camera settles again.
     this.frameCount++;
-    const checkOcclusion = this.frameCount % 6 === 0;
+    const projectionStride = this.cameraIdle ? 1 : this.pinEls.size >= 12 ? 3 : 2;
+    if (!this.cameraIdle && this.frameCount % projectionStride !== 0) {
+      return;
+    }
+
+    const checkOcclusion = this.cameraIdle && this.frameCount % 6 === 0;
     const camPos = checkOcclusion ? camera.position : null;
 
     const identity = AnnotationManager._identity;

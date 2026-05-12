@@ -16,6 +16,7 @@ import { createLoadingOverlay } from "./inline/loading-overlay";
 import { describeModelLoadFailure, isMissingConverterError } from "../io/conversion/errors";
 import { t } from "../i18n";
 import { renderModelLoadFailure } from "./model-load-feedback";
+import { isMobile } from "../utils/device";
 
 export const DIRECT_VIEW_TYPE = "ai3d-direct-view";
 
@@ -80,6 +81,7 @@ export class DirectModelView extends FileView {
 
   private async loadModel(file: TFile): Promise<void> {
     const gen = ++this.loadGeneration;
+    const mobile = isMobile();
     this.annotationMgr?.destroy();
     this.annotationMgr = null;
     this.annotationMode = false;
@@ -88,8 +90,8 @@ export class DirectModelView extends FileView {
 
     // Use a detached staging container to avoid "Only one element on document" error.
     // This happens because contentEl may be the document itself during onLoadFile.
-    // eslint-disable-next-line obsidianmd/prefer-create-el, obsidianmd/prefer-active-doc -- staging container must use raw createElement to avoid HierarchyRequestError
-    const staging = document.createElement("div");
+    // eslint-disable-next-line obsidianmd/prefer-create-el -- staging container must use raw createElement to avoid HierarchyRequestError
+    const staging = activeDocument.createElement("div");
     const host = staging.createDiv({ cls: "ai3d-preview-host" });
 
     const canvas = staging.createEl("canvas");
@@ -103,8 +105,13 @@ export class DirectModelView extends FileView {
 
     this.contentEl.appendChild(host);
 
+    let toolbar: ReturnType<typeof createHelperButtons> | null = null;
+
     const setAnnotationMode = (active: boolean) => {
       this.annotationMode = active;
+      if (mobile && active) {
+        toolbar?.setMobileInteractionMode(true);
+      }
       this.annotationMgr?.hideEditor();
       modeOverlay.classList.toggle("is-hidden", !active);
       console.debug("[AI3D] DirectView annotation mode:", active);
@@ -119,7 +126,7 @@ export class DirectModelView extends FileView {
     };
     activeDocument.addEventListener("keydown", this.escHandler);
 
-    const toolbar = createHelperButtons(
+    toolbar = createHelperButtons(
       this.contentEl,
       host,
       this.app,
@@ -134,7 +141,19 @@ export class DirectModelView extends FileView {
         setAnnotationMode(!this.annotationMode);
         return this.annotationMode;
       },
+      (interactive) => {
+        if (!interactive && this.annotationMode) {
+          setAnnotationMode(false);
+        }
+      },
     );
+
+    if (mobile) {
+      this.contentEl.createDiv({
+        cls: "ai3d-mobile-mode-hint ai3d-mobile-mode-hint--inline",
+        text: t("directView.mobileHint"),
+      });
+    }
 
     const loading = createLoadingOverlay(host);
 

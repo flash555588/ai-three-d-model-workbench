@@ -1,7 +1,11 @@
 import type { ModelLoadFailureDetails } from "../io/conversion/errors";
+import { isMobile } from "../utils/device";
 
 export function renderModelLoadFailure(host: HTMLElement, failure: ModelLoadFailureDetails): HTMLDivElement {
   const shell = host.createDiv({ cls: "ai3d-inline-empty ai3d-load-feedback-shell" });
+  if (isMobile()) {
+    shell.classList.add("is-mobile");
+  }
   const block = shell.createDiv({ cls: `ai3d-load-feedback is-${failure.level}` });
   block.createDiv({ cls: "ai3d-load-feedback-title", text: failure.title });
   block.createDiv({ cls: "ai3d-load-feedback-message", text: failure.message });

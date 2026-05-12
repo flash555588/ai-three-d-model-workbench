@@ -53,6 +53,11 @@ export class GridRenderer {
     event.stopPropagation();
   };
 
+  private canRender(): boolean {
+    const canvas = this.engine.getRenderingCanvas();
+    return !!canvas?.isConnected && canvas.clientWidth > 0 && canvas.clientHeight > 0;
+  }
+
   constructor(canvas: HTMLCanvasElement) {
     canvas.className = "ai3d-canvas-full";
     canvas.addEventListener("wheel", this.preventCanvasWheelScroll, { passive: false });
@@ -382,6 +387,7 @@ export class GridRenderer {
   // ── Render ─────────────────────────────────────────────────────────
 
   private renderFrame(): void {
+    if (!this.canRender()) return;
     const engine = this.engine;
     const scene = this.scene;
     engine.clear(scene.clearColor, true, true);

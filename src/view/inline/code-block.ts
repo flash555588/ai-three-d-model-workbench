@@ -18,6 +18,7 @@ import { createNoteReader } from "../../utils/note-reader";
 import { describeModelLoadFailure, isMissingConverterError } from "../../io/conversion/errors";
 import { formatT, t } from "../../i18n";
 import { renderModelLoadFailure } from "../model-load-feedback";
+import { isMobile } from "../../utils/device";
 
 interface PreparedInlineModel {
   sourcePath: string;
@@ -86,6 +87,11 @@ async function prepareInlineSection(
     ...section,
     models,
   };
+}
+
+function appendMobileInlineHint(parent: HTMLElement): void {
+  if (!isMobile()) return;
+  parent.createDiv({ cls: "ai3d-mobile-mode-hint ai3d-mobile-mode-hint--inline", text: t("codeBlock.mobileHint") });
 }
 
 /**
@@ -220,7 +226,12 @@ export function registerCodeBlockProcessor(
           if (overlay) overlay.classList.toggle("is-hidden", !annotationVisible);
         }
         return annotationVisible;
+      }, undefined, {
+        labelKey: "helper.toggleAnnotationsVisibilityLabel",
+        activeTooltipKey: "helper.annotationsVisible",
+        inactiveTooltipKey: "helper.annotationsHidden",
       });
+      appendMobileInlineHint(el);
 
       // Auto-destroy when the DOM element is removed
       const observer = new MutationObserver(() => {
@@ -235,7 +246,7 @@ export function registerCodeBlockProcessor(
           preview = null;
         }
       });
-      observer.observe(el, { childList: true, subtree: true });
+      observer.observe(el, { childList: true });
 
       async function loadPreview() {
         if (loaded || destroyed || !modelPath) return;
@@ -486,6 +497,7 @@ export function registerGridCodeBlockProcessor(
         renderer = null;
         gridHost.remove();
       }, getSettings);
+      appendMobileInlineHint(el);
 
       const observer = new MutationObserver(() => {
         if (destroyed) return;
@@ -497,7 +509,7 @@ export function registerGridCodeBlockProcessor(
           renderer = null;
         }
       });
-      observer.observe(el, { childList: true, subtree: true });
+      observer.observe(el, { childList: true });
 
       async function loadGrid() {
         if (loaded || destroyed) return;
