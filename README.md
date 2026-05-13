@@ -1,6 +1,6 @@
-# AI 3D Model Workbench
+# AI Model Workbench
 
-> An Obsidian plugin for viewing 3D assets, annotating key parts, and turning models into linked knowledge notes. Common mesh formats render directly; CAD, FBX, and interchange formats can be converted to GLB through local tools.
+> A local-first Obsidian 3D viewer focused on knowledge workflows. It renders common 3D assets in a Babylon.js viewport, lets you annotate key parts, and turns models into linked notes. Common mesh formats load directly, while CAD, FBX, and interchange formats can be converted to GLB through local tools.
 
 **English** | [简体中文](README.zh-CN.md)
 
@@ -19,6 +19,7 @@
 - [Settings](#settings)
 - [External Dependencies](#external-dependencies)
 - [Security & Privacy](#security--privacy)
+- [Funding](#funding)
 - [Technical Details](#technical-details)
 - [Known Limitations](#known-limitations)
 - [Deployment](#deployment)
@@ -28,7 +29,7 @@
 
 ## Features
 
-- **Direct mesh preview** for GLB/GLTF, STL, OBJ, PLY, and SPLAT
+- **Direct mesh preview** for GLB/GLTF, STL, OBJ, and PLY
 - **Optional conversion** for CAD, FBX, 3MF, and DAE assets
 - **Babylon.js 9.6** engine with WebGL 2 rendering
 - **Three embedding methods**: Live Preview, code blocks, direct file view
@@ -46,7 +47,7 @@
 
 | Capability | Windows / macOS / Linux | iOS / iPadOS / Android |
 |------------|--------------------------|-------------------------|
-| Direct formats (GLB, GLTF, OBJ, STL, PLY, SPLAT) | Yes | Yes |
+| Direct formats (GLB, GLTF, OBJ, STL, PLY) | Yes | Yes |
 | Direct file view | Yes | Yes |
 | Inline embed / Live Preview for direct formats | Yes | Yes |
 | Workbench layout | Full desktop layout | Simplified single-column mobile layout |
@@ -75,7 +76,7 @@ npm run build
 
 4. Copy `main.js`, `manifest.json`, and `styles.css` into that folder.
 
-5. In Obsidian, open `Settings > Community Plugins` and enable `AI 3D Model Workbench`.
+5. In Obsidian, open `Settings > Community Plugins` and enable `AI Model Workbench`.
 
 6. Put a supported model file into the same vault, for example `model.glb`.
 
@@ -126,14 +127,14 @@ npm run build
 
 2. Create `<vault>/.obsidian/plugins/ai-model-workbench/` if it does not exist.
 3. Copy `main.js`, `manifest.json`, and `styles.css` into that folder.
-4. In Obsidian, enable `AI 3D Model Workbench` in `Settings > Community Plugins`.
+4. In Obsidian, enable `AI Model Workbench` in `Settings > Community Plugins`.
 
 ### Option B: Download a Release
 
 1. Download `main.js`, `manifest.json`, and `styles.css` from [Releases](https://github.com/flash555588/ai-model-workbench/releases).
 2. Create `<vault>/.obsidian/plugins/ai-model-workbench/` if it does not exist.
 3. Put the three files in that folder.
-4. In Obsidian, enable `AI 3D Model Workbench` in `Settings > Community Plugins`.
+4. In Obsidian, enable `AI Model Workbench` in `Settings > Community Plugins`.
 
 ### Option C: Symlink for Development
 
@@ -157,7 +158,7 @@ ln -s /path/to/ai-model-workbench \
 
 3. In this repository, run `npm install` once if needed.
 4. Run `npm run dev` while developing.
-5. In Obsidian, enable `AI 3D Model Workbench` in `Settings > Community Plugins`.
+5. In Obsidian, enable `AI Model Workbench` in `Settings > Community Plugins`.
 
 ### After Install
 
@@ -175,9 +176,15 @@ ln -s /path/to/ai-model-workbench \
 
 AI Model Workbench does not collect telemetry, phone home, or run background network sync. Model previews are loaded from files already present in the Obsidian vault, and OBJ material/texture references are resolved from the vault instead of being fetched from the network.
 
-The bundled Babylon.js runtime contains generic loader utilities that are capable of loading URLs for web applications. This plugin passes vault file bytes to Babylon as data URLs and overrides OBJ MTL loading to avoid remote fetches. Optional converter diagnostics and conversions run only after a user action and execute local tools on desktop platforms.
+The bundled Babylon.js runtime contains generic loader utilities that are capable of loading URLs for web applications. This plugin passes vault file bytes to Babylon as data URLs, overrides OBJ MTL loading to avoid remote fetches, and installs a runtime guard that rejects explicit `http(s)` / `ws(s)` asset or script URLs while disabling Babylon retry hooks for those requests. Optional converter diagnostics and conversions run only after a user action and execute local tools on desktop platforms.
 
 Release assets are limited to the three files Obsidian downloads: `main.js`, `manifest.json`, and `styles.css`. GitHub Actions builds these files from source and publishes artifact attestations for provenance verification.
+
+---
+
+## Funding
+
+AI Model Workbench does not include donation prompts, payment flows, or cryptocurrency wallet addresses in the plugin bundle.
 
 ---
 
@@ -191,7 +198,14 @@ Release assets are limited to the three files Obsidian downloads: `main.js`, `ma
 | STL | `.stl` | Binary format, per-face colors (VisCAM/SolidView) |
 | OBJ | `.obj` | MTL materials, vault-relative texture resolution |
 | PLY | `.ply` | ASCII/binary, vertex colors, point cloud support |
-| SPLAT | `.splat` | Gaussian Splatting point clouds |
+
+SPLAT preview is temporarily disabled in packaged builds while its loader is replaced with a local-only implementation.
+
+### SPLAT Status and Roadmap
+
+- Current status: SPLAT preview is temporarily disabled in community release builds. GLB, GLTF, STL, OBJ, PLY, and the current local conversion routes are unaffected.
+- Why: the current Babylon SPLAT/SPZ loader still carries dynamic script and remote module fallback paths. The plugin runtime already rejects remote requests, but the packaged release also aims to remove those paths from the shipped bundle to reduce review and static-scan risk.
+- Roadmap: first restore local-only `.splat` loading; then reopen it after idle-render stability is improved for Windows and large scenes; finally evaluate `.spz` separately, and only re-enable it if the decoder dependencies can be bundled locally and reviewed as local assets.
 
 ### Conversion (Requires External Tools)
 
@@ -207,14 +221,14 @@ Release assets are limited to the three files Obsidian downloads: `main.js`, `ma
 
 ### Format Feature Matrix
 
-| Feature | GLB/GLTF | STL | OBJ | PLY | SPLAT | FBX (converted) | CAD |
-|---------|----------|-----|-----|-----|-------|-----|-----|
-| Mesh | Yes | Yes | Yes | Yes | No | Yes | Yes |
-| Point Cloud | No | No | No | Yes | Yes | No | No |
-| Materials | PBR | Basic | MTL | Basic | No | Basic | No |
-| Textures | Embedded | No | External | No | No | No | No |
-| Colors | Vertex | Face | No | Vertex | Point | No | Face (STEP) |
-| Animation | Yes | No | No | No | No | Yes | No |
+| Feature | GLB/GLTF | STL | OBJ | PLY | FBX (converted) | CAD |
+|---------|----------|-----|-----|-----|-----------------|-----|
+| Mesh | Yes | Yes | Yes | Yes | Yes | Yes |
+| Point Cloud | No | No | No | Yes | No | No |
+| Materials | PBR | Basic | MTL | Basic | Basic | No |
+| Textures | Embedded | No | External | No | No | No |
+| Colors | Vertex | Face | No | Vertex | No | Face (STEP) |
+| Animation | Yes | No | No | No | Yes | No |
 
 ---
 
@@ -300,13 +314,13 @@ Render multiple models in one viewport using layout presets.
 
 #### 4. Direct File View
 
-Click any `.glb`/`.gltf`/`.stl`/`.obj`/`.ply`/`.splat` file in the file explorer.
+Click any `.glb`/`.gltf`/`.stl`/`.obj`/`.ply` file in the file explorer.
 
 #### Supported Extensions
 
 | Type | Formats |
 |------|---------|
-| Direct | `.glb` `.gltf` `.stl` `.obj` `.ply` `.splat` |
+| Direct | `.glb` `.gltf` `.stl` `.obj` `.ply` |
 | Conversion | `.step` `.stp` `.iges` `.igs` `.brep` `.sldprt` `.3mf` `.dae` `.fbx` |
 
 ### Keyboard Shortcuts (in preview)
@@ -373,9 +387,9 @@ Add labeled bookmarks directly on model surfaces. Annotations persist per model 
 
 ### Portability and diagnostics
 
-The rendering layer is cross-platform: direct formats like GLB, OBJ, STL, PLY, SPLAT, and already-converted `.ai3d-converted.glb` assets can render anywhere Obsidian Desktop can provide WebGL.
+The rendering layer is cross-platform: direct formats like GLB, OBJ, STL, PLY, and already-converted `.ai3d-converted.glb` assets can render anywhere Obsidian Desktop can provide WebGL.
 
-On iOS, iPadOS, and Android, the plugin now supports direct formats such as GLB, GLTF, OBJ, STL, PLY, and SPLAT. Local conversion routes for CAD, FBX, 3MF, DAE, and SLDPRT remain desktop-only because they depend on external CLI tools and Python environments.
+On iOS, iPadOS, and Android, the plugin now supports direct formats such as GLB, GLTF, OBJ, STL, and PLY. Local conversion routes for CAD, FBX, 3MF, DAE, and SLDPRT remain desktop-only because they depend on external CLI tools and Python environments.
 
 The conversion layer is less portable because it depends on local tools and Python environments that vary by machine. Use the converter diagnostics panel in plugin settings as the first check when a CAD or mesh format fails. It verifies both the executable path the plugin resolved and whether the selected Python environment can import the required packages or the native converter CLI can launch.
 
@@ -526,7 +540,7 @@ src/
 │     └─ [if converted] → read converted .glb                 │
 │                                                             │
 │  4. Babylon Rendering                                       │
-│     ├─ GLB/GLTF/OBJ/SPLAT → SceneLoader.ImportMeshAsync()  │
+│     ├─ GLB/GLTF/OBJ → SceneLoader.ImportMeshAsync()        │
 │     ├─ STL → loadSTLBuffer() (direct parse)                 │
 │     └─ PLY → loadPLYBuffer() (direct parse)                 │
 └─────────────────────────────────────────────────────────────┘
@@ -534,7 +548,7 @@ src/
 
 ### Why Direct Buffer Loading for STL/PLY
 
-Babylon.js v9 SceneLoader has a bug where custom plugins receive data URL strings instead of ArrayBuffer when loading via `SceneLoader.ImportMeshAsync()`. Built-in loaders (GLTF, OBJ, SPLAT) are unaffected.
+Babylon.js v9 SceneLoader has a bug where custom plugins receive data URL strings instead of ArrayBuffer when loading via `SceneLoader.ImportMeshAsync()`. Built-in loaders (GLTF and OBJ) are unaffected.
 
 **Workaround**: STL and PLY parsers are called directly with the raw ArrayBuffer, bypassing SceneLoader entirely.
 

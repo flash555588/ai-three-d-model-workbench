@@ -54,7 +54,7 @@ export const zhCN: Record<TranslationKey, string> = {
   "settings.enableMesh.desc": "启用 3MF 和 DAE (Collada) 格式的转换路线，通过 Python trimesh。需要安装 Python 和 trimesh (pip install trimesh numpy networkx pycollada)。",
   "settings.enableSldprt": "启用 SLDPRT 转换器 (SolidWorks)",
   "settings.enableSldprt.desc": "启用 SolidWorks .sldprt 文件通过 FreeCAD 转换。需要安装 FreeCAD (https://www.freecad.org/downloads.php)。",
-  "settings.mobileSupport.desc": "在 iOS、iPadOS 和 Android 上，GLB、GLTF、STL、OBJ、PLY、SPLAT 这类直读格式可用。本地转换器设置和命令诊断仍仅支持桌面端。",
+  "settings.mobileSupport.desc": "在 iOS、iPadOS 和 Android 上，GLB、GLTF、STL、OBJ、PLY 这类直读格式可用。本地转换器设置和命令诊断仍仅支持桌面端。",
 
   // 转换器路径
   "settings.pythonCmd": "Python 命令路径（CAD 用）",
@@ -104,7 +104,7 @@ export const zhCN: Record<TranslationKey, string> = {
   "modelLoad.warningMessage": "{ext} 文件需要先在插件设置中启用 {converterName} 转换器，才能加载。",
   "modelLoad.warningHint": "请先在插件设置中启用对应转换器，然后重新加载当前文件。",
   "modelLoad.mobileWarningMessage": "{ext} 文件需要本地转换工具，但这些工具在 iOS、iPadOS 和 Android 上不可用。",
-  "modelLoad.mobileWarningHint": "请在桌面端打开此文件，或先将它转换为 GLB、GLTF、OBJ、STL、PLY 或 SPLAT。",
+  "modelLoad.mobileWarningHint": "请在桌面端打开此文件，或先将它转换为 GLB、GLTF、OBJ、STL 或 PLY。",
   "modelLoad.errorTitle": "无法显示这个模型",
   "modelLoad.errorMessage": "加载失败：{reason}",
   "modelLoad.errorHint": "请检查文件格式，或打开开发者控制台查看详细信息。",

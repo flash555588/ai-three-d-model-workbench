@@ -9,10 +9,8 @@ import "@babylonjs/loaders/glTF/2.0/glTFLoader";
 // OBJ: classic mesh format with MTL material support.
 import "@babylonjs/loaders/OBJ/objFileLoader";
 
-// SPLAT: Gaussian Splatting (.splat, .ply gaussian).
-import "@babylonjs/loaders/SPLAT/splatFileLoader";
-
 import { RegisterSceneLoaderPlugin } from "@babylonjs/core/Loading/sceneLoader.js";
+import { configureBabylonNetworkGuards } from "../network-guard";
 import { registerSTLLoader } from "./stl-loader";
 import { registerPLYLoader } from "./ply-loader";
 
@@ -22,6 +20,7 @@ let customLoadersReady = false;
 export async function ensureLoadersRegistered(): Promise<void> {
   if (customLoadersReady) return;
 
+  configureBabylonNetworkGuards();
   registerSTLLoader(RegisterSceneLoaderPlugin);
   registerPLYLoader(RegisterSceneLoaderPlugin);
   customLoadersReady = true;

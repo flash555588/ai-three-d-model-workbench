@@ -1,5 +1,5 @@
 /**
- * All shared interfaces for AI 3D Model Workbench.
+ * All shared interfaces for AI Model Workbench.
  * Source of truth for data structures — no runtime code.
  */
 

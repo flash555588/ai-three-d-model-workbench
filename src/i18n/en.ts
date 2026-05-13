@@ -52,7 +52,7 @@ export const en = {
   "settings.enableMesh.desc": "Enable conversion for 3mf and dae formats via python trimesh. Requires trimesh, numpy, networkx, and pycollada in your python environment.",
   "settings.enableSldprt": "Enable sldprt conversion for SolidWorks files",
   "settings.enableSldprt.desc": "Enable conversion for SolidWorks sldprt files via FreeCAD. Requires FreeCAD installed locally.",
-  "settings.mobileSupport.desc": "On iOS, iPadOS, and Android, direct formats like GLB, GLTF, STL, OBJ, PLY, and SPLAT are supported. Local converter settings and diagnostics remain desktop-only.",
+  "settings.mobileSupport.desc": "On iOS, iPadOS, and Android, direct formats like GLB, GLTF, STL, OBJ, and PLY are supported. Local converter settings and diagnostics remain desktop-only.",
 
   // Converter paths
   "settings.pythonCmd": "Path to the python command for cad conversion",
@@ -102,7 +102,7 @@ export const en = {
   "modelLoad.warningMessage": "{ext} files need the {converterName} converter enabled in plugin settings before they can load.",
   "modelLoad.warningHint": "Enable the matching converter in plugin settings, then reload this file.",
   "modelLoad.mobileWarningMessage": "{ext} files need local conversion tools that are unavailable on iOS, iPadOS, and Android.",
-  "modelLoad.mobileWarningHint": "Open this file on desktop, or convert it to GLB, GLTF, OBJ, STL, PLY, or SPLAT first.",
+  "modelLoad.mobileWarningHint": "Open this file on desktop, or convert it to GLB, GLTF, OBJ, STL, or PLY first.",
   "modelLoad.errorTitle": "Couldn't display this model",
   "modelLoad.errorMessage": "Failed to load: {reason}",
   "modelLoad.errorHint": "Check the file format or open the developer console for details.",

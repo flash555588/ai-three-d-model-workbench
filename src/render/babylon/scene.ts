@@ -17,7 +17,6 @@ import { ImportMeshAsync } from "@babylonjs/core/Loading/sceneLoader.js";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
 import type { Light } from "@babylonjs/core/Lights/light.js";
 import type { IShadowLight } from "@babylonjs/core/Lights/shadowLight.js";
-import { GaussianSplattingMesh } from "@babylonjs/core/Meshes/GaussianSplatting/gaussianSplattingMesh.js";
 import type {
   ModelPreviewSummary,
   CameraConfig,
@@ -45,7 +44,7 @@ function isShadowLight(light: Light): light is IShadowLight {
   return className === "DirectionalLight" || className === "PointLight" || className === "SpotLight";
 }
 
-function isGaussianSplattingMesh(mesh: AbstractMesh): mesh is GaussianSplattingMesh {
+function isGaussianSplattingMesh(mesh: AbstractMesh): boolean {
   return mesh.getClassName() === "GaussianSplattingMesh";
 }
 
