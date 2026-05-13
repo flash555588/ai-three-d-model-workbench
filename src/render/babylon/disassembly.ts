@@ -4,7 +4,7 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
 import type { Nullable } from "@babylonjs/core/types.js";
 import type { Node } from "@babylonjs/core/node.js";
 import { Matrix, Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector.js";
-import { Ray } from "@babylonjs/core/Culling/ray.core.js";
+import { Ray } from "@babylonjs/core/Culling/ray.js";
 import { Color3 } from "@babylonjs/core/Maths/math.color.js";
 import { Plane } from "@babylonjs/core/Maths/math.plane.js";
 import { PointerEventTypes } from "@babylonjs/core/Events/pointerEvents.js";

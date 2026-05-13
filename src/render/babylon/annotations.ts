@@ -3,7 +3,7 @@ import type { Scene } from "@babylonjs/core/scene.js";
 import type { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera.js";
 import type { Engine } from "@babylonjs/core/Engines/engine.js";
 import { Vector3, Matrix } from "@babylonjs/core/Maths/math.vector.js";
-import { Ray } from "@babylonjs/core/Culling/ray.core.js";
+import { Ray } from "@babylonjs/core/Culling/ray.js";
 import type { AnnotationPin, PluginSettings } from "../../domain/models";
 import type { HeadingSearchResult } from "../../utils/note-reader";
 import { formatT, t } from "../../i18n";
