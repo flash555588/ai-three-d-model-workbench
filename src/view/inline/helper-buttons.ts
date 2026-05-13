@@ -7,8 +7,7 @@ import { getPortableStem } from "../../utils/resolve-path";
 
 /** Create an SVG icon that follows its button color via currentColor. */
 function createSvgIcon(inner: string): SVGSVGElement {
-  // eslint-disable-next-line obsidianmd/prefer-create-el -- detached SVG root must avoid Document.createSvg because it appends to document and triggers HierarchyRequestError
-  const svg = activeDocument.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const svg = createSvg("svg");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("width", "16");
   svg.setAttribute("height", "16");
@@ -346,8 +345,7 @@ export function createHelperButtons(
       const baseName = getPortableStem(modelPath) || "model";
       const fileName = `${baseName}_snapshot_${Date.now()}.png`;
 
-      // eslint-disable-next-line obsidianmd/prefer-create-el -- temporary <a> for download click, not styled
-      const a = activeDocument.createElement("a");
+      const a = createEl("a");
       a.href = dataUrl;
       a.download = fileName;
       activeDocument.body.appendChild(a);
@@ -425,5 +423,5 @@ function showTooltip(anchor: HTMLElement, text: string): void {
   const tip = parent.createDiv({ cls: "ai3d-tooltip" });
   tip.textContent = text;
   activeTooltips.set(anchor, tip);
-  activeWindow.setTimeout(() => { tip.remove(); activeTooltips.delete(anchor); }, 1500);
+  window.setTimeout(() => { tip.remove(); activeTooltips.delete(anchor); }, 1500);
 }

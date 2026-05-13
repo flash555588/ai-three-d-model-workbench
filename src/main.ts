@@ -286,9 +286,9 @@ export default class AI3DModelWorkbench extends Plugin {
     let scanTimer = 0;
     const scheduleScan = (delay = 0): void => {
       if (scanTimer) {
-        activeWindow.clearTimeout(scanTimer);
+        window.clearTimeout(scanTimer);
       }
-      scanTimer = activeWindow.setTimeout(() => {
+      scanTimer = window.setTimeout(() => {
         scanTimer = 0;
         scanAll();
       }, delay);
@@ -351,7 +351,7 @@ export default class AI3DModelWorkbench extends Plugin {
         }
       }
       if (shouldFlush && !debounceTimer) {
-        debounceTimer = activeWindow.setTimeout(flushPending, 100);
+        debounceTimer = window.setTimeout(flushPending, 100);
       }
     });
     observer.observe(activeDocument.body, { childList: true, subtree: true });
@@ -360,8 +360,8 @@ export default class AI3DModelWorkbench extends Plugin {
     this.register(() => {
       unsubscribeStore();
       observer.disconnect();
-      if (debounceTimer) { activeWindow.clearTimeout(debounceTimer); debounceTimer = 0; }
-      if (scanTimer) { activeWindow.clearTimeout(scanTimer); scanTimer = 0; }
+      if (debounceTimer) { window.clearTimeout(debounceTimer); debounceTimer = 0; }
+      if (scanTimer) { window.clearTimeout(scanTimer); scanTimer = 0; }
       for (const el of Array.from(boundEntries.keys())) {
         unbindHeading(el);
       }

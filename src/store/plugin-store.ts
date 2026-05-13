@@ -25,11 +25,11 @@ const INITIAL_STATE: PluginState = {
 export function createPluginStore(plugin: Plugin): PluginStore {
   const store = createStore<PluginState>(INITIAL_STATE);
 
-  let saveTimer: ReturnType<typeof activeWindow.setTimeout> | null = null;
+  let saveTimer: number | null = null;
 
   function scheduleSave() {
-    if (saveTimer) activeWindow.clearTimeout(saveTimer);
-    saveTimer = activeWindow.setTimeout(() => {
+    if (saveTimer) window.clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(() => {
       saveTimer = null;
       persist().catch(err => console.error("[AI3D] Auto-save failed:", err));
     }, 500);
@@ -71,7 +71,7 @@ export function createPluginStore(plugin: Plugin): PluginStore {
 
     async save() {
       if (saveTimer) {
-        activeWindow.clearTimeout(saveTimer);
+        window.clearTimeout(saveTimer);
         saveTimer = null;
       }
       await persist();
@@ -79,7 +79,7 @@ export function createPluginStore(plugin: Plugin): PluginStore {
 
     dispose() {
       if (saveTimer) {
-        activeWindow.clearTimeout(saveTimer);
+        window.clearTimeout(saveTimer);
         saveTimer = null;
       }
     },

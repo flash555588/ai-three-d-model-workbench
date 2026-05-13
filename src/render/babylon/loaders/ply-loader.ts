@@ -4,6 +4,9 @@ import { AssetContainer } from "@babylonjs/core/assetContainer.js";
 import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData.js";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js";
 import { Color3 } from "@babylonjs/core/Maths/math.color.js";
+import type { ISceneLoaderAsyncResult, ISceneLoaderPluginAsync } from "@babylonjs/core/Loading/sceneLoader.js";
+
+type SceneLoaderPluginRegistrar = (plugin: ISceneLoaderPluginAsync) => void;
 
 interface PLYProperty {
   name: string;
@@ -22,6 +25,12 @@ interface PLYElement {
 interface PLYHeader {
   format: "ascii" | "binary_little_endian" | "binary_big_endian";
   elements: PLYElement[];
+}
+
+interface ParsedPLYData {
+  positions: number[];
+  colors: number[];
+  indices: number[];
 }
 
 // ── Header parser ─────────────────────────────────────────────────
@@ -97,7 +106,7 @@ function readValue(view: DataView, offset: number, type: string, littleEndian: b
 
 // ── Binary PLY parser ─────────────────────────────────────────────
 
-function parseBinaryPLY(buffer: ArrayBuffer, header: PLYHeader, littleEndian: boolean, headerEnd: number) {
+function parseBinaryPLY(buffer: ArrayBuffer, header: PLYHeader, littleEndian: boolean, headerEnd: number): ParsedPLYData {
   let offset = headerEnd;
 
   const view = new DataView(buffer);
@@ -167,7 +176,7 @@ function parseBinaryPLY(buffer: ArrayBuffer, header: PLYHeader, littleEndian: bo
 
 // ── ASCII PLY parser ──────────────────────────────────────────────
 
-function parseASCIIPly(text: string, header: PLYHeader) {
+function parseASCIIPly(text: string, header: PLYHeader): ParsedPLYData {
   const headerEnd = text.indexOf("end_header") + "end_header".length + 1;
   const body = text.slice(headerEnd).trim();
   const lines = body.split(/\r?\n/);
@@ -235,14 +244,14 @@ function parsePLY(scene: Scene, data: ArrayBuffer): BabylonMesh {
     throw new Error("PLY file contains no vertex data");
   }
 
-  const positions = new Float32Array(parsed.positions);
+  const positions = parsed.positions;
   const vertexData = new VertexData();
   vertexData.positions = positions;
 
   if (parsed.indices.length > 0) {
-    vertexData.indices = new Uint32Array(parsed.indices);
+    vertexData.indices = parsed.indices;
     // Compute normals from faces
-    const normals = new Float32Array(positions.length);
+    const normals = new Array<number>(positions.length).fill(0);
     const idx = parsed.indices;
     const maxIdx = positions.length - 3;
     for (let i = 0; i < idx.length; i += 3) {
@@ -273,7 +282,7 @@ function parsePLY(scene: Scene, data: ArrayBuffer): BabylonMesh {
     if (fakeIdx.length === 0 && numVerts >= 3) {
       fakeIdx.push(0, 1, 2);
     }
-    vertexData.indices = new Uint32Array(fakeIdx);
+    vertexData.indices = fakeIdx;
   }
 
   const mesh = new BabylonMesh("ply-model", scene);
@@ -284,7 +293,7 @@ function parsePLY(scene: Scene, data: ArrayBuffer): BabylonMesh {
 
   // Apply per-vertex color if present
   if (parsed.colors.length > 0) {
-    vertexData.colors = new Float32Array(parsed.colors);
+    vertexData.colors = parsed.colors;
     vertexData.applyToMesh(mesh);
     mat.diffuseColor = new Color3(1, 1, 1);
     (mat as unknown as Record<string, unknown>).vertexColorEnabled = true;
@@ -298,14 +307,14 @@ function parsePLY(scene: Scene, data: ArrayBuffer): BabylonMesh {
 
 // ── Babylon SceneLoader plugin ────────────────────────────────────
 
-const plyPlugin = {
+const plyPlugin: ISceneLoaderPluginAsync = {
   name: "ply",
   extensions: ".ply",
 
   importMeshAsync(_meshNames: unknown, scene: Scene, data: unknown) {
     return Promise.resolve().then(() => {
       const mesh = parsePLY(scene, data as ArrayBuffer);
-      return {
+      const result: ISceneLoaderAsyncResult = {
         meshes: [mesh],
         particleSystems: [],
         skeletons: [],
@@ -315,6 +324,7 @@ const plyPlugin = {
         lights: [],
         spriteManagers: [],
       };
+      return result;
     });
   },
 
@@ -345,9 +355,6 @@ export function loadPLYBuffer(scene: Scene, buffer: ArrayBuffer): BabylonMesh {
   return parsePLY(scene, buffer);
 }
 
-export async function registerPLYLoader() {
-  /* eslint-disable @typescript-eslint/no-deprecated -- Babylon SceneLoader still required for custom plugins */
-  const { SceneLoader } = await import("@babylonjs/core/Loading/sceneLoader.js");
-  SceneLoader.RegisterPlugin(plyPlugin);
-  /* eslint-enable @typescript-eslint/no-deprecated */
+export function registerPLYLoader(registerPlugin: SceneLoaderPluginRegistrar): void {
+  registerPlugin(plyPlugin);
 }

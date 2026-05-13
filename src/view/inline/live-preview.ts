@@ -125,9 +125,9 @@ class ModelEmbedWidget extends WidgetType {
         return;
       }
       if (++attempts > 120) return; // ~2s at 60fps, give up
-      this.pollId = requestAnimationFrame(poll);
+      this.pollId = window.requestAnimationFrame(poll);
     };
-    this.pollId = requestAnimationFrame(poll);
+    this.pollId = window.requestAnimationFrame(poll);
 
     return host;
   }
@@ -215,7 +215,7 @@ class ModelEmbedWidget extends WidgetType {
   }
 
   override destroy(): void {
-    cancelAnimationFrame(this.pollId);
+    window.cancelAnimationFrame(this.pollId);
     this.pollId = 0;
     this.annotationMgr?.destroy();
     this.annotationMgr = null;

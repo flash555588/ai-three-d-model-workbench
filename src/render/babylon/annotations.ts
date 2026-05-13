@@ -61,12 +61,12 @@ export class AnnotationManager {
   private static readonly _scratchDir = Vector3.Zero();
   private static readonly _scratchRay = new Ray(Vector3.Zero(), Vector3.Zero(), 1);
   private hoverPopover: HTMLDivElement | null = null;
-  private hoverTimeout: ReturnType<typeof activeWindow.setTimeout> | null = null;
+  private hoverTimeout: number | null = null;
   private hoverRequestId = 0;
   private _highlightHandler: ((e: Event) => void) | null = null;
-  private _pulseTimeout: ReturnType<typeof activeWindow.setTimeout> | null = null;
+  private _pulseTimeout: number | null = null;
   private _headingDropdown: HTMLDivElement | null = null;
-  private _headingDebounce: ReturnType<typeof activeWindow.setTimeout> | null = null;
+  private _headingDebounce: number | null = null;
   private _selectedHeading: HeadingSearchResult | null = null;
   private readonly previewRenderRoot = new Component();
   private readonly previewRenderChildren = new WeakMap<HTMLElement, Component>();
@@ -295,13 +295,13 @@ export class AnnotationManager {
     // ── Input event: heading search ──
     input.addEventListener("input", () => {
       if (!this.headingSearch) return;
-      if (this._headingDebounce) activeWindow.clearTimeout(this._headingDebounce);
+      if (this._headingDebounce) window.clearTimeout(this._headingDebounce);
       const query = input.value.trim();
       if (query.length < 1) {
         hideDropdown();
         return;
       }
-      this._headingDebounce = activeWindow.setTimeout(() => {
+      this._headingDebounce = window.setTimeout(() => {
         const results = this.headingSearch!(query);
         showResults(results);
       }, 150);
@@ -343,7 +343,7 @@ export class AnnotationManager {
 
     // Close dropdown on blur (after a short delay to allow mousedown on items)
     input.addEventListener("blur", () => {
-      activeWindow.setTimeout(hideDropdown, 150);
+      window.setTimeout(hideDropdown, 150);
     });
 
     // ── Color swatches ──
@@ -437,7 +437,7 @@ export class AnnotationManager {
     }
 
     // Focus input after DOM insert
-    requestAnimationFrame(() => input.focus());
+    window.requestAnimationFrame(() => input.focus());
 
     // Stop click propagation to prevent canvas picking while editing
     editor.addEventListener("pointerdown", (e) => e.stopPropagation());
@@ -445,7 +445,7 @@ export class AnnotationManager {
   }
 
   hideEditor(): void {
-    if (this._headingDebounce) { activeWindow.clearTimeout(this._headingDebounce); this._headingDebounce = null; }
+    if (this._headingDebounce) { window.clearTimeout(this._headingDebounce); this._headingDebounce = null; }
     this._headingDropdown = null;
     this._selectedHeading = null;
     if (this.editorEl) {
@@ -479,17 +479,12 @@ export class AnnotationManager {
     const content = await this.noteReader(pin.notePath, pin.headingRef);
     if (!content || requestId !== this.hoverRequestId || !pinEl.isConnected || !this.hostEl.isConnected) return;
 
-    const popover = activeDocument.createElement("div");
-    popover.className = "ai3d-pin-popover";
+    const popover = createDiv({ cls: "ai3d-pin-popover" });
 
-    const title = activeDocument.createElement("div");
-    title.className = "ai3d-pin-popover-title";
+    const title = popover.createDiv({ cls: "ai3d-pin-popover-title" });
     title.textContent = pin.headingRef;
-    popover.appendChild(title);
 
-    const body = activeDocument.createElement("div");
-    body.className = "ai3d-pin-popover-body";
-    popover.appendChild(body);
+    const body = popover.createDiv({ cls: "ai3d-pin-popover-body" });
     await this.renderPreviewContent(body, content, pin.notePath, "popover");
 
     if (requestId !== this.hoverRequestId || !pinEl.isConnected || !this.hostEl.isConnected) {
@@ -507,7 +502,7 @@ export class AnnotationManager {
   }
 
   private hideHoverPopover(): void {
-    if (this.hoverTimeout) { activeWindow.clearTimeout(this.hoverTimeout); this.hoverTimeout = null; }
+    if (this.hoverTimeout) { window.clearTimeout(this.hoverTimeout); this.hoverTimeout = null; }
     if (this.hoverPopover) {
       const body = this.hoverPopover.querySelector<HTMLDivElement>(".ai3d-pin-popover-body");
       if (body) {
@@ -574,12 +569,12 @@ export class AnnotationManager {
   pulsePin(pinId: string): void {
     const entry = this.pinEls.get(pinId);
     if (!entry) return;
-    if (this._pulseTimeout) { activeWindow.clearTimeout(this._pulseTimeout); this._pulseTimeout = null; }
+    if (this._pulseTimeout) { window.clearTimeout(this._pulseTimeout); this._pulseTimeout = null; }
     entry.el.classList.remove("ai3d-pin-pulse");
     // Force reflow to restart animation
     void entry.el.offsetWidth;
     entry.el.classList.add("ai3d-pin-pulse");
-    this._pulseTimeout = activeWindow.setTimeout(() => {
+    this._pulseTimeout = window.setTimeout(() => {
       entry.el.classList.remove("ai3d-pin-pulse");
       this._pulseTimeout = null;
     }, 1200);
@@ -588,8 +583,8 @@ export class AnnotationManager {
   destroy(): void {
     this.hoverRequestId++;
     this.hideHoverPopover();
-    if (this._pulseTimeout) { activeWindow.clearTimeout(this._pulseTimeout); this._pulseTimeout = null; }
-    if (this._headingDebounce) { activeWindow.clearTimeout(this._headingDebounce); this._headingDebounce = null; }
+    if (this._pulseTimeout) { window.clearTimeout(this._pulseTimeout); this._pulseTimeout = null; }
+    if (this._headingDebounce) { window.clearTimeout(this._headingDebounce); this._headingDebounce = null; }
     this._headingDropdown = null;
     this._selectedHeading = null;
     this.observer?.remove();
@@ -640,16 +635,16 @@ export class AnnotationManager {
     // Hover popover for linked notes
     if (pin.notePath && pin.headingRef && this.noteReader) {
       el.addEventListener("mouseenter", () => {
-        if (this.hoverTimeout) { activeWindow.clearTimeout(this.hoverTimeout); }
+        if (this.hoverTimeout) { window.clearTimeout(this.hoverTimeout); }
         const requestId = ++this.hoverRequestId;
-        this.hoverTimeout = activeWindow.setTimeout(() => {
+        this.hoverTimeout = window.setTimeout(() => {
           this.hoverTimeout = null;
           if (requestId !== this.hoverRequestId) return;
           void this.showHoverPopover(requestId, el, pin);
         }, 300);
       });
       el.addEventListener("mouseleave", () => {
-        if (this.hoverTimeout) { activeWindow.clearTimeout(this.hoverTimeout); this.hoverTimeout = null; }
+        if (this.hoverTimeout) { window.clearTimeout(this.hoverTimeout); this.hoverTimeout = null; }
         this.hoverRequestId++;
         this.hideHoverPopover();
       });

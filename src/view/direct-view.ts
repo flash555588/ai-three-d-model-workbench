@@ -90,8 +90,7 @@ export class DirectModelView extends FileView {
 
     // Use a detached staging container to avoid "Only one element on document" error.
     // This happens because contentEl may be the document itself during onLoadFile.
-    // eslint-disable-next-line obsidianmd/prefer-create-el -- staging container must use raw createElement to avoid HierarchyRequestError
-    const staging = activeDocument.createElement("div");
+    const staging = createDiv();
     const host = staging.createDiv({ cls: "ai3d-preview-host" });
 
     const canvas = staging.createEl("canvas");

@@ -1,45 +1,21 @@
 import type { Scene } from "@babylonjs/core/scene.js";
-import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh.js";
 import { AssetContainer } from "@babylonjs/core/assetContainer.js";
 import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData.js";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js";
 import { Color3 } from "@babylonjs/core/Maths/math.color.js";
+import type { ISceneLoaderAsyncResult, ISceneLoaderPluginAsync } from "@babylonjs/core/Loading/sceneLoader.js";
 
-interface STLAsyncResult {
-  meshes: AbstractMesh[];
-  particleSystems: never[];
-  skeletons: never[];
-  animationGroups: never[];
-  transformNodes: never[];
-  geometries: never[];
-  lights: never[];
-  spriteManagers: never[];
-}
+type SceneLoaderPluginRegistrar = (plugin: ISceneLoaderPluginAsync) => void;
 
-interface STLAsyncPlugin {
-  name: string;
-  extensions: string;
-  importMeshAsync: (
-    meshNames: string | readonly string[] | null | undefined,
-    scene: Scene,
-    data: unknown,
-    rootUrl: string,
-  ) => Promise<STLAsyncResult>;
-  loadAsync: (scene: Scene, data: unknown, rootUrl: string) => Promise<void>;
-  loadAssetContainerAsync: (scene: Scene, data: unknown, rootUrl: string) => Promise<AssetContainer>;
-  canDirectLoad: (data: string) => boolean;
-  rewriteRootURL: (rootUrl: string) => string;
-}
-
-const stlPlugin: STLAsyncPlugin = {
+const stlPlugin: ISceneLoaderPluginAsync = {
   name: "stl",
   extensions: ".stl",
 
   importMeshAsync(_meshNames, scene, data) {
     return Promise.resolve().then(() => {
       const mesh = parseBinarySTL(scene, data as ArrayBuffer);
-      return {
+      const result: ISceneLoaderAsyncResult = {
         meshes: [mesh],
         particleSystems: [],
         skeletons: [],
@@ -49,6 +25,7 @@ const stlPlugin: STLAsyncPlugin = {
         lights: [],
         spriteManagers: [],
       };
+      return result;
     });
   },
 
@@ -113,10 +90,10 @@ function parseBinarySTL(scene: Scene, buffer: ArrayBuffer): BabylonMesh {
 
   // When faces have colors, each face needs its own 3 unshared vertices (for per-vertex color).
   // When no colors, we can share vertices across faces (compact indices).
-  const positions = new Float32Array(triangleCount * 9);
-  const normals = new Float32Array(triangleCount * 9);
-  const colors = hasFaceColors ? new Float32Array(triangleCount * 12) : undefined; // RGBA per vertex
-  const indices = new Uint32Array(triangleCount * 3);
+  const positions = new Array<number>(triangleCount * 9).fill(0);
+  const normals = new Array<number>(triangleCount * 9).fill(0);
+  const colors = hasFaceColors ? new Array<number>(triangleCount * 12).fill(0) : null; // RGBA per vertex
+  const indices = new Array<number>(triangleCount * 3).fill(0);
 
   let zeroNormalCount = 0;
   let colorFaceCount = 0;
@@ -227,9 +204,6 @@ export function loadSTLBuffer(scene: Scene, buffer: ArrayBuffer): BabylonMesh {
   return parseBinarySTL(scene, buffer);
 }
 
-export async function registerSTLLoader() {
-  /* eslint-disable @typescript-eslint/no-deprecated -- Babylon SceneLoader still required for custom plugins */
-  const { SceneLoader } = await import("@babylonjs/core/Loading/sceneLoader.js");
-  SceneLoader.RegisterPlugin(stlPlugin);
-  /* eslint-enable @typescript-eslint/no-deprecated */
+export function registerSTLLoader(registerPlugin: SceneLoaderPluginRegistrar): void {
+  registerPlugin(stlPlugin);
 }

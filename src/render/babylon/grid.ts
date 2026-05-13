@@ -5,7 +5,7 @@ import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight.js";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector.js";
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color.js";
 import { Viewport } from "@babylonjs/core/Maths/math.viewport.js";
-import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader.js";
+import { ImportMeshAsync } from "@babylonjs/core/Loading/sceneLoader.js";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js";
 import type { ModelConfig, GridBlockConfig, ModelPlacement, CellLayout, PresetResult } from "../../domain/models";
@@ -69,7 +69,7 @@ export class GridRenderer {
 
     this.resizeObs = new ResizeObserver(() => this.engine.resize());
     this.resizeObs.observe(canvas);
-    requestAnimationFrame(() => this.engine.resize());
+    window.requestAnimationFrame(() => this.engine.resize());
   }
 
   async loadModels(
@@ -216,15 +216,7 @@ export class GridRenderer {
     };
     const fileExt = extToLoader[ext] ?? `.${ext}`;
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Babylon SceneLoader still required for grid loading
-    const result = await SceneLoader.ImportMeshAsync(
-      "",
-      "",
-      dataUrl,
-      this.scene,
-      undefined,
-      fileExt,
-    );
+    const result = await ImportMeshAsync(dataUrl, this.scene, { meshNames: "", pluginExtension: fileExt });
     if (result.meshes.length === 0) throw new Error(`No mesh in ${path}`);
 
     const root = result.meshes[0];

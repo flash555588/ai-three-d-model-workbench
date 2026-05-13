@@ -1,38 +1,28 @@
 // Side-effect imports: register Babylon SceneLoader plugins.
 // Each import calls RegisterSceneLoaderPlugin() as a side-effect.
 
-// glTF/GLB — both required: glTFFileLoader sets up the plugin, the 2.0 loader
-// registers itself via GLTFFileLoader._CreateGLTF2Loader.
+// glTF/GLB: both required. glTFFileLoader sets up the plugin, and the 2.0
+// loader registers itself through GLTFFileLoader._CreateGLTF2Loader.
 import "@babylonjs/loaders/glTF/glTFFileLoader";
 import "@babylonjs/loaders/glTF/2.0/glTFLoader";
 
-// OBJ — classic mesh format with MTL material support
+// OBJ: classic mesh format with MTL material support.
 import "@babylonjs/loaders/OBJ/objFileLoader";
 
-// SPLAT — Gaussian Splatting (.splat, .ply gaussian)
+// SPLAT: Gaussian Splatting (.splat, .ply gaussian).
 import "@babylonjs/loaders/SPLAT/splatFileLoader";
 
-import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader.js";
+import { RegisterSceneLoaderPlugin } from "@babylonjs/core/Loading/sceneLoader.js";
 import { registerSTLLoader } from "./stl-loader";
 import { registerPLYLoader } from "./ply-loader";
 
 let customLoadersReady = false;
-const optionalFbxLoaderPackage = "babylonjs-fbx-loader";
 
-/** Register all SceneLoader plugins (GLTF/OBJ/SPLAT via side-effect imports, STL/PLY custom). */
+/** Register custom SceneLoader plugins that are not provided by Babylon packages. */
 export async function ensureLoadersRegistered(): Promise<void> {
   if (customLoadersReady) return;
 
-  // The community FBX loader currently peers against Babylon 8, so keep it optional.
-  try {
-    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, no-unsanitized/method, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-deprecated -- optional dynamic import of community FBX loader */
-    const { FBXLoader } = await import(optionalFbxLoaderPackage);
-    SceneLoader.RegisterPlugin(new FBXLoader());
-    /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, no-unsanitized/method, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-deprecated */
-  } catch {
-    // FBX loader not available — silently skip
-  }
-
-  await Promise.all([registerSTLLoader(), registerPLYLoader()]);
+  registerSTLLoader(RegisterSceneLoaderPlugin);
+  registerPLYLoader(RegisterSceneLoaderPlugin);
   customLoadersReady = true;
 }

@@ -13,9 +13,10 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js"
 import { ShadowGenerator } from "@babylonjs/core/Lights/Shadows/shadowGenerator.js";
 import "@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent.js";
 import { AutoRotationBehavior } from "@babylonjs/core/Behaviors/Cameras/autoRotationBehavior.js";
-import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader.js";
+import { ImportMeshAsync } from "@babylonjs/core/Loading/sceneLoader.js";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
 import type { Light } from "@babylonjs/core/Lights/light.js";
+import type { IShadowLight } from "@babylonjs/core/Lights/shadowLight.js";
 import { GaussianSplattingMesh } from "@babylonjs/core/Meshes/GaussianSplatting/gaussianSplattingMesh.js";
 import type {
   ModelPreviewSummary,
@@ -38,6 +39,15 @@ import { DisassemblyController } from "./disassembly";
 
 /** Guard against concurrent OBJ loads monkey-patching the same prototype. */
 let objMtlLock: Promise<void> | null = null;
+
+function isShadowLight(light: Light): light is IShadowLight {
+  const className = light.getClassName();
+  return className === "DirectionalLight" || className === "PointLight" || className === "SpotLight";
+}
+
+function isGaussianSplattingMesh(mesh: AbstractMesh): mesh is GaussianSplattingMesh {
+  return mesh.getClassName() === "GaussianSplattingMesh";
+}
 
 function escapeTableCell(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
@@ -106,7 +116,7 @@ export class BabylonModelPreview {
     this.resizeObs = new ResizeObserver(() => this.engine.resize());
     this.resizeObs.observe(canvas);
     // Force a resize after the canvas is mounted and has layout dimensions
-    requestAnimationFrame(() => this.engine.resize());
+    window.requestAnimationFrame(() => this.engine.resize());
   }
 
   async loadModel(
@@ -253,8 +263,7 @@ export class BabylonModelPreview {
           onSuccess(content);
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Babylon SceneLoader still required for OBJ plugin
-        const result = await SceneLoader.ImportMeshAsync("", "", dataUrl, scene, undefined, fileExt);
+        const result = await ImportMeshAsync(dataUrl, scene, { meshNames: "", pluginExtension: fileExt });
         this.loadedMeshes = result.meshes;
         if (result.meshes.length > 0) this.rootMesh = result.meshes[0] as Mesh;
         // Log material state after OBJ load
@@ -281,8 +290,7 @@ export class BabylonModelPreview {
       this.rootMesh = loadPLYBuffer(scene, data);
       if (this.rootMesh) this.loadedMeshes = [this.rootMesh];
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-deprecated -- Babylon SceneLoader still required for GLTF/OBJ
-      const result = await SceneLoader.ImportMeshAsync("", "", dataUrl, scene, undefined, fileExt);
+      const result = await ImportMeshAsync(dataUrl, scene, { meshNames: "", pluginExtension: fileExt });
       this.loadedMeshes = result.meshes;
       if (result.meshes.length > 0) this.rootMesh = result.meshes[0] as Mesh;
     }
@@ -466,8 +474,7 @@ export class BabylonModelPreview {
     if (!this.rootMesh) return;
     // ShadowGenerator requires a ShadowLight (DirectionalLight | PointLight | SpotLight).
     // HemisphericLight cannot cast shadows — silently skip.
-    // eslint-disable-next-line obsidianmd/prefer-instanceof -- Babylon types don't have .instanceOf()
-    if (!(light instanceof DirectionalLight || light instanceof PointLight || light instanceof SpotLight)) {
+    if (!isShadowLight(light)) {
       console.warn("[AI3D] Light type does not support shadows:", light.name);
       return;
     }
@@ -588,8 +595,7 @@ export class BabylonModelPreview {
 
   setWireframe(enabled: boolean): void {
     if (!this.rootMesh) return;
-    // eslint-disable-next-line obsidianmd/prefer-instanceof -- Babylon types don't have .instanceOf()
-    if (this.rootMesh instanceof GaussianSplattingMesh) return;
+    if (isGaussianSplattingMesh(this.rootMesh)) return;
     this.wireframeEnabled = enabled;
     this.scene.forceWireframe = enabled;
   }
@@ -714,8 +720,7 @@ export class BabylonModelPreview {
     if (!this.rootMesh) return "";
     const summary = this.computeSummary(this.rootMesh);
     const renderableMeshes = this.getRenderableMeshes(this.rootMesh);
-    // eslint-disable-next-line obsidianmd/prefer-instanceof -- Babylon types don't have .instanceOf()
-    const isSplat = this.rootMesh instanceof GaussianSplattingMesh;
+    const isSplat = isGaussianSplattingMesh(this.rootMesh);
     const ext = this.loadedExt.toUpperCase();
 
     const name = modelPath ? getPortableBasename(modelPath) || summary.rootName : summary.rootName;
@@ -889,8 +894,7 @@ export class BabylonModelPreview {
     let vertexCount = 0;
     const materials = new Set<string>();
 
-    // eslint-disable-next-line obsidianmd/prefer-instanceof -- Babylon types don't have .instanceOf()
-    const isSplat = root instanceof GaussianSplattingMesh;
+    const isSplat = isGaussianSplattingMesh(root);
 
     for (const m of allMeshes) {
       const indices = m.getTotalIndices();

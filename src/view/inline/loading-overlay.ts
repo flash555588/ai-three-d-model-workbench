@@ -79,7 +79,7 @@ export function createLoadingOverlay(host: HTMLElement): LoadingOverlay {
       hidden = true;
       stopListening();
       overlay.classList.add("is-hiding");
-      activeWindow.setTimeout(() => overlay.remove(), 300);
+      window.setTimeout(() => overlay.remove(), 300);
     },
   };
 }

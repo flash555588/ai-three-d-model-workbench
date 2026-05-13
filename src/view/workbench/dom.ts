@@ -20,8 +20,7 @@ export function createElement(
 
   // Staging container: elements created here are later inserted into the live DOM
   // by htm's template processing, at which point they inherit Obsidian CSS variables.
-  // eslint-disable-next-line obsidianmd/prefer-create-el -- staging container avoids HierarchyRequestError on activeDocument
-  const staging = activeDocument.createElement("div");
+  const staging = createDiv();
   const el = staging.createEl(tag as keyof HTMLElementTagNameMap);
 
   if (props) {
